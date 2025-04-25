@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ArrowRight, BarChart3, LineChart, PieChart } from "lucide-react"
+import Link from "next/link"
 
 interface ChallengePortfolioProps {
   challengeId: string
@@ -118,10 +119,12 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full">
-                Swap Assets
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <Link href={`/swap?challenge=${challengeId}`} className="w-full">
+                <Button className="w-full">
+                  Swap Assets
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </CardFooter>
           </Card>
         </TabsContent>

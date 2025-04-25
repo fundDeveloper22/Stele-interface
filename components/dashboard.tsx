@@ -66,7 +66,6 @@ export function Dashboard() {
         </Card>
       </div>
       <ActiveChallenges />
-      <AssetSwap />
     </div>
   )
 }
