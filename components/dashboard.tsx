@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ArrowRight, ArrowUpRight, Clock, Trophy } from "lucide-react"
 import { AssetSwap } from "@/components/asset-swap"
 import { ActiveChallenges } from "@/components/active-challenges"
+import Link from "next/link"
 
 export function Dashboard() {
   return (
@@ -64,75 +65,8 @@ export function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
-      <>
-        <ActiveChallenges />
-
-        <Card>
-          <CardHeader>
-            <CardTitle>My Portfolio</CardTitle>
-            <CardDescription>Challenges you are currently participating in</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between py-3 border-b border-border">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center mr-3">
-                    <span className="text-xs font-bold">1W</span>
-                  </div>
-                  <div>
-                    <div className="font-medium">Short-term Investment Master</div>
-                    <div className="text-sm text-muted-foreground">1 Week Challenge</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-medium">$1,245.67</div>
-                  <div className="text-sm text-emerald-500">+24.57%</div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between py-3 border-b border-border">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center mr-3">
-                    <span className="text-xs font-bold">1M</span>
-                  </div>
-                  <div>
-                    <div className="font-medium">Mid-term Investment Strategy</div>
-                    <div className="text-sm text-muted-foreground">1 Month Challenge</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-medium">$2,890.45</div>
-                  <div className="text-sm text-emerald-500">+8.90%</div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between py-3 border-b border-border">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center mr-3">
-                    <span className="text-xs font-bold">3M</span>
-                  </div>
-                  <div>
-                    <div className="font-medium">Long-term Investment Portfolio</div>
-                    <div className="text-sm text-muted-foreground">3 Month Challenge</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-medium">$5,432.10</div>
-                  <div className="text-sm text-red-500">-2.15%</div>
-                </div>
-              </div>
-
-              <Button variant="outline" className="w-full">
-                View Challenge Details
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <AssetSwap />
-      </>
+      <ActiveChallenges />
+      <AssetSwap />
     </div>
   )
 }

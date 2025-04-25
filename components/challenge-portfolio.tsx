@@ -9,11 +9,29 @@ interface ChallengePortfolioProps {
 
 export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   // This would typically fetch data based on the challengeId
+  
+  // Display title based on challenge ID
+  const getChallengeTitle = () => {
+    switch(challengeId) {
+      case 'short-term-investment':
+        return 'Short-term Investment Master';
+      case 'mid-term-investment':
+        return 'Mid-term Investment Strategy';
+      case 'long-term-investment':
+        return 'Long-term Investment Portfolio';
+      case 'crypto-trading':
+        return 'Crypto Trading Competition';
+      case 'defi-yield':
+        return 'DeFi Yield Optimization';
+      default:
+        return 'Challenge Details';
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Short-term Investment Master</h2>
+        <h2 className="text-xl font-bold">{getChallengeTitle()}</h2>
         <Button variant="outline" size="sm">
           <LineChart className="mr-2 h-4 w-4" />
           Performance History
