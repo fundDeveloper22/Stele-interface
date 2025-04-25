@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ArrowRight, BarChart3, LineChart, PieChart } from "lucide-react"
+import Link from "next/link"
 
 interface ChallengePortfolioProps {
   challengeId: string
@@ -9,11 +10,29 @@ interface ChallengePortfolioProps {
 
 export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   // This would typically fetch data based on the challengeId
+  
+  // Display title based on challenge ID
+  const getChallengeTitle = () => {
+    switch(challengeId) {
+      case 'short-term-investment':
+        return 'Short-term Investment Master';
+      case 'mid-term-investment':
+        return 'Mid-term Investment Strategy';
+      case 'long-term-investment':
+        return 'Long-term Investment Portfolio';
+      case 'crypto-trading':
+        return 'Crypto Trading Competition';
+      case 'defi-yield':
+        return 'DeFi Yield Optimization';
+      default:
+        return 'Challenge Details';
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Short-term Investment Master</h2>
+        <h2 className="text-xl font-bold">{getChallengeTitle()}</h2>
         <Button variant="outline" size="sm">
           <LineChart className="mr-2 h-4 w-4" />
           Performance History
@@ -100,10 +119,12 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full">
-                Swap Assets
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <Link href={`/swap?challenge=${challengeId}`} className="w-full">
+                <Button className="w-full">
+                  Swap Assets
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </CardFooter>
           </Card>
         </TabsContent>

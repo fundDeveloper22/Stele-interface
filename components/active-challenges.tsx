@@ -7,6 +7,7 @@ export function ActiveChallenges() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <ChallengeCard
+          id="short-term-investment"
           title="Short-term Investment Master"
           type="1 Week Challenge"
           participants={42}
@@ -17,6 +18,7 @@ export function ActiveChallenges() {
         />
 
         <ChallengeCard
+          id="mid-term-investment"
           title="Mid-term Investment Strategy"
           type="1 Month Challenge"
           participants={78}
@@ -27,6 +29,7 @@ export function ActiveChallenges() {
         />
 
         <ChallengeCard
+          id="long-term-investment"
           title="Long-term Investment Portfolio"
           type="3 Month Challenge"
           participants={36}
@@ -37,6 +40,7 @@ export function ActiveChallenges() {
         />
 
         <ChallengeCard
+          id="crypto-trading"
           title="Crypto Trading Competition"
           type="1 Week Challenge"
           participants={64}
@@ -47,6 +51,7 @@ export function ActiveChallenges() {
         />
 
         <ChallengeCard
+          id="defi-yield"
           title="DeFi Yield Optimization"
           type="1 Month Challenge"
           participants={52}
