@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Clock, Trophy, Users } from "lucide-react"
+import Link from "next/link"
 
 interface ChallengeCardProps {
+  id?: string
   title: string
   type: string
   participants: number
@@ -14,7 +16,10 @@ interface ChallengeCardProps {
   status: "active" | "pending" | "completed"
 }
 
-export function ChallengeCard({ title, type, participants, timeLeft, prize, progress, status }: ChallengeCardProps) {
+export function ChallengeCard({ title, type, participants, timeLeft, prize, progress, status, id }: ChallengeCardProps) {
+  // If no ID is provided, convert the title to kebab-case and use it as ID
+  const challengeId = id || title.toLowerCase().replace(/\s+/g, '-');
+  
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-2">
@@ -54,10 +59,19 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
         </div>
       </CardContent>
       <CardFooter>
-        <Button className="w-full">
-          <Trophy className="mr-2 h-4 w-4" />
-          {status === "active" ? "View Challenge" : status === "pending" ? "Join Challenge" : "View Results"}
-        </Button>
+        {status === "active" ? (
+          <Link href={`/challenge/${challengeId}`} className="w-full">
+            <Button className="w-full">
+              <Trophy className="mr-2 h-4 w-4" />
+              View Challenge
+            </Button>
+          </Link>
+        ) : (
+          <Button className="w-full">
+            <Trophy className="mr-2 h-4 w-4" />
+            {status === "pending" ? "Join Challenge" : "View Results"}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   )

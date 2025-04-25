@@ -2,10 +2,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ArrowDown, ChevronDown } from "lucide-react"
+import { HTMLAttributes } from "react"
+import { cn } from "@/lib/utils"
 
-export function AssetSwap() {
+interface AssetSwapProps extends HTMLAttributes<HTMLDivElement> {}
+
+export function AssetSwap({ className, ...props }: AssetSwapProps) {
   return (
-    <div className="max-w-md mx-auto">
+    <div className={cn("max-w-md mx-auto", className)} {...props}>
       <Card className="border-border bg-background">
         <CardHeader>
           <CardTitle>Swap Assets</CardTitle>
