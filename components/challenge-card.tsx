@@ -63,13 +63,13 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
           <Link href={`/challenge/${challengeId}`} className="w-full">
             <Button className="w-full">
               <Trophy className="mr-2 h-4 w-4" />
-              View Challenge
+              Join Challenge
             </Button>
           </Link>
         ) : (
           <Button className="w-full">
             <Trophy className="mr-2 h-4 w-4" />
-            {status === "pending" ? "Join Challenge" : "View Results"}
+            Create Challenge          
           </Button>
         )}
       </CardFooter>

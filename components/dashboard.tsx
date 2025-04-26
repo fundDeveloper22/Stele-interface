@@ -12,16 +12,6 @@ export function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Clock className="mr-2 h-4 w-4" />
-            Recent Challenges
-          </Button>
-          <Button variant="default" size="sm">
-            <Trophy className="mr-2 h-4 w-4" />
-            Join New Challenge
-          </Button>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
