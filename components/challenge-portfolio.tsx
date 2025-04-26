@@ -33,10 +33,16 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">{getChallengeTitle()}</h2>
-        <Button variant="outline" size="sm">
-          <LineChart className="mr-2 h-4 w-4" />
-          Performance History
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="default" size="sm">
+            <LineChart className="mr-2 h-4 w-4" />
+            Create Challenge
+          </Button>
+          <Button variant="outline" size="sm">
+            <LineChart className="mr-2 h-4 w-4" />
+            Join Challenge
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
