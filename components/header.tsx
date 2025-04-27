@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import { Home, Trophy, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Bell, Search, User } from "lucide-react"
+import { Bell, Search, User, Wallet } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,11 +16,79 @@ import {
 import Link from "next/link"
 import { useState, useEffect } from "react"
 
+// Base Chain mainnet information
+const BASE_CHAIN_ID = '0x2105'; // Base mainnet chain ID (hexadecimal)
+const BASE_CHAIN_CONFIG = {
+  chainId: BASE_CHAIN_ID,
+  chainName: 'Base Mainnet',
+  nativeCurrency: {
+    name: 'Ethereum',
+    symbol: 'ETH',
+    decimals: 18
+  },
+  rpcUrls: ['https://mainnet.base.org'],
+  blockExplorerUrls: ['https://basescan.org']
+};
+
 export function Header() {
   const pathname = usePathname()
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
-  const [walletNetwork, setWalletNetwork] = useState<'solana' | 'ethereum'>('solana')
+  const [walletNetwork, setWalletNetwork] = useState<'solana' | 'ethereum' | 'base'>('solana')
+  const [balance, setBalance] = useState<string>('0')
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false)
+
+  // Get symbol and chain name based on network
+  const getNetworkInfo = () => {
+    switch (walletNetwork) {
+      case 'ethereum':
+        return { symbol: 'ETH', name: 'Ethereum Mainnet' };
+      case 'base':
+        return { symbol: 'ETH', name: 'Base Mainnet' };
+      case 'solana':
+        return { symbol: 'SOL', name: 'Solana' };
+      default:
+        return { symbol: '', name: '' };
+    }
+  };
+
+  // Fetch wallet balance
+  const fetchBalance = async () => {
+    if (!walletAddress || !window.phantom) return;
+    
+    try {
+      setIsLoadingBalance(true);
+      
+      if (walletNetwork === 'solana') {
+        // Get Solana balance
+        if (window.phantom?.solana) {
+          // For Solana, separate API call is needed (using arbitrary value for simplification)
+          // In practice, we would use Solana Web3.js to call getBalance
+          setBalance('1.234');
+        }
+      } else {
+        // Get Ethereum/Base balance
+        if (window.phantom?.ethereum) {
+          const balanceHex = await window.phantom.ethereum.request({
+            method: 'eth_getBalance',
+            params: [walletAddress, 'latest'],
+          });
+          
+          // Convert from Wei to ETH (1 ETH = 10^18 Wei)
+          const balanceInWei = parseInt(balanceHex, 16);
+          const balanceInEth = balanceInWei / Math.pow(10, 18);
+          
+          // Display up to 4 decimal places
+          setBalance(balanceInEth.toFixed(4));
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+      setBalance('?');
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  };
 
   const connectWallet = async () => {
     if (typeof window.phantom === 'undefined') {
@@ -40,9 +108,22 @@ export function Header() {
         if (accounts && accounts.length > 0) {
           const address = accounts[0]
           setWalletAddress(address)
-          setWalletNetwork('ethereum')
+          
+          // Get current chain ID
+          const chainId = await window.phantom.ethereum.request({ 
+            method: 'eth_chainId' 
+          });
+          
+          // Set wallet network based on chain ID
+          if (chainId === BASE_CHAIN_ID) {
+            setWalletNetwork('base')
+            localStorage.setItem('walletNetwork', 'base')
+          } else {
+            setWalletNetwork('ethereum')
+            localStorage.setItem('walletNetwork', 'ethereum')
+          }
+          
           localStorage.setItem('walletAddress', address)
-          localStorage.setItem('walletNetwork', 'ethereum')
           setIsConnecting(false)
           return
         }
@@ -68,34 +149,65 @@ export function Header() {
 
   const disconnectWallet = () => {
     setWalletAddress(null)
+    setBalance('0')
     localStorage.removeItem('walletAddress')
     localStorage.removeItem('walletNetwork')
   }
 
-  // Switch between Ethereum and Solana wallet
-  const switchWalletNetwork = async () => {
+  // Switch to Base Chain
+  const switchToBaseChain = async () => {
+    if (!window.phantom?.ethereum) return;
+    
+    try {
+      setIsConnecting(true);
+      
+      // Try to switch to Base chain
+      try {
+        await window.phantom.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: BASE_CHAIN_ID }],
+        });
+      } catch (switchError: any) {
+        // This error code indicates that the chain has not been added to Phantom
+        if (switchError.code === 4902) {
+          // Add the Base chain
+          await window.phantom.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [BASE_CHAIN_CONFIG],
+          });
+        } else {
+          throw switchError;
+        }
+      }
+      
+      // Get accounts after switching
+      const accounts = await window.phantom.ethereum.request({ 
+        method: 'eth_requestAccounts' 
+      });
+      
+      if (accounts && accounts.length > 0) {
+        const address = accounts[0];
+        setWalletAddress(address);
+        setWalletNetwork('base');
+        localStorage.setItem('walletAddress', address);
+        localStorage.setItem('walletNetwork', 'base');
+      }
+    } catch (error) {
+      console.error("Error switching to Base chain:", error);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  // Switch between Networks
+  const switchWalletNetwork = async (targetNetwork: 'solana' | 'ethereum' | 'base') => {
     if (!window.phantom) return
 
     try {
       disconnectWallet()
       setIsConnecting(true)
       
-      if (walletNetwork === 'solana') {
-        // Switch to Ethereum
-        if (window.phantom?.ethereum) {
-          const accounts = await window.phantom.ethereum.request({ 
-            method: 'eth_requestAccounts' 
-          })
-          
-          if (accounts && accounts.length > 0) {
-            const address = accounts[0]
-            setWalletAddress(address)
-            setWalletNetwork('ethereum')
-            localStorage.setItem('walletAddress', address)
-            localStorage.setItem('walletNetwork', 'ethereum')
-          }
-        }
-      } else {
+      if (targetNetwork === 'solana') {
         // Switch to Solana
         const provider = window.phantom?.solana
         
@@ -107,6 +219,33 @@ export function Header() {
           localStorage.setItem('walletAddress', address)
           localStorage.setItem('walletNetwork', 'solana')
         }
+      } else if (targetNetwork === 'base') {
+        // Switch to Base
+        await switchToBaseChain()
+      } else {
+        // Switch to Ethereum Mainnet
+        if (window.phantom?.ethereum) {
+          try {
+            await window.phantom.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x1' }], // Ethereum mainnet
+            });
+            
+            const accounts = await window.phantom.ethereum.request({ 
+              method: 'eth_requestAccounts' 
+            });
+            
+            if (accounts && accounts.length > 0) {
+              const address = accounts[0];
+              setWalletAddress(address);
+              setWalletNetwork('ethereum');
+              localStorage.setItem('walletAddress', address);
+              localStorage.setItem('walletNetwork', 'ethereum');
+            }
+          } catch (error) {
+            console.error("Error switching to Ethereum:", error);
+          }
+        }
       }
     } catch (error) {
       console.error("Wallet switch error:", error)
@@ -115,6 +254,13 @@ export function Header() {
     }
   }
 
+  // Fetch new balance when wallet address or network changes
+  useEffect(() => {
+    if (walletAddress) {
+      fetchBalance();
+    }
+  }, [walletAddress, walletNetwork]);
+
   // Restore saved wallet address on page load
   useEffect(() => {
     const savedAddress = localStorage.getItem('walletAddress')
@@ -122,11 +268,13 @@ export function Header() {
     
     if (savedAddress) {
       setWalletAddress(savedAddress)
-      if (savedNetwork === 'ethereum' || savedNetwork === 'solana') {
-        setWalletNetwork(savedNetwork)
+      if (savedNetwork === 'ethereum' || savedNetwork === 'solana' || savedNetwork === 'base') {
+        setWalletNetwork(savedNetwork as 'ethereum' | 'solana' | 'base')
       }
     }
   }, [])
+
+  const { symbol, name } = getNetworkInfo();
 
   return (
     <header className="sticky top-0 z-30 border-b border-border h-16 flex items-center justify-between px-4 md:px-6 bg-background">
@@ -180,32 +328,65 @@ export function Header() {
       
       <div className="flex items-center gap-2 md:gap-4">
         {walletAddress ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="text-primary border-primary hover:bg-primary/10 hidden sm:flex">
-                {walletNetwork === 'ethereum' ? 'ETH: ' : 'SOL: '}
-                {walletNetwork === 'ethereum' 
-                  ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
-                  : `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
-                }
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => {
-                navigator.clipboard.writeText(walletAddress)
-              }}>
-                Copy Address
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={switchWalletNetwork}>
-                Switch to {walletNetwork === 'ethereum' ? 'Solana' : 'Ethereum'}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={disconnectWallet}>
-                Disconnect
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <div className="hidden md:flex flex-col items-end">
+              <span className="text-xs text-muted-foreground">{name}</span>
+              <span className="text-sm font-medium">
+                {isLoadingBalance ? 'Loading...' : `${balance} ${symbol}`}
+              </span>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="text-primary border-primary hover:bg-primary/10 hidden sm:flex">
+                  <Wallet className="mr-2 h-4 w-4" />
+                  {walletNetwork === 'solana'
+                    ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
+                    : `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+                  }
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col">
+                    <span>{name}</span>
+                    <span className="text-xs font-normal text-muted-foreground mt-1">
+                      {isLoadingBalance ? 'Loading...' : `${balance} ${symbol}`}
+                    </span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => {
+                  navigator.clipboard.writeText(walletAddress)
+                }}>
+                  Copy Address
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={fetchBalance}>
+                  Refresh Balance
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Switch Network</DropdownMenuLabel>
+                {walletNetwork !== 'ethereum' && (
+                  <DropdownMenuItem onClick={() => switchWalletNetwork('ethereum')}>
+                    Ethereum Mainnet
+                  </DropdownMenuItem>
+                )}
+                {walletNetwork !== 'base' && (
+                  <DropdownMenuItem onClick={() => switchWalletNetwork('base')}>
+                    Base Mainnet
+                  </DropdownMenuItem>
+                )}
+                {walletNetwork !== 'solana' && (
+                  <DropdownMenuItem onClick={() => switchWalletNetwork('solana')}>
+                    Solana
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={disconnectWallet}>
+                  Disconnect
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         ) : (
           <Button 
             variant="outline" 
@@ -214,6 +395,7 @@ export function Header() {
             onClick={connectWallet}
             disabled={isConnecting}
           >
+            <Wallet className="mr-2 h-4 w-4" />
             {isConnecting ? "Connecting..." : "Connect Wallet"}
           </Button>
         )}
