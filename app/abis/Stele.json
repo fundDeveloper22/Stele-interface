@@ -336,25 +336,6 @@
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "enum ChallengeType",
-          "name": "",
-          "type": "uint8"
-        }
-      ],
-      "name": "activeChallengesByType",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
       "inputs": [],
       "name": "challengeCounter",
       "outputs": [
@@ -534,6 +515,25 @@
       "name": "joinChallenge",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "enum ChallengeType",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "name": "latestChallengesByType",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {

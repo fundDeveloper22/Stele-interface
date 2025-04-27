@@ -9,9 +9,10 @@ import { useState } from "react"
 import { ethers } from "ethers"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
+import { ChallengeTypeModal } from "@/components/challenge-type-modal"
 
 // Stele contract address on Base Mainnet
-const STELE_CONTRACT_ADDRESS = "0x26d999E647F8fF37617dFE55D4632984F68c4FF9";
+const STELE_CONTRACT_ADDRESS = "0xee6d8537C2300305e3c3B40d7E23D40205F19484";
 
 interface ChallengePortfolioProps {
   challengeId: string
@@ -40,8 +41,8 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
     }
   };
 
-  // Handle Create Challenge button click
-  const handleCreateChallenge = async () => {
+  // Handle Create Challenge with selected type
+  const handleCreateChallenge = async (challengeType: number) => {
     setIsCreating(true);
     
     try {
@@ -115,8 +116,9 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         signer
       );
 
-      // Call createChallenge with challengeType = 0
-      const tx = await steleContract.createChallenge(0);
+      // Call createChallenge with the selected challenge type
+      console.log(`Creating challenge with type: ${challengeType}`);
+      const tx = await steleContract.createChallenge(challengeType);
       
       // Show toast notification for transaction submitted
       toast({
@@ -153,6 +155,9 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         title: "Error Creating Challenge",
         description: error.message || "An unknown error occurred",
       });
+      
+      // Re-throw the error to be handled by the modal
+      throw error;
     } finally {
       setIsCreating(false);
     }
@@ -163,24 +168,11 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">{getChallengeTitle()}</h2>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="default" 
-            size="sm" 
-            onClick={handleCreateChallenge}
-            disabled={isCreating}
-          >
-            {isCreating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <LineChart className="mr-2 h-4 w-4" />
-                Create Challenge
-              </>
-            )}
-          </Button>
+          <ChallengeTypeModal 
+            onCreateChallenge={handleCreateChallenge}
+            isCreating={isCreating}
+          />
+          
           <Button variant="outline" size="sm">
             <LineChart className="mr-2 h-4 w-4" />
             Join Challenge
