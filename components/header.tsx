@@ -22,6 +22,7 @@ import {
   STELE_CONTRACT_ADDRESS,
   USDC_DECIMALS
 } from "@/lib/constants"
+import { useEntryFee } from "@/lib/hooks/use-entry-fee"
 
 export function Header() {
   const pathname = usePathname()
@@ -30,8 +31,9 @@ export function Header() {
   const [walletNetwork, setWalletNetwork] = useState<'solana' | 'ethereum' | 'base'>('solana')
   const [balance, setBalance] = useState<string>('0')
   const [isLoadingBalance, setIsLoadingBalance] = useState(false)
-  const [entryFee, setEntryFee] = useState<string | null>(null)
-  const [isLoadingEntryFee, setIsLoadingEntryFee] = useState(false)
+  
+  // Get entry fee from context
+  const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee()
 
   // Get symbol and chain name based on network
   const getNetworkInfo = () => {
@@ -44,41 +46,6 @@ export function Header() {
         return { symbol: 'SOL', name: 'Solana' };
       default:
         return { symbol: '', name: '' };
-    }
-  };
-
-  // Fetch Stele entry fee
-  const fetchEntryFee = async () => {
-    if (walletNetwork !== 'base') return;
-    
-    try {
-      setIsLoadingEntryFee(true);
-      
-      // Dynamically import the ABI to avoid issues with SSR
-      const SteleABI = await import("@/app/abis/Stele.json");
-      
-      // Create a read-only provider for Base
-      const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
-      
-      // Create contract instance
-      const steleContract = new ethers.Contract(
-        STELE_CONTRACT_ADDRESS,
-        SteleABI.default.abi,
-        provider
-      );
-      
-      // Call entryFee view function
-      const fee = await steleContract.entryFee();
-      
-      // Format with appropriate decimals
-      const formattedFee = ethers.formatUnits(fee, USDC_DECIMALS);
-      
-      setEntryFee(formattedFee);
-    } catch (error) {
-      console.error("Error fetching entry fee:", error);
-      setEntryFee(null);
-    } finally {
-      setIsLoadingEntryFee(false);
     }
   };
 
@@ -291,13 +258,6 @@ export function Header() {
     }
   }, [walletAddress, walletNetwork]);
 
-  // Fetch entry fee when page loads or network changes to Base
-  useEffect(() => {
-    if (walletNetwork === 'base') {
-      fetchEntryFee();
-    }
-  }, [walletNetwork]);
-
   // Restore saved wallet address on page load
   useEffect(() => {
     const savedAddress = localStorage.getItem('walletAddress')
@@ -309,9 +269,6 @@ export function Header() {
         setWalletNetwork(savedNetwork as 'ethereum' | 'solana' | 'base')
       }
     }
-    
-    // Fetch entry fee regardless of wallet connection
-    fetchEntryFee();
   }, [])
 
   const { symbol, name } = getNetworkInfo();
@@ -370,7 +327,7 @@ export function Header() {
         {walletNetwork === 'base' && entryFee && (
           <div className="hidden md:flex items-center justify-center bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-medium">
             <DollarSign className="h-3 w-3 mr-1" />
-            Entry Fee : {entryFee} USDC
+            Entry Fee : {isLoadingEntryFee ? 'Loading...' : `${entryFee} USDC`}
           </div>
         )}
         
