@@ -20,6 +20,7 @@ interface ChallengePortfolioProps {
 
 export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const [isCreating, setIsCreating] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
   
   // This would typically fetch data based on the challengeId
   
@@ -27,17 +28,136 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const getChallengeTitle = () => {
     switch(challengeId) {
       case 'one-week-challenge':
-        return '1 week challenge';
+        return 'One Week Challenge';
       case 'one-month-challenge':
-        return '1 month challenge';
-      case 'three-months-challenge':
-        return '3 months challenge';
-      case 'six-months-challenge':
-        return '6 months challenge';
+        return 'One Month Challenge';
+      case 'three-month-challenge':
+        return 'Three Month Challenge';
+      case 'six-month-challenge':
+        return 'Six Month Challenge';
       case 'one-year-challenge':
-        return '1 year challenge';
+        return 'One Year Challenge';
       default:
-        return '1 week challenge';
+        return 'One Week Challenge';
+    }
+  };
+
+  // Handle Join Challenge
+  const handleJoinChallenge = async () => {
+    setIsJoining(true);
+    
+    try {
+      // Check if Phantom wallet is installed
+      if (typeof window.phantom === 'undefined') {
+        throw new Error("Phantom wallet is not installed. Please install it from https://phantom.app/");
+      }
+
+      // Check if Ethereum provider is available
+      if (!window.phantom?.ethereum) {
+        throw new Error("Ethereum provider not found in Phantom wallet");
+      }
+
+      // Request account access
+      const accounts = await window.phantom.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No accounts found. Please connect to Phantom wallet first.");
+      }
+
+      // Check if we are on Base network
+      const chainId = await window.phantom.ethereum.request({
+        method: 'eth_chainId'
+      });
+
+      if (chainId !== '0x2105') { // Base Mainnet Chain ID
+        // Switch to Base network
+        try {
+          await window.phantom.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x2105' }], // Base Mainnet
+          });
+        } catch (switchError: any) {
+          // This error code indicates that the chain has not been added to the wallet
+          if (switchError.code === 4902) {
+            await window.phantom.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0x2105',
+                chainName: 'Base Mainnet',
+                nativeCurrency: {
+                  name: 'Ethereum',
+                  symbol: 'ETH',
+                  decimals: 18
+                },
+                rpcUrls: ['https://mainnet.base.org'],
+                blockExplorerUrls: ['https://basescan.org']
+              }],
+            });
+          } else {
+            throw switchError;
+          }
+        }
+      }
+
+      // Dynamically import the ABI to avoid issues with SSR
+      const SteleABI = await import("@/app/abis/Stele.json");
+
+      // Create a Web3Provider using the Phantom ethereum provider
+      const provider = new ethers.BrowserProvider(window.phantom.ethereum);
+      
+      // Get the signer
+      const signer = await provider.getSigner();
+      
+      // Create contract instance
+      const steleContract = new ethers.Contract(
+        STELE_CONTRACT_ADDRESS,
+        SteleABI.default.abi,
+        signer
+      );
+
+      // Call joinChallenge with challenge ID 1
+      console.log("Joining challenge with ID: 1");
+      const tx = await steleContract.joinChallenge("1");
+      
+      // Show toast notification for transaction submitted
+      toast({
+        title: "Transaction Submitted",
+        description: "Your join challenge transaction has been sent to the network.",
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+      
+      // Wait for transaction to be mined
+      await tx.wait();
+      
+      // Show toast notification for transaction confirmed
+      toast({
+        title: "Challenge Joined",
+        description: "You have successfully joined the challenge!",
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+      
+      console.log("Transaction confirmed:", tx.hash);
+    } catch (error: any) {
+      console.error("Error joining challenge:", error);
+      
+      // Show toast notification for error
+      toast({
+        variant: "destructive",
+        title: "Error Joining Challenge",
+        description: error.message || "An unknown error occurred",
+      });
+    } finally {
+      setIsJoining(false);
     }
   };
 
@@ -173,9 +293,18 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
             isCreating={isCreating}
           />
           
-          <Button variant="outline" size="sm">
-            <LineChart className="mr-2 h-4 w-4" />
-            Join Challenge
+          <Button variant="outline" size="sm" onClick={handleJoinChallenge} disabled={isJoining}>
+            {isJoining ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Joining...
+              </>
+            ) : (
+              <>
+                <LineChart className="mr-2 h-4 w-4" />
+                Join Challenge
+              </>
+            )}
           </Button>
         </div>
       </div>
