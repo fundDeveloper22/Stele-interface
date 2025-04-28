@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import { Home, Trophy, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Bell, Search, User, Wallet } from "lucide-react"
+import { Bell, Search, User, Wallet, DollarSign } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,20 +15,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-
-// Base Chain mainnet information
-const BASE_CHAIN_ID = '0x2105'; // Base mainnet chain ID (hexadecimal)
-const BASE_CHAIN_CONFIG = {
-  chainId: BASE_CHAIN_ID,
-  chainName: 'Base Mainnet',
-  nativeCurrency: {
-    name: 'Ethereum',
-    symbol: 'ETH',
-    decimals: 18
-  },
-  rpcUrls: ['https://mainnet.base.org'],
-  blockExplorerUrls: ['https://basescan.org']
-};
+import { ethers } from "ethers"
+import { 
+  BASE_CHAIN_ID, 
+  BASE_CHAIN_CONFIG, 
+  STELE_CONTRACT_ADDRESS,
+  USDC_DECIMALS
+} from "@/lib/constants"
 
 export function Header() {
   const pathname = usePathname()
@@ -37,6 +30,8 @@ export function Header() {
   const [walletNetwork, setWalletNetwork] = useState<'solana' | 'ethereum' | 'base'>('solana')
   const [balance, setBalance] = useState<string>('0')
   const [isLoadingBalance, setIsLoadingBalance] = useState(false)
+  const [entryFee, setEntryFee] = useState<string | null>(null)
+  const [isLoadingEntryFee, setIsLoadingEntryFee] = useState(false)
 
   // Get symbol and chain name based on network
   const getNetworkInfo = () => {
@@ -49,6 +44,41 @@ export function Header() {
         return { symbol: 'SOL', name: 'Solana' };
       default:
         return { symbol: '', name: '' };
+    }
+  };
+
+  // Fetch Stele entry fee
+  const fetchEntryFee = async () => {
+    if (walletNetwork !== 'base') return;
+    
+    try {
+      setIsLoadingEntryFee(true);
+      
+      // Dynamically import the ABI to avoid issues with SSR
+      const SteleABI = await import("@/app/abis/Stele.json");
+      
+      // Create a read-only provider for Base
+      const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+      
+      // Create contract instance
+      const steleContract = new ethers.Contract(
+        STELE_CONTRACT_ADDRESS,
+        SteleABI.default.abi,
+        provider
+      );
+      
+      // Call entryFee view function
+      const fee = await steleContract.entryFee();
+      
+      // Format with appropriate decimals
+      const formattedFee = ethers.formatUnits(fee, USDC_DECIMALS);
+      
+      setEntryFee(formattedFee);
+    } catch (error) {
+      console.error("Error fetching entry fee:", error);
+      setEntryFee(null);
+    } finally {
+      setIsLoadingEntryFee(false);
     }
   };
 
@@ -261,6 +291,13 @@ export function Header() {
     }
   }, [walletAddress, walletNetwork]);
 
+  // Fetch entry fee when page loads or network changes to Base
+  useEffect(() => {
+    if (walletNetwork === 'base') {
+      fetchEntryFee();
+    }
+  }, [walletNetwork]);
+
   // Restore saved wallet address on page load
   useEffect(() => {
     const savedAddress = localStorage.getItem('walletAddress')
@@ -272,6 +309,9 @@ export function Header() {
         setWalletNetwork(savedNetwork as 'ethereum' | 'solana' | 'base')
       }
     }
+    
+    // Fetch entry fee regardless of wallet connection
+    fetchEntryFee();
   }, [])
 
   const { symbol, name } = getNetworkInfo();
@@ -327,6 +367,13 @@ export function Header() {
       </div>
       
       <div className="flex items-center gap-2 md:gap-4">
+        {walletNetwork === 'base' && entryFee && (
+          <div className="hidden md:flex items-center justify-center bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-medium">
+            <DollarSign className="h-3 w-3 mr-1" />
+            Entry Fee : {entryFee} USDC
+          </div>
+        )}
+        
         {walletAddress ? (
           <div className="flex items-center gap-2">
             <div className="hidden md:flex flex-col items-end">

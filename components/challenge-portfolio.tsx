@@ -10,9 +10,11 @@ import { ethers } from "ethers"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import { ChallengeTypeModal } from "@/components/challenge-type-modal"
-
-// Stele contract address on Base Mainnet
-const STELE_CONTRACT_ADDRESS = "0xee6d8537C2300305e3c3B40d7E23D40205F19484";
+import { 
+  BASE_CHAIN_ID, 
+  BASE_CHAIN_CONFIG, 
+  STELE_CONTRACT_ADDRESS 
+} from "@/lib/constants"
 
 interface ChallengePortfolioProps {
   challengeId: string
@@ -71,29 +73,19 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         method: 'eth_chainId'
       });
 
-      if (chainId !== '0x2105') { // Base Mainnet Chain ID
+      if (chainId !== BASE_CHAIN_ID) { // Base Mainnet Chain ID
         // Switch to Base network
         try {
           await window.phantom.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0x2105' }], // Base Mainnet
+            params: [{ chainId: BASE_CHAIN_ID }], // Base Mainnet
           });
         } catch (switchError: any) {
           // This error code indicates that the chain has not been added to the wallet
           if (switchError.code === 4902) {
             await window.phantom.ethereum.request({
               method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: '0x2105',
-                chainName: 'Base Mainnet',
-                nativeCurrency: {
-                  name: 'Ethereum',
-                  symbol: 'ETH',
-                  decimals: 18
-                },
-                rpcUrls: ['https://mainnet.base.org'],
-                blockExplorerUrls: ['https://basescan.org']
-              }],
+              params: [BASE_CHAIN_CONFIG],
             });
           } else {
             throw switchError;
@@ -190,29 +182,19 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         method: 'eth_chainId'
       });
 
-      if (chainId !== '0x2105') { // Base Mainnet Chain ID
+      if (chainId !== BASE_CHAIN_ID) { // Base Mainnet Chain ID
         // Switch to Base network
         try {
           await window.phantom.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0x2105' }], // Base Mainnet
+            params: [{ chainId: BASE_CHAIN_ID }], // Base Mainnet
           });
         } catch (switchError: any) {
           // This error code indicates that the chain has not been added to the wallet
           if (switchError.code === 4902) {
             await window.phantom.ethereum.request({
               method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: '0x2105',
-                chainName: 'Base Mainnet',
-                nativeCurrency: {
-                  name: 'Ethereum',
-                  symbol: 'ETH',
-                  decimals: 18
-                },
-                rpcUrls: ['https://mainnet.base.org'],
-                blockExplorerUrls: ['https://basescan.org']
-              }],
+              params: [BASE_CHAIN_CONFIG],
             });
           } else {
             throw switchError;
