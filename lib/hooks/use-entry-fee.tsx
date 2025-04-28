@@ -49,9 +49,11 @@ export function EntryFeeProvider({ children }: { children: ReactNode }) {
       // Call entryFee view function
       const fee = await steleContract.entryFee()
       
+      //TODO : remove BigInt(100)
       // Format with appropriate decimals
-      const formattedFee = ethers.formatUnits(fee, USDC_DECIMALS)
-      
+      const entryFeeInUsd = ethers.parseUnits(fee.toString(), USDC_DECIMALS) / BigInt(100);
+      const formattedFee = ethers.formatUnits(entryFeeInUsd, USDC_DECIMALS);
+
       setEntryFee(formattedFee)
     } catch (err) {
       console.error("Error fetching entry fee:", err)

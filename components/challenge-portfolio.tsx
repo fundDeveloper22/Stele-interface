@@ -13,8 +13,11 @@ import { ChallengeTypeModal } from "@/components/challenge-type-modal"
 import { 
   BASE_CHAIN_ID, 
   BASE_CHAIN_CONFIG, 
-  STELE_CONTRACT_ADDRESS 
+  STELE_CONTRACT_ADDRESS,
+  USDC_TOKEN_ADDRESS,
+  USDC_DECIMALS
 } from "@/lib/constants"
+import { useEntryFee } from "@/lib/hooks/use-entry-fee"
 
 interface ChallengePortfolioProps {
   challengeId: string
@@ -23,6 +26,7 @@ interface ChallengePortfolioProps {
 export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee();
   
   // This would typically fetch data based on the challengeId
   
@@ -93,8 +97,13 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         }
       }
 
-      // Dynamically import the ABI to avoid issues with SSR
+      if (!entryFee) {
+        throw new Error("Entry fee not loaded yet. Please try again later.");
+      }
+
+      // Dynamically import the ABIs
       const SteleABI = await import("@/app/abis/Stele.json");
+      const ERC20ABI = await import("@/app/abis/ERC20.json");
 
       // Create a Web3Provider using the Phantom ethereum provider
       const provider = new ethers.BrowserProvider(window.phantom.ethereum);
@@ -102,14 +111,52 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       // Get the signer
       const signer = await provider.getSigner();
       
-      // Create contract instance
+      // Create contract instances
       const steleContract = new ethers.Contract(
         STELE_CONTRACT_ADDRESS,
         SteleABI.default.abi,
         signer
       );
 
-      // Call joinChallenge with challenge ID 1
+      const usdcContract = new ethers.Contract(
+        USDC_TOKEN_ADDRESS,
+        ERC20ABI.abi,
+        signer
+      );
+
+      // Convert entryFee from string to the proper format for the contract
+      const discountedEntryFeeAmount = ethers.parseUnits(entryFee, USDC_DECIMALS);
+
+      // First approve the Stele contract to spend USDC
+      console.log(`Approving ${entryFee} USDC (${discountedEntryFeeAmount}) for Stele contract...`);
+      const approveTx = await usdcContract.approve(STELE_CONTRACT_ADDRESS, discountedEntryFeeAmount);
+      
+      // Show toast notification for approve transaction submitted
+      toast({
+        title: "Approval Submitted",
+        description: "Your USDC approval transaction has been sent to the network.",
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${approveTx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+      
+      // Wait for approve transaction to be mined
+      await approveTx.wait();
+      
+      // Show toast notification for approve transaction confirmed
+      toast({
+        title: "Approval Confirmed",
+        description: `You have successfully approved ${entryFee} USDC for Stele contract.`,
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${approveTx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+
+      // Now call joinChallenge with challenge ID 1
       console.log("Joining challenge with ID: 1");
       const tx = await steleContract.joinChallenge("1");
       
@@ -275,16 +322,21 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
             isCreating={isCreating}
           />
           
-          <Button variant="outline" size="sm" onClick={handleJoinChallenge} disabled={isJoining}>
+          <Button variant="outline" size="sm" onClick={handleJoinChallenge} disabled={isJoining || isLoadingEntryFee}>
             {isJoining ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Joining...
               </>
+            ) : isLoadingEntryFee ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
             ) : (
               <>
                 <LineChart className="mr-2 h-4 w-4" />
-                Join Challenge
+                Join Challenge ({entryFee} USDC)
               </>
             )}
           </Button>
