@@ -22,33 +22,28 @@ import { Loader2 } from "lucide-react"
 const CHALLENGE_TYPES = [
   {
     id: 0,
-    name: "Short-term Investment",
-    description: "1 week duration challenge focused on quick trading strategies",
+    name: "One Week Challenge",
     duration: "1 Week"
   },
   {
     id: 1,
-    name: "Mid-term Investment",
-    description: "1 month duration challenge with balanced risk/reward approach",
+    name: "One Month Challenge",
     duration: "1 Month"
   },
   {
     id: 2,
-    name: "Long-term Investment",
-    description: "3 month duration challenge for patient strategic investors",
+    name: "Three Month Challenge",
     duration: "3 Months"
   },
   {
     id: 3,
-    name: "High-risk Trading",
-    description: "2 week duration challenge with volatile assets and higher potential returns",
-    duration: "2 Weeks"
+    name: "Six Month Challenge",
+    duration: "6 Months"
   },
   {
     id: 4,
-    name: "DeFi Yield Farming",
-    description: "1 month duration challenge focused on DeFi protocols and yield optimization",
-    duration: "1 Month"
+    name: "One Year Challenge",
+    duration: "1 Year"
   }
 ];
 
@@ -114,9 +109,6 @@ export function ChallengeTypeModal({ onCreateChallenge, isCreating }: ChallengeT
                       {type.duration}
                     </span>
                   </Label>
-                  <p className="text-sm text-muted-foreground">
-                    {type.description}
-                  </p>
                 </div>
               </div>
             ))}

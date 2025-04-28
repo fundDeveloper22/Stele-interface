@@ -26,18 +26,18 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   // Display title based on challenge ID
   const getChallengeTitle = () => {
     switch(challengeId) {
-      case 'short-term-investment':
-        return 'Short-term Investment Master';
-      case 'mid-term-investment':
-        return 'Mid-term Investment Strategy';
-      case 'long-term-investment':
-        return 'Long-term Investment Portfolio';
-      case 'crypto-trading':
-        return 'Crypto Trading Competition';
-      case 'defi-yield':
-        return 'DeFi Yield Optimization';
+      case 'one-week-challenge':
+        return 'One Week Challenge';
+      case 'one-month-challenge':
+        return 'One Month Challenge';
+      case 'three-month-challenge':
+        return 'Three Month Challenge';
+      case 'six-month-challenge':
+        return 'Six Month Challenge';
+      case 'one-year-challenge':
+        return 'One Year Challenge';
       default:
-        return 'Challenge Details';
+        return 'One Week Challenge';
     }
   };
 
