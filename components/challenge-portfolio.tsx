@@ -1,31 +1,165 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowRight, BarChart3, LineChart, PieChart } from "lucide-react"
+import { ArrowRight, BarChart3, LineChart, PieChart, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
+import { ethers } from "ethers"
+import { toast } from "@/components/ui/use-toast"
+import { ToastAction } from "@/components/ui/toast"
+import { ChallengeTypeModal } from "@/components/challenge-type-modal"
+
+// Stele contract address on Base Mainnet
+const STELE_CONTRACT_ADDRESS = "0xee6d8537C2300305e3c3B40d7E23D40205F19484";
 
 interface ChallengePortfolioProps {
   challengeId: string
 }
 
 export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
+  const [isCreating, setIsCreating] = useState(false);
+  
   // This would typically fetch data based on the challengeId
   
   // Display title based on challenge ID
   const getChallengeTitle = () => {
     switch(challengeId) {
-      case 'short-term-investment':
-        return 'Short-term Investment Master';
-      case 'mid-term-investment':
-        return 'Mid-term Investment Strategy';
-      case 'long-term-investment':
-        return 'Long-term Investment Portfolio';
-      case 'crypto-trading':
-        return 'Crypto Trading Competition';
-      case 'defi-yield':
-        return 'DeFi Yield Optimization';
+      case 'one-week-challenge':
+        return 'One Week Challenge';
+      case 'one-month-challenge':
+        return 'One Month Challenge';
+      case 'three-month-challenge':
+        return 'Three Month Challenge';
+      case 'six-month-challenge':
+        return 'Six Month Challenge';
+      case 'one-year-challenge':
+        return 'One Year Challenge';
       default:
-        return 'Challenge Details';
+        return 'One Week Challenge';
+    }
+  };
+
+  // Handle Create Challenge with selected type
+  const handleCreateChallenge = async (challengeType: number) => {
+    setIsCreating(true);
+    
+    try {
+      // Check if Phantom wallet is installed
+      if (typeof window.phantom === 'undefined') {
+        throw new Error("Phantom wallet is not installed. Please install it from https://phantom.app/");
+      }
+
+      // Check if Ethereum provider is available
+      if (!window.phantom?.ethereum) {
+        throw new Error("Ethereum provider not found in Phantom wallet");
+      }
+
+      // Request account access
+      const accounts = await window.phantom.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No accounts found. Please connect to Phantom wallet first.");
+      }
+
+      // Check if we are on Base network
+      const chainId = await window.phantom.ethereum.request({
+        method: 'eth_chainId'
+      });
+
+      if (chainId !== '0x2105') { // Base Mainnet Chain ID
+        // Switch to Base network
+        try {
+          await window.phantom.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x2105' }], // Base Mainnet
+          });
+        } catch (switchError: any) {
+          // This error code indicates that the chain has not been added to the wallet
+          if (switchError.code === 4902) {
+            await window.phantom.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0x2105',
+                chainName: 'Base Mainnet',
+                nativeCurrency: {
+                  name: 'Ethereum',
+                  symbol: 'ETH',
+                  decimals: 18
+                },
+                rpcUrls: ['https://mainnet.base.org'],
+                blockExplorerUrls: ['https://basescan.org']
+              }],
+            });
+          } else {
+            throw switchError;
+          }
+        }
+      }
+
+      // Dynamically import the ABI to avoid issues with SSR
+      const SteleABI = await import("@/app/abis/Stele.json");
+
+      // Create a Web3Provider using the Phantom ethereum provider
+      const provider = new ethers.BrowserProvider(window.phantom.ethereum);
+      
+      // Get the signer
+      const signer = await provider.getSigner();
+      
+      // Create contract instance
+      const steleContract = new ethers.Contract(
+        STELE_CONTRACT_ADDRESS,
+        SteleABI.default.abi,
+        signer
+      );
+
+      // Call createChallenge with the selected challenge type
+      console.log(`Creating challenge with type: ${challengeType}`);
+      const tx = await steleContract.createChallenge(challengeType);
+      
+      // Show toast notification for transaction submitted
+      toast({
+        title: "Transaction Submitted",
+        description: "Your challenge creation transaction has been sent to the network.",
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+      
+      // Wait for transaction to be mined
+      await tx.wait();
+      
+      // Show toast notification for transaction confirmed
+      toast({
+        title: "Challenge Created",
+        description: "Your challenge has been created successfully!",
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+      
+      console.log("Transaction confirmed:", tx.hash);
+    } catch (error: any) {
+      console.error("Error creating challenge:", error);
+      
+      // Show toast notification for error
+      toast({
+        variant: "destructive",
+        title: "Error Creating Challenge",
+        description: error.message || "An unknown error occurred",
+      });
+      
+      // Re-throw the error to be handled by the modal
+      throw error;
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -34,10 +168,11 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">{getChallengeTitle()}</h2>
         <div className="flex items-center gap-2">
-          <Button variant="default" size="sm">
-            <LineChart className="mr-2 h-4 w-4" />
-            Create Challenge
-          </Button>
+          <ChallengeTypeModal 
+            onCreateChallenge={handleCreateChallenge}
+            isCreating={isCreating}
+          />
+          
           <Button variant="outline" size="sm">
             <LineChart className="mr-2 h-4 w-4" />
             Join Challenge
