@@ -22,27 +22,27 @@ import { Loader2 } from "lucide-react"
 const CHALLENGE_TYPES = [
   {
     id: 0,
-    name: "One Week Challenge",
+    name: "1 Week Challenge",
     duration: "1 Week"
   },
   {
     id: 1,
-    name: "One Month Challenge",
+    name: "1 Month Challenge",
     duration: "1 Month"
   },
   {
     id: 2,
-    name: "Three Month Challenge",
+    name: "3 Months Challenge",
     duration: "3 Months"
   },
   {
     id: 3,
-    name: "Six Month Challenge",
+    name: "6 Months Challenge",
     duration: "6 Months"
   },
   {
     id: 4,
-    name: "One Year Challenge",
+    name: "1 Year Challenge",
     duration: "1 Year"
   }
 ];

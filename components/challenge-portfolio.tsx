@@ -27,17 +27,17 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const getChallengeTitle = () => {
     switch(challengeId) {
       case 'one-week-challenge':
-        return 'One Week Challenge';
+        return '1 week challenge';
       case 'one-month-challenge':
-        return 'One Month Challenge';
-      case 'three-month-challenge':
-        return 'Three Month Challenge';
-      case 'six-month-challenge':
-        return 'Six Month Challenge';
+        return '1 month challenge';
+      case 'three-months-challenge':
+        return '3 months challenge';
+      case 'six-months-challenge':
+        return '6 months challenge';
       case 'one-year-challenge':
-        return 'One Year Challenge';
+        return '1 year challenge';
       default:
-        return 'One Week Challenge';
+        return '1 week challenge';
     }
   };
 
