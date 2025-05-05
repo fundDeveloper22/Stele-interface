@@ -10,9 +10,14 @@ import { ethers } from "ethers"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import { ChallengeTypeModal } from "@/components/challenge-type-modal"
-
-// Stele contract address on Base Mainnet
-const STELE_CONTRACT_ADDRESS = "0xee6d8537C2300305e3c3B40d7E23D40205F19484";
+import { 
+  BASE_CHAIN_ID, 
+  BASE_CHAIN_CONFIG, 
+  STELE_CONTRACT_ADDRESS,
+  USDC_TOKEN_ADDRESS,
+  USDC_DECIMALS
+} from "@/lib/constants"
+import { useEntryFee } from "@/lib/hooks/use-entry-fee"
 
 interface ChallengePortfolioProps {
   challengeId: string
@@ -20,6 +25,8 @@ interface ChallengePortfolioProps {
 
 export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const [isCreating, setIsCreating] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee();
   
   // This would typically fetch data based on the challengeId
   
@@ -38,6 +45,158 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         return 'One Year Challenge';
       default:
         return 'One Week Challenge';
+    }
+  };
+
+  // Handle Join Challenge
+  const handleJoinChallenge = async () => {
+    setIsJoining(true);
+    
+    try {
+      // Check if Phantom wallet is installed
+      if (typeof window.phantom === 'undefined') {
+        throw new Error("Phantom wallet is not installed. Please install it from https://phantom.app/");
+      }
+
+      // Check if Ethereum provider is available
+      if (!window.phantom?.ethereum) {
+        throw new Error("Ethereum provider not found in Phantom wallet");
+      }
+
+      // Request account access
+      const accounts = await window.phantom.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No accounts found. Please connect to Phantom wallet first.");
+      }
+
+      // Check if we are on Base network
+      const chainId = await window.phantom.ethereum.request({
+        method: 'eth_chainId'
+      });
+
+      if (chainId !== BASE_CHAIN_ID) { // Base Mainnet Chain ID
+        // Switch to Base network
+        try {
+          await window.phantom.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: BASE_CHAIN_ID }], // Base Mainnet
+          });
+        } catch (switchError: any) {
+          // This error code indicates that the chain has not been added to the wallet
+          if (switchError.code === 4902) {
+            await window.phantom.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [BASE_CHAIN_CONFIG],
+            });
+          } else {
+            throw switchError;
+          }
+        }
+      }
+
+      if (!entryFee) {
+        throw new Error("Entry fee not loaded yet. Please try again later.");
+      }
+
+      // Dynamically import the ABIs
+      const SteleABI = await import("@/app/abis/Stele.json");
+      const ERC20ABI = await import("@/app/abis/ERC20.json");
+
+      // Create a Web3Provider using the Phantom ethereum provider
+      const provider = new ethers.BrowserProvider(window.phantom.ethereum);
+      
+      // Get the signer
+      const signer = await provider.getSigner();
+      
+      // Create contract instances
+      const steleContract = new ethers.Contract(
+        STELE_CONTRACT_ADDRESS,
+        SteleABI.default.abi,
+        signer
+      );
+
+      const usdcContract = new ethers.Contract(
+        USDC_TOKEN_ADDRESS,
+        ERC20ABI.abi,
+        signer
+      );
+
+      // Convert entryFee from string to the proper format for the contract
+      const discountedEntryFeeAmount = ethers.parseUnits(entryFee, USDC_DECIMALS);
+
+      // First approve the Stele contract to spend USDC
+      console.log(`Approving ${entryFee} USDC (${discountedEntryFeeAmount}) for Stele contract...`);
+      const approveTx = await usdcContract.approve(STELE_CONTRACT_ADDRESS, discountedEntryFeeAmount);
+      
+      // Show toast notification for approve transaction submitted
+      toast({
+        title: "Approval Submitted",
+        description: "Your USDC approval transaction has been sent to the network.",
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${approveTx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+      
+      // Wait for approve transaction to be mined
+      await approveTx.wait();
+      
+      // Show toast notification for approve transaction confirmed
+      toast({
+        title: "Approval Confirmed",
+        description: `You have successfully approved ${entryFee} USDC for Stele contract.`,
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${approveTx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+
+      // Now call joinChallenge with challenge ID 1
+      console.log("Joining challenge with ID: 1");
+      const tx = await steleContract.joinChallenge("1");
+      
+      // Show toast notification for transaction submitted
+      toast({
+        title: "Transaction Submitted",
+        description: "Your join challenge transaction has been sent to the network.",
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+      
+      // Wait for transaction to be mined
+      await tx.wait();
+      
+      // Show toast notification for transaction confirmed
+      toast({
+        title: "Challenge Joined",
+        description: "You have successfully joined the challenge!",
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+      
+      console.log("Transaction confirmed:", tx.hash);
+    } catch (error: any) {
+      console.error("Error joining challenge:", error);
+      
+      // Show toast notification for error
+      toast({
+        variant: "destructive",
+        title: "Error Joining Challenge",
+        description: error.message || "An unknown error occurred",
+      });
+    } finally {
+      setIsJoining(false);
     }
   };
 
@@ -70,29 +229,19 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         method: 'eth_chainId'
       });
 
-      if (chainId !== '0x2105') { // Base Mainnet Chain ID
+      if (chainId !== BASE_CHAIN_ID) { // Base Mainnet Chain ID
         // Switch to Base network
         try {
           await window.phantom.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0x2105' }], // Base Mainnet
+            params: [{ chainId: BASE_CHAIN_ID }], // Base Mainnet
           });
         } catch (switchError: any) {
           // This error code indicates that the chain has not been added to the wallet
           if (switchError.code === 4902) {
             await window.phantom.ethereum.request({
               method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: '0x2105',
-                chainName: 'Base Mainnet',
-                nativeCurrency: {
-                  name: 'Ethereum',
-                  symbol: 'ETH',
-                  decimals: 18
-                },
-                rpcUrls: ['https://mainnet.base.org'],
-                blockExplorerUrls: ['https://basescan.org']
-              }],
+              params: [BASE_CHAIN_CONFIG],
             });
           } else {
             throw switchError;
@@ -173,9 +322,23 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
             isCreating={isCreating}
           />
           
-          <Button variant="outline" size="sm">
-            <LineChart className="mr-2 h-4 w-4" />
-            Join Challenge
+          <Button variant="outline" size="sm" onClick={handleJoinChallenge} disabled={isJoining || isLoadingEntryFee}>
+            {isJoining ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Joining...
+              </>
+            ) : isLoadingEntryFee ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <LineChart className="mr-2 h-4 w-4" />
+                Join Challenge ({entryFee} USDC)
+              </>
+            )}
           </Button>
         </div>
       </div>

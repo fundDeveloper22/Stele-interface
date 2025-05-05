@@ -38,31 +38,6 @@
         },
         {
           "indexed": false,
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "rewardAmount",
-          "type": "uint256"
-        }
-      ],
-      "name": "Claim",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "challengeId",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
           "internalType": "enum ChallengeType",
           "name": "challengeType",
           "type": "uint8"
@@ -70,13 +45,13 @@
         {
           "indexed": false,
           "internalType": "uint256",
-          "name": "startTime",
+          "name": "seedMoney",
           "type": "uint256"
         },
         {
           "indexed": false,
           "internalType": "uint256",
-          "name": "endTime",
+          "name": "entryFee",
           "type": "uint256"
         }
       ],
@@ -166,6 +141,12 @@
           "internalType": "address",
           "name": "user",
           "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "seedMoney",
+          "type": "uint256"
         }
       ],
       "name": "Join",
@@ -246,8 +227,33 @@
       "inputs": [
         {
           "indexed": false,
+          "internalType": "uint256",
+          "name": "challengeId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "rewardAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Reward",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
           "internalType": "uint256[5]",
-          "name": "newRewardDistribution",
+          "name": "newRewardRatio",
           "type": "uint256[5]"
         }
       ],
@@ -265,6 +271,49 @@
         }
       ],
       "name": "SeedMoney",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "usdToken",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "maxAssets",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "seedMoney",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "entryFee",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256[5]",
+          "name": "rewardRatio",
+          "type": "uint256[5]"
+        }
+      ],
+      "name": "SteleCreated",
       "type": "event"
     },
     {
@@ -298,18 +347,6 @@
           "indexed": false,
           "internalType": "uint256",
           "name": "fromAmount",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "fromPriceUSD",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "toPriceUSD",
           "type": "uint256"
         },
         {
@@ -387,26 +424,6 @@
           "internalType": "uint256",
           "name": "seedMoney",
           "type": "uint256"
-        },
-        {
-          "internalType": "address",
-          "name": "usdToken",
-          "type": "address"
-        },
-        {
-          "internalType": "uint8",
-          "name": "usdTokenDecimals",
-          "type": "uint8"
-        },
-        {
-          "internalType": "uint8",
-          "name": "maxAssets",
-          "type": "uint8"
-        },
-        {
-          "internalType": "address",
-          "name": "creator",
-          "type": "address"
         },
         {
           "internalType": "uint256",
@@ -596,7 +613,7 @@
           "type": "uint256"
         }
       ],
-      "name": "rewardDistribution",
+      "name": "rewardRatio",
       "outputs": [
         {
           "internalType": "uint256",
@@ -637,7 +654,7 @@
       "inputs": [
         {
           "internalType": "uint256[5]",
-          "name": "_rewardDistribution",
+          "name": "_rewardRatio",
           "type": "uint256[5]"
         }
       ],

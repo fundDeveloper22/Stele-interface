@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import { Home, Trophy, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Bell, Search, User, Wallet } from "lucide-react"
+import { Bell, Search, User, Wallet, DollarSign } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,20 +15,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-
-// Base Chain mainnet information
-const BASE_CHAIN_ID = '0x2105'; // Base mainnet chain ID (hexadecimal)
-const BASE_CHAIN_CONFIG = {
-  chainId: BASE_CHAIN_ID,
-  chainName: 'Base Mainnet',
-  nativeCurrency: {
-    name: 'Ethereum',
-    symbol: 'ETH',
-    decimals: 18
-  },
-  rpcUrls: ['https://mainnet.base.org'],
-  blockExplorerUrls: ['https://basescan.org']
-};
+import { ethers } from "ethers"
+import { 
+  BASE_CHAIN_ID, 
+  BASE_CHAIN_CONFIG, 
+  STELE_CONTRACT_ADDRESS,
+  USDC_DECIMALS
+} from "@/lib/constants"
+import { useEntryFee } from "@/lib/hooks/use-entry-fee"
 
 export function Header() {
   const pathname = usePathname()
@@ -37,6 +31,9 @@ export function Header() {
   const [walletNetwork, setWalletNetwork] = useState<'solana' | 'ethereum' | 'base'>('solana')
   const [balance, setBalance] = useState<string>('0')
   const [isLoadingBalance, setIsLoadingBalance] = useState(false)
+  
+  // Get entry fee from context
+  const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee()
 
   // Get symbol and chain name based on network
   const getNetworkInfo = () => {
@@ -327,6 +324,13 @@ export function Header() {
       </div>
       
       <div className="flex items-center gap-2 md:gap-4">
+        {walletNetwork === 'base' && entryFee && (
+          <div className="hidden md:flex items-center justify-center bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-medium">
+            <DollarSign className="h-3 w-3 mr-1" />
+            Entry Fee : {isLoadingEntryFee ? 'Loading...' : `${entryFee} USDC`}
+          </div>
+        )}
+        
         {walletAddress ? (
           <div className="flex items-center gap-2">
             <div className="hidden md:flex flex-col items-end">
