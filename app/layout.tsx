@@ -5,7 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/header"
 import { EntryFeeProvider } from "@/lib/hooks/use-entry-fee"
-import QueryProvider from "./QueryProvider"
+import QueryProvider from "../components/QueryProvider"
 
 const inter = Inter({ subsets: ["latin"] })
 

@@ -1,8 +1,9 @@
 'use client'
 import { useQuery } from '@tanstack/react-query'
 import { gql, request } from 'graphql-request'
+import { url, headers, STELE_CONTRACT_ADDRESS } from '@/lib/constants'
 
-const query = gql`{
+export const query = gql`{
   creates(first: 1) {
     id
     challengeId
@@ -10,11 +11,19 @@ const query = gql`{
     blockNumber
     blockTimestamp
   }
+  activeChallenges(id: "${STELE_CONTRACT_ADDRESS}") {
+    id
+    one_week_startTime
+    one_year_startTime
+    one_month_startTime
+    one_week_isCompleted
+    one_year_isCompleted
+    one_week_investorCounter
+    one_year_investorCounter
+  }
 }`
-const url = 'https://api.studio.thegraph.com/query/110372/stele_base/version/latest'
-const headers = { Authorization: 'Bearer {api-key}' }
 
-export default function Data() {
+export default function DashBoardQuery() {
   // the data is already pre-fetched on the server and immediately available here,
   // without an additional network call
   const { data } = useQuery({
