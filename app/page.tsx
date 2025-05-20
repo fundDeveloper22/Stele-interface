@@ -2,23 +2,13 @@ import { Dashboard } from "@/components/dashboard"
 import {
   dehydrate,
   HydrationBoundary,
+  Query,
   QueryClient,
 } from '@tanstack/react-query'
 import { gql, request } from 'graphql-request'
-import Data from '@/components/Data'
-
-const query = gql`{
-  creates(first: 1) {
-    id
-    challengeId
-    challengeType
-    blockNumber
-    blockTimestamp
-  }
-}`
-const url = 'https://api.studio.thegraph.com/query/110372/stele_base/version/latest'
-const headers = { Authorization: 'Bearer {api-key}' }
-
+import DashBoardQuery from '@/app/subgraph/DashBoard'
+import { query } from './subgraph/DashBoard'
+import { url, headers } from '@/lib/constants'
 export default async function Home() {
   const queryClient = new QueryClient()
   await queryClient.prefetchQuery({
@@ -31,7 +21,7 @@ export default async function Home() {
     // Neat! Serialization is now as easy as passing props.
     // HydrationBoundary is a Client Component, so hydration will happen there.
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <Data />
+      <DashBoardQuery />
       <Dashboard />
     </HydrationBoundary>
   )

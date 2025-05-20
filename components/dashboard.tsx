@@ -17,28 +17,24 @@ export function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Portfolio Value</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Challenges</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$12,345.67</div>
+            <div className="text-2xl font-bold">5</div>
             <div className="flex items-center mt-1 text-sm">
-              <Badge variant="outline" className="text-emerald-500 border-emerald-500 bg-emerald-500/10">
-                <ArrowUpRight className="mr-1 h-3 w-3" />
-                +5.23%
-              </Badge>
-              <span className="text-muted-foreground">Last 24 hours</span>
+              <span className="text-muted-foreground">3 weekly, 2 monthly</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Challenges</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Participants</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
+            <div className="text-2xl font-bold">243</div>
             <div className="flex items-center mt-1 text-sm">
-              <span className="text-muted-foreground">Total participants: 156</span>
+              <span className="text-muted-foreground">Across all challenges</span>
             </div>
           </CardContent>
         </Card>
