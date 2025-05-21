@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useTokensData } from '@/app/subgraph/WhiteListTokens'
 
 // Token Icon Component
 const TokenIcon = ({ symbol }: { symbol: string }) => {
@@ -64,9 +65,13 @@ export default function SwapPage() {
   const tokensParam = searchParams.get('tokens') || ''
   const tokensAmountParam = searchParams.get('tokensAmount') || ''
   
+  // Get whitelisted tokens from the subgraph
+  const { data: whitelistedTokensData, isLoading: isLoadingTokens } = useTokensData()
+  console.log(whitelistedTokensData)
   // Parse tokens and amounts into usable format
   const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([])
   const [availableTokens, setAvailableTokens] = useState<string[]>([])
+  const [whitelistedTokens, setWhitelistedTokens] = useState<string[]>([])
   
   // State for swap values
   const [fromToken, setFromToken] = useState<string>('')
@@ -74,6 +79,14 @@ export default function SwapPage() {
   const [fromAmount, setFromAmount] = useState('')
   const [toAmount, setToAmount] = useState('')
   const [isSwapping, setIsSwapping] = useState(false)
+  
+  // Set whitelisted tokens when data is loaded
+  useEffect(() => {
+    if (whitelistedTokensData?.tokens && Array.isArray(whitelistedTokensData.tokens)) {
+      const tokenSymbols = whitelistedTokensData.tokens.map((token) => token.symbol)
+      setWhitelistedTokens(tokenSymbols)
+    }
+  }, [whitelistedTokensData])
   
   useEffect(() => {
     if (tokensParam && tokensAmountParam) {
@@ -96,16 +109,23 @@ export default function SwapPage() {
       // Set initial fromToken to first token in the list if available
       if (balances.length > 0) {
         setFromToken(balances[0].token)
-        // Set initial toToken to second token or first token if only one exists
-        if (balances.length > 1) {
+        
+        // Set initial toToken to first whitelisted token that is not the fromToken
+        if (whitelistedTokens.length > 0) {
+          const initialToToken = whitelistedTokens.find(token => token !== balances[0].token) || whitelistedTokens[0]
+          setToToken(initialToToken)
+        } else if (balances.length > 1) {
+          // Fallback to second token in balances if whitelisted tokens not loaded yet
           setToToken(balances[1].token)
-        } else if (balances.length === 1) {
+        } else {
+          // Fallback to first token if only one token available
           setToToken(balances[0].token)
         }
+        
         setFromAmount('') // Reset amount when changing tokens
       }
     }
-  }, [tokensParam, tokensAmountParam])
+  }, [tokensParam, tokensAmountParam, whitelistedTokens])
   
   // Get token balance for a specific token
   const getTokenBalance = (token: string): string => {
@@ -117,17 +137,20 @@ export default function SwapPage() {
   const generateExchangeRates = () => {
     const rates: Record<string, number> = {}
     
-    availableTokens.forEach(from => {
-      availableTokens.forEach(to => {
+    // Create rates for all available tokens and whitelisted tokens
+    const allTokens = [...new Set([...availableTokens, ...whitelistedTokens])]
+    
+    allTokens.forEach(from => {
+      allTokens.forEach(to => {
         if (from !== to) {
-          // 랜덤 환율 생성 (실제 구현에서는 오라클이나 실제 시장 데이터를 사용해야 함)
+          // Random exchange rate generation (in real implementation, we would use oracle or market data)
           let rate
           if (from === 'USDC' && to === 'ETH') {
             rate = 0.00056
           } else if (from === 'ETH' && to === 'USDC') {
             rate = 1786.45
           } else {
-            // 랜덤 환율 사용 (0.001 ~ 100)
+            // Random rate between 0.001 and 100
             rate = 0.001 + Math.random() * 100
           }
           rates[`${from}-${to}`] = rate
@@ -138,7 +161,7 @@ export default function SwapPage() {
     return rates
   }
   
-  // 동적 환율 정보
+  // Dynamic exchange rates
   const exchangeRates = generateExchangeRates()
   
   // Calculate estimated amount on input change
@@ -168,24 +191,36 @@ export default function SwapPage() {
 
   // Handle swap token positions
   const handleSwapTokens = () => {
-    const temp = fromToken
-    setFromToken(toToken)
-    setToToken(temp)
-    
-    // Recalculate amount if needed
-    if (fromAmount) {
-      const pairKey = `${toToken}-${temp}`
-      const rate = exchangeRates[pairKey] || 0
-      setToAmount((Number(fromAmount) * rate).toFixed(6))
+    // Only allow swapping if toToken is in the user's balances or whitelisted
+    if (availableTokens.includes(toToken) || whitelistedTokens.includes(toToken)) {
+      const temp = fromToken
+      setFromToken(toToken)
+      setToToken(temp)
+      
+      // Recalculate amount if needed
+      if (fromAmount) {
+        const pairKey = `${toToken}-${temp}`
+        const rate = exchangeRates[pairKey] || 0
+        setToAmount((Number(fromAmount) * rate).toFixed(6))
+      }
     }
   }
   
   // Handle token selection
   const handleFromTokenChange = (value: string) => {
     setFromToken(value)
-    if (value === toToken && availableTokens.length > 1) {
-      // Find another token to use as toToken
-      const newToToken = availableTokens.find(t => t !== value) || availableTokens[0]
+    if (value === toToken) {
+      // Find another token to use as toToken from whitelisted tokens
+      let newToToken = ''
+      
+      if (whitelistedTokens.length > 0) {
+        // Try to find a whitelisted token different from the fromToken
+        newToToken = whitelistedTokens.find(t => t !== value) || whitelistedTokens[0]
+      } else if (availableTokens.length > 1) {
+        // Fallback to available tokens if whitelisted tokens not loaded yet
+        newToToken = availableTokens.find(t => t !== value) || availableTokens[0]
+      }
+      
       setToToken(newToToken)
     }
     
@@ -196,10 +231,17 @@ export default function SwapPage() {
   
   const handleToTokenChange = (value: string) => {
     setToToken(value)
-    if (value === fromToken && availableTokens.length > 1) {
+    if (value === fromToken && availableTokens.includes(value)) {
       // Find another token to use as fromToken
-      const newFromToken = availableTokens.find(t => t !== value) || availableTokens[0]
-      setFromToken(newFromToken)
+      let newFromToken = ''
+      
+      if (availableTokens.length > 1) {
+        newFromToken = availableTokens.find(t => t !== value) || availableTokens[0]
+      }
+      
+      if (newFromToken) {
+        setFromToken(newFromToken)
+      }
     }
     
     // Recalculate amounts if we have a from amount
@@ -229,7 +271,7 @@ export default function SwapPage() {
   }
   
   // Show loading if tokens are not yet loaded
-  if (availableTokens.length === 0) {
+  if (availableTokens.length === 0 || isLoadingTokens) {
     return (
       <div className="container mx-auto py-6 max-w-md">
         <div className="mb-6">
@@ -351,15 +393,27 @@ export default function SwapPage() {
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  {/* Show all available tokens for the destination */}
-                  {availableTokens.map(token => (
-                    <SelectItem key={token} value={token}>
-                      <div className="flex items-center">
-                        <TokenIcon symbol={token} />
-                        {token}
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {/* Show whitelisted tokens for the destination */}
+                  {whitelistedTokens.length > 0 ? (
+                    whitelistedTokens.map(token => (
+                      <SelectItem key={token} value={token}>
+                        <div className="flex items-center">
+                          <TokenIcon symbol={token} />
+                          {token}
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    // Fallback to available tokens if whitelisted tokens are not loaded
+                    availableTokens.map(token => (
+                      <SelectItem key={token} value={token}>
+                        <div className="flex items-center">
+                          <TokenIcon symbol={token} />
+                          {token}
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
