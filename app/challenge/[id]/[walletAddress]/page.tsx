@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Users, Clock, Trophy, BarChart3, LineChart, PieChart } from "lucide-react"
+import { ArrowLeft, Users, Clock, Trophy, BarChart3, LineChart, PieChart, ArrowLeftRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -77,6 +77,13 @@ export default function AccountPage() {
               <Trophy className="mr-2 h-4 w-4" />
               Share Results
             </Button>
+            
+            <Link href={`/swap/${challengeId}/${walletAddress}`}>
+              <Button variant="outline" size="sm">
+                <ArrowLeftRight className="mr-2 h-4 w-4" />
+                Swap Assets
+              </Button>
+            </Link>
           </div>
         </div>
 
