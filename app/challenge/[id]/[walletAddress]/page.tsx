@@ -39,7 +39,7 @@ export default function AccountPage() {
   // Get tokens and their amounts
   const tokens = investor.tokens || []
   const tokensAmount = investor.tokensAmount || []
-  
+
   // Get challenge title
   const getChallengeTitle = () => {
     switch(challengeId) {
@@ -78,7 +78,15 @@ export default function AccountPage() {
               Share Results
             </Button>
             
-            <Link href={`/swap/${challengeId}/${walletAddress}`}>
+            <Link 
+              href={{
+                pathname: `/swap/${challengeId}/${walletAddress}`,
+                query: { 
+                  tokens: tokens.join(','),
+                  tokensAmount: tokensAmount.join(',')
+                }
+              }}
+            >
               <Button variant="outline" size="sm">
                 <ArrowLeftRight className="mr-2 h-4 w-4" />
                 Swap Assets

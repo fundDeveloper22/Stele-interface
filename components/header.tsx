@@ -322,7 +322,7 @@ export function Header() {
           </Link>
         </div>
       </div>
-      
+
       <div className="flex items-center gap-2 md:gap-4">
         {walletNetwork === 'base' && entryFee && (
           <div className="hidden md:flex items-center justify-center bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-medium">
@@ -401,7 +401,7 @@ export function Header() {
           >
             <Wallet className="mr-2 h-4 w-4" />
             {isConnecting ? "Connecting..." : "Connect Wallet"}
-          </Button>
+        </Button>
         )}
 
         <Button variant="ghost" size="icon" className="text-muted-foreground hidden sm:flex">
