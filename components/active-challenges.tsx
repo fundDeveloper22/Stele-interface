@@ -16,27 +16,33 @@ interface ChallengeCardProps {
   progress: number
   status: "active" | "pending" | "completed"
   startTime: string
+  challengeId?: string
 }
 
 interface ActiveChallengesData {
   activeChallenges: {
     id: string
+    one_week_id: string
     one_week_startTime: string
     one_week_investorCounter: string
     one_week_rewardAmountUSD: string
     one_week_isCompleted: boolean
+    one_month_id: string
     one_month_startTime: string
     one_month_investorCounter: string
     one_month_rewardAmountUSD: string
     one_month_isCompleted: boolean
+    three_month_id: string
     three_month_startTime: string
     three_month_investorCounter: string
     three_month_rewardAmountUSD: string
     three_month_isCompleted: boolean
+    six_month_id: string
     six_month_startTime: string
     six_month_investorCounter: string
     six_month_rewardAmountUSD: string
     six_month_isCompleted: boolean
+    one_year_id: string
     one_year_startTime: string
     one_year_investorCounter: string
     one_year_rewardAmountUSD: string
@@ -119,7 +125,8 @@ export function ActiveChallenges() {
       prize: `$${Number(data.activeChallenges.one_week_rewardAmountUSD).toFixed(2)}`,
       progress: calculateProgress(data.activeChallenges.one_week_startTime, data.activeChallenges.one_week_isCompleted, "1 week challenge"),
       status: data.activeChallenges.one_week_isCompleted ? "completed" : "active",
-      startTime: data.activeChallenges.one_week_startTime
+      startTime: data.activeChallenges.one_week_startTime,
+      challengeId: data.activeChallenges.one_week_id
     },
     {
       id: "one-month-challenge",
@@ -130,7 +137,8 @@ export function ActiveChallenges() {
       prize: `$${Number(data.activeChallenges.one_month_rewardAmountUSD).toFixed(2)}`,
       progress: calculateProgress(data.activeChallenges.one_month_startTime, data.activeChallenges.one_month_isCompleted, "1 month challenge"),
       status: data.activeChallenges.one_month_isCompleted ? "completed" : "active",
-      startTime: data.activeChallenges.one_month_startTime
+      startTime: data.activeChallenges.one_month_startTime,
+      challengeId: data.activeChallenges.one_month_id
     },
     {
       id: "three-month-challenge",
@@ -141,7 +149,8 @@ export function ActiveChallenges() {
       prize: `$${Number(data.activeChallenges.three_month_rewardAmountUSD).toFixed(2)}`,
       progress: calculateProgress(data.activeChallenges.three_month_startTime, data.activeChallenges.three_month_isCompleted, "3 months challenge"),
       status: data.activeChallenges.three_month_isCompleted ? "completed" : "active",
-      startTime: data.activeChallenges.three_month_startTime
+      startTime: data.activeChallenges.three_month_startTime,
+      challengeId: data.activeChallenges.three_month_id
     },
     {
       id: "six-month-challenge",
@@ -152,7 +161,8 @@ export function ActiveChallenges() {
       prize: `$${Number(data.activeChallenges.six_month_rewardAmountUSD).toFixed(2)}`,
       progress: calculateProgress(data.activeChallenges.six_month_startTime, data.activeChallenges.six_month_isCompleted, "6 months challenge"),
       status: data.activeChallenges.six_month_isCompleted ? "completed" : "active",
-      startTime: data.activeChallenges.six_month_startTime
+      startTime: data.activeChallenges.six_month_startTime,
+      challengeId: data.activeChallenges.six_month_id
     },
     {
       id: "one-year-challenge",
@@ -163,7 +173,8 @@ export function ActiveChallenges() {
       prize: `$${Number(data.activeChallenges.one_year_rewardAmountUSD).toFixed(2)}`,
       progress: calculateProgress(data.activeChallenges.one_year_startTime, data.activeChallenges.one_year_isCompleted, "1 year challenge"),
       status: data.activeChallenges.one_year_isCompleted ? "completed" : "active",
-      startTime: data.activeChallenges.one_year_startTime
+      startTime: data.activeChallenges.one_year_startTime,
+      challengeId: data.activeChallenges.one_year_id
     }
   ]
 
