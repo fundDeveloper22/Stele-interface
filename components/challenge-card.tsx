@@ -14,11 +14,21 @@ interface ChallengeCardProps {
   prize: string
   progress: number
   status: "active" | "pending" | "completed"
+  startTime: string
 }
 
-export function ChallengeCard({ title, type, participants, timeLeft, prize, progress, status, id }: ChallengeCardProps) {
+export function ChallengeCard({ title, type, participants, timeLeft, prize, progress, status, id, startTime }: ChallengeCardProps) {
   // If no ID is provided, convert the title to kebab-case and use it as ID
   const challengeId = id || title.toLowerCase().replace(/\s+/g, '-');
+  
+  // Detect user's browser locale
+  const userLocale = typeof navigator !== 'undefined' ? navigator.language : 'en-US';
+  
+  const startDate = new Date(Number(startTime) * 1000).toLocaleDateString(userLocale, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
   
   return (
     <Card className="overflow-hidden">
@@ -37,7 +47,7 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
         <div className="flex items-center text-sm text-muted-foreground mb-4">
           <div className="flex items-center mr-4">
             <Clock className="mr-1 h-4 w-4" />
-            {type}
+            {startDate}
           </div>
           <div className="flex items-center">
             <Users className="mr-1 h-4 w-4" />
