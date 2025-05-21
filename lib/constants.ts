@@ -15,6 +15,7 @@ export const BASE_CHAIN_CONFIG = {
 // Contract Addresses
 export const STELE_CONTRACT_ADDRESS = "0x0CbF0816CDFd0bC56eFC9a80Af88cC2210Ff5548";
 export const USDC_TOKEN_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base Mainnet USDC
+export const GOVERNANCE_CONTRACT_ADDRESS = "0x8f08aDA72cCEE0E1FaB09f25602b20624ED07599"; // Base Mainnet Governance
 
 // Token decimals
 export const USDC_DECIMALS = 6; 

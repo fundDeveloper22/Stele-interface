@@ -393,11 +393,11 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
               </>
             ) : (
               <>
-                <LineChart className="mr-2 h-4 w-4" />
+          <LineChart className="mr-2 h-4 w-4" />
                 Join Challenge ({entryFee} USDC)
               </>
             )}
-          </Button>
+        </Button>
         </div>
       </div>
 
@@ -482,10 +482,10 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
             </CardContent>
             <CardFooter>
               <Link href={`/swap?challenge=${challengeId}`} className="w-full">
-                <Button className="w-full">
-                  Swap Assets
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+              <Button className="w-full">
+                Swap Assets
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
               </Link>
             </CardFooter>
           </Card>

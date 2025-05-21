@@ -15,13 +15,13 @@ export const getInvestableTokensQuery = () => gql`{
 }`
 
 export interface TokenData {
-  id: string
-  tokenAddress: string
-  decimals: string
-  symbol: string
+    id: string
+    tokenAddress: string
+    decimals: string
+    symbol: string
   isInvestable: boolean
-  updatedTimestamp: string
-}
+    updatedTimestamp: string
+  }
 
 export interface TokensData {
   tokens: TokenData[]
