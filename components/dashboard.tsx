@@ -15,7 +15,7 @@ export function DashboardStats({ data }: { data: any }) {
   
   const activeChallenges = data.activeChallenges;
   
-  // 활성 챌린지 수 계산
+  // Calculate number of active challenges
   const activeChallengesCount = [
     activeChallenges.one_week_isCompleted === false,
     activeChallenges.one_month_isCompleted === false,
@@ -24,7 +24,7 @@ export function DashboardStats({ data }: { data: any }) {
     activeChallenges.one_year_isCompleted === false
   ].filter(Boolean).length;
 
-  // 총 참가자 수 계산
+  // Calculate total number of participants
   const totalParticipants = [
     activeChallenges.one_week_investorCounter,
     activeChallenges.one_month_investorCounter,
@@ -33,7 +33,7 @@ export function DashboardStats({ data }: { data: any }) {
     activeChallenges.one_year_investorCounter
   ].reduce((sum, count) => sum + (Number(count) || 0), 0);
 
-  // 총 보상 금액 계산 (USD)
+  // Calculate total reward amount (USD)
   const totalRewards = [
     activeChallenges.one_week_rewardAmountUSD,
     activeChallenges.one_month_rewardAmountUSD,
