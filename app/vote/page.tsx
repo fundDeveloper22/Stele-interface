@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Clock, XCircle, Plus, FileText, Vote as VoteIcon, Loader2 } from "lucide-react"
 import { ethers } from "ethers"
-import { GOVERNANCE_CONTRACT_ADDRESS, BASE_CHAIN_ID, BASE_CHAIN_CONFIG } from "@/lib/constants"
+import { GOVERNANCE_CONTRACT_ADDRESS } from "@/lib/constants"
 import GovernorABI from "@/app/abis/SteleGovernor.json"
 
 // Interface for proposal data
@@ -23,6 +23,16 @@ interface Proposal {
   startTime: Date;
   endTime: Date;
   proposalId?: string; // Raw proposal ID from the contract
+}
+
+interface ProposalEvent extends ethers.Log {
+  args?: {
+    proposalId: bigint;
+    proposer: string;
+    description: string;
+    voteStart: bigint;
+    voteEnd: bigint;
+  };
 }
 
 export default function VotePage() {
@@ -92,198 +102,101 @@ export default function VotePage() {
     setIsLoading(true)
     setError(null)
 
-    // Multiple RPC providers to try
-    const rpcProviders = [
-      'https://mainnet.base.org',
-      'https://base.blockpi.network/v1/rpc/public',
-      'https://1rpc.io/base',
-      'https://base.meowrpc.com'
-    ]
+    try {
+      // Connect to provider using Infura
+      const provider = new ethers.JsonRpcProvider(
+        `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
+      )
+      
+      // Create contract instance
+      const governorContract = new ethers.Contract(
+        GOVERNANCE_CONTRACT_ADDRESS,
+        GovernorABI.abi,
+        provider
+      )
 
-    // Track attempts
-    let lastError = null
-    
-    for (const rpcUrl of rpcProviders) {
-      try {
-        // Connect to provider (read-only is fine for fetching)
-        const provider = new ethers.JsonRpcProvider(rpcUrl)
-        
-        // Create contract instance
-        const governorContract = new ethers.Contract(
-          GOVERNANCE_CONTRACT_ADDRESS,
-          GovernorABI.abi,
-          provider
-        )
-        
-        // Try to get the current block number to check connection
-        await provider.getBlockNumber()
-        
-        // Instead of one big query, use pagination with smaller ranges
-        // This helps avoid RPC timeout errors
-        const currentBlock = await provider.getBlockNumber()
-        const blockRanges = []
-        const rangeSize = 10000 // Smaller block ranges
-        
-        // Create multiple smaller block ranges to query
-        for (let i = 0; i < 5; i++) { // Limit to 5 recent ranges
-          const fromBlock = Math.max(0, currentBlock - (i + 1) * rangeSize)
-          const toBlock = Math.max(0, currentBlock - i * rangeSize)
-          blockRanges.push({ fromBlock, toBlock })
-        }
-        
-        let allEvents = []
-        
-        // Query each block range separately
-        for (const range of blockRanges) {
-          try {
-            // Using try-catch for each range to continue even if one fails
-            console.log(`Querying events from block ${range.fromBlock} to ${range.toBlock}`)
-            const filter = governorContract.filters.ProposalCreated()
-            const events = await governorContract.queryFilter(filter, range.fromBlock, range.toBlock)
-            allEvents = [...allEvents, ...events]
-            
-            // If we got some events, we can break early
-            if (allEvents.length > 0) {
-              break
-            }
-          } catch (rangeError) {
-            console.warn(`Error querying block range ${range.fromBlock}-${range.toBlock}:`, rangeError)
-            // Continue to the next range
+      // Get the current block number
+      const currentBlock = await provider.getBlockNumber()
+      
+      // Query for ProposalCreated events
+      const filter = governorContract.filters.ProposalCreated()
+      const events = await governorContract.queryFilter(filter, currentBlock - 10000, currentBlock)
+      
+      // Process each event
+      const proposalPromises = events.map(async (event) => {
+        try {
+          const eventArgs = (event as ProposalEvent).args
+          if (!eventArgs) return null
+          
+          const proposalId = eventArgs.proposalId.toString()
+          const proposer = eventArgs.proposer
+          const description = eventArgs.description
+          const voteStart = new Date(Number(eventArgs.voteStart) * 1000)
+          const voteEnd = new Date(Number(eventArgs.voteEnd) * 1000)
+          
+          // Get proposal details
+          const details = parseProposalDetails(description)
+          
+          // Get proposal status
+          const status = await getProposalState(provider, governorContract, proposalId)
+          
+          // Get proposal votes
+          const votes = await governorContract.proposalVotes(proposalId)
+          const votesAgainst = Number(ethers.formatUnits(votes.againstVotes, 0))
+          const votesFor = Number(ethers.formatUnits(votes.forVotes, 0))
+          const abstain = Number(ethers.formatUnits(votes.abstainVotes, 0))
+          
+          return {
+            id: proposalId,
+            proposalId: proposalId,
+            title: details.title || `Proposal #${proposalId}`,
+            description: details.description,
+            proposer: `${proposer.slice(0, 6)}...${proposer.slice(-4)}`,
+            status: status as 'active' | 'completed' | 'rejected',
+            votesFor,
+            votesAgainst,
+            abstain,
+            startTime: voteStart,
+            endTime: voteEnd
           }
+        } catch (error) {
+          console.error("Error processing proposal event:", error)
+          return null
         }
-        
-        // Process each event (with a limit to avoid too many requests)
-        const MAX_PROPOSALS = 10 // Limit to 10 most recent proposals
-        const proposalPromises = allEvents
-          .slice(0, MAX_PROPOSALS)
-          .map(async (event: any) => {
-            try {
-              const eventArgs = event.args
-              if (!eventArgs) return null
-              
-              const proposalId = eventArgs.proposalId.toString()
-              const proposer = eventArgs.proposer
-              const description = eventArgs.description
-              const voteStart = new Date(Number(eventArgs.voteStart) * 1000)
-              const voteEnd = new Date(Number(eventArgs.voteEnd) * 1000)
-              
-              // Get proposal details
-              const details = parseProposalDetails(description)
-              
-              // Get proposal status with retry mechanism
-              let status = 'active'
-              try {
-                status = await getProposalState(provider, governorContract, proposalId)
-              } catch (stateError) {
-                console.warn(`Error getting state for proposal ${proposalId}:`, stateError)
-              }
-              
-              // Get proposal votes with retry mechanism
-              let votesAgainst = 0
-              let votesFor = 0
-              let abstain = 0
-              
-              try {
-                const votes = await governorContract.proposalVotes(proposalId)
-                votesAgainst = Number(ethers.formatUnits(votes.againstVotes, 0))
-                votesFor = Number(ethers.formatUnits(votes.forVotes, 0))
-                abstain = Number(ethers.formatUnits(votes.abstainVotes, 0))
-              } catch (votesError) {
-                console.warn(`Error getting votes for proposal ${proposalId}:`, votesError)
-              }
-              
-              return {
-                id: proposalId,
-                proposalId: proposalId, // Store raw proposalId for contract interactions
-                title: details.title || `Proposal #${proposalId}`,
-                description: details.description,
-                proposer: `${proposer.slice(0, 6)}...${proposer.slice(-4)}`,
-                status: status as 'active' | 'completed' | 'rejected',
-                votesFor,
-                votesAgainst,
-                abstain,
-                startTime: voteStart,
-                endTime: voteEnd
-              }
-            } catch (error) {
-              console.error("Error processing proposal event:", error)
-              return null
-            }
-          })
-        
-        // Wait for all promises to resolve
-        const results = await Promise.all(proposalPromises)
-        
-        // Filter out null values and sort by end time (newest first)
-        const filteredProposals = results
-          .filter(Boolean)
-          .sort((a, b) => b!.endTime.getTime() - a!.endTime.getTime()) as Proposal[]
-        
-        // If we successfully got proposals, save them to state and break the retry loop
-        if (filteredProposals.length > 0) {
-          setProposals(filteredProposals)
-          // Save to localStorage as cache
-          localStorage.setItem('cachedProposals', JSON.stringify(filteredProposals))
-          localStorage.setItem('proposalsCacheTime', Date.now().toString())
-          return // Exit the function successfully
+      })
+      
+      // Wait for all promises to resolve
+      const results = await Promise.all(proposalPromises)
+      
+      // Filter out null values and sort by end time (newest first)
+      const filteredProposals = results
+        .filter(Boolean)
+        .sort((a, b) => b!.endTime.getTime() - a!.endTime.getTime()) as Proposal[]
+      
+      setProposals(filteredProposals)
+      
+      // Save to localStorage as cache
+      localStorage.setItem('cachedProposals', JSON.stringify(filteredProposals))
+      localStorage.setItem('proposalsCacheTime', Date.now().toString())
+      
+    } catch (error: any) {
+      console.error("Error fetching proposals:", error)
+      setError(error.message || "Failed to load proposals")
+      
+      // Try to load from cache if available
+      const cachedProposals = localStorage.getItem('cachedProposals')
+      if (cachedProposals) {
+        try {
+          const parsed = JSON.parse(cachedProposals)
+          setProposals(parsed)
+        } catch (cacheError) {
+          console.error("Error loading cached proposals:", cacheError)
         }
-        
-        // If we didn't get any proposals but didn't error, try the next provider
-        console.log(`No proposals found with provider ${rpcUrl}, trying next...`)
-      } catch (error: any) {
-        console.error(`Error with provider ${rpcUrl}:`, error)
-        lastError = error
-        // Continue to the next provider
       }
+    } finally {
+      setIsLoading(false)
     }
-    
-    // If we got here, all providers failed or returned no proposals
-    if (lastError) {
-      console.error("All RPC providers failed:", lastError)
-      setError(lastError.message || "Failed to load proposals from all RPC providers")
-    } else {
-      setError("No proposals found from any RPC provider")
-    }
-    
-    // Try to load from cache if available
-    const cachedProposals = localStorage.getItem('cachedProposals')
-    const cacheTime = localStorage.getItem('proposalsCacheTime')
-    
-    if (cachedProposals) {
-      try {
-        const parsed = JSON.parse(cachedProposals)
-        setProposals(parsed)
-        
-        // Show cache timestamp
-        if (cacheTime) {
-          const cacheDate = new Date(Number(cacheTime))
-          setError(`Using cached proposals from ${cacheDate.toLocaleString()}. ${lastError?.message || 'RPC providers unavailable.'}`)
-        }
-        return
-      } catch (cacheError) {
-        console.error("Error loading cached proposals:", cacheError)
-      }
-    }
-    
-    // If no cache, use fallback data
-    setProposals([
-      {
-        id: '1',
-        title: 'Example Proposal (Fallback Data)',
-        description: 'This is example data shown because of an error loading real proposals.',
-        proposer: '0x1234...5678',
-        status: 'active',
-        votesFor: 120000,
-        votesAgainst: 45000,
-        abstain: 5000,
-        startTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
-      }
-    ])
-  } finally {
-    setIsLoading(false)
   }
-}
 
   // Status badge component
   const StatusBadge = ({ status }: { status: string }) => {
