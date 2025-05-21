@@ -18,6 +18,32 @@ import {
 type TokenPair = 'USDC-ETH' | 'ETH-USDC' | 'USDC-SOL' | 'SOL-USDC' | 'ETH-SOL' | 'SOL-ETH'
 type Token = 'USDC' | 'ETH' | 'SOL'
 
+// Token icons and info
+const tokenInfo = {
+  'USDC': {
+    icon: '/assets/icons/usdc.svg',
+    color: 'bg-green-500',
+    symbol: 'USDC'
+  },
+  'ETH': {
+    icon: '/assets/icons/eth.svg',
+    color: 'bg-blue-500',
+    symbol: 'ETH'
+  },
+  'SOL': {
+    icon: '/assets/icons/sol.svg',
+    color: 'bg-purple-500',
+    symbol: 'SOL'
+  }
+}
+
+// Token Icon Component
+const TokenIcon = ({ token }: { token: Token }) => (
+  <div className={`w-6 h-6 rounded-full ${tokenInfo[token].color} flex items-center justify-center mr-2`}>
+    <span className="text-xs font-bold text-white">{token.slice(0, 1)}</span>
+  </div>
+)
+
 export default function SwapPage() {
   const params = useParams()
   const router = useRouter()
@@ -151,12 +177,27 @@ export default function SwapPage() {
               </div>
               <Select value={fromToken} onValueChange={(value: Token) => handleFromTokenChange(value)}>
                 <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Select token" />
+                <SelectValue placeholder="Select token" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USDC">USDC</SelectItem>
-                  <SelectItem value="ETH">ETH</SelectItem>
-                  <SelectItem value="SOL">SOL</SelectItem>
+                  <SelectItem value="USDC">
+                    <div className="flex items-center">
+                      <TokenIcon token="USDC" />
+                      USDC
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="ETH">
+                    <div className="flex items-center">
+                      <TokenIcon token="ETH" />
+                      ETH
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="SOL">
+                    <div className="flex items-center">
+                      <TokenIcon token="SOL" />
+                      SOL
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -193,12 +234,27 @@ export default function SwapPage() {
               </div>
               <Select value={toToken} onValueChange={(value: Token) => handleToTokenChange(value)}>
                 <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Select token" />
+                <SelectValue placeholder="Select token" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USDC">USDC</SelectItem>
-                  <SelectItem value="ETH">ETH</SelectItem>
-                  <SelectItem value="SOL">SOL</SelectItem>
+                  <SelectItem value="USDC">
+                    <div className="flex items-center">
+                      <TokenIcon token="USDC" />
+                      USDC
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="ETH">
+                    <div className="flex items-center">
+                      <TokenIcon token="ETH" />
+                      ETH
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="SOL">
+                    <div className="flex items-center">
+                      <TokenIcon token="SOL" />
+                      SOL
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -208,9 +264,6 @@ export default function SwapPage() {
           <div className="p-3 bg-muted rounded-md">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Exchange Rate</span>
-              <span>
-                1 {fromToken} = {exchangeRates[`${fromToken}-${toToken}` as TokenPair]?.toFixed(6)} {toToken}
-              </span>
             </div>
           </div>
         </CardContent>
