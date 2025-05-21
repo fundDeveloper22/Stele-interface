@@ -43,43 +43,43 @@ export function DashboardStats({ data }: { data: any }) {
   ].reduce((sum, amount) => sum + (Number(amount) || 0), 0);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <Card>
-        <CardHeader className="pb-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Active Challenges</CardTitle>
-        </CardHeader>
-        <CardContent>
+          </CardHeader>
+          <CardContent>
           <div className="text-2xl font-bold">{activeChallengesCount}</div>
-          <div className="flex items-center mt-1 text-sm">
+            <div className="flex items-center mt-1 text-sm">
             <span className="text-muted-foreground">Currently active</span>
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader className="pb-2">
+        <Card>
+          <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Total Participants</CardTitle>
-        </CardHeader>
-        <CardContent>
+          </CardHeader>
+          <CardContent>
           <div className="text-2xl font-bold">{totalParticipants}</div>
-          <div className="flex items-center mt-1 text-sm">
+            <div className="flex items-center mt-1 text-sm">
             <span className="text-muted-foreground">Across all challenges</span>
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Earned Rewards</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Earned Rewards</CardTitle>
+          </CardHeader>
+          <CardContent>
           <div className="text-2xl font-bold">${totalRewards.toFixed(2)}</div>
-          <div className="flex items-center mt-1 text-sm">
+            <div className="flex items-center mt-1 text-sm">
             <span className="text-muted-foreground">From all challenges</span>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
   );
 }
 
@@ -97,10 +97,10 @@ export async function Dashboard() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        </div>
+                    </div>
         <DashBoardQuery />
-        <ActiveChallenges />
-      </div>
+          <ActiveChallenges />
+    </div>
     </HydrationBoundary>
   )
 }
