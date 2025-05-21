@@ -15,11 +15,13 @@ interface ChallengeCardProps {
   progress: number
   status: "active" | "pending" | "completed"
   startTime: string
+  walletAddress?: string
+  challengeId: string
 }
 
-export function ChallengeCard({ title, type, participants, timeLeft, prize, progress, status, id, startTime }: ChallengeCardProps) {
+export function ChallengeCard({ title, type, participants, timeLeft, prize, progress, status, id, startTime, walletAddress, challengeId }: ChallengeCardProps) {
   // If no ID is provided, convert the title to kebab-case and use it as ID
-  const challengeId = id || title.toLowerCase().replace(/\s+/g, '-');
+  const displayId = id || title.toLowerCase().replace(/\s+/g, '-');
   
   // Detect user's browser locale
   const userLocale = typeof navigator !== 'undefined' ? navigator.language : 'en-US';
@@ -77,10 +79,12 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
             </Button>
           </Link>
         ) : (
-          <Button className="w-full">
-            <Trophy className="mr-2 h-4 w-4" />
-            Create Challenge          
-          </Button>
+          <Link href={`/challenge/${challengeId}`} className="w-full">
+            <Button className="w-full">
+              <Trophy className="mr-2 h-4 w-4" />
+              Create Challenge          
+            </Button>
+          </Link>
         )}
       </CardFooter>
     </Card>
