@@ -16,7 +16,7 @@ interface ChallengeCardProps {
   progress: number
   status: "active" | "pending" | "completed"
   startTime: string
-  challengeId?: string
+  challengeId: string
 }
 
 interface ActiveChallengesData {
@@ -126,7 +126,7 @@ export function ActiveChallenges() {
       progress: calculateProgress(data.activeChallenges.one_week_startTime, data.activeChallenges.one_week_isCompleted, "1 week challenge"),
       status: data.activeChallenges.one_week_isCompleted ? "completed" : "active",
       startTime: data.activeChallenges.one_week_startTime,
-      challengeId: data.activeChallenges.one_week_id
+      challengeId: data.activeChallenges.one_week_id || "one-week-challenge"
     },
     {
       id: "one-month-challenge",
@@ -138,7 +138,7 @@ export function ActiveChallenges() {
       progress: calculateProgress(data.activeChallenges.one_month_startTime, data.activeChallenges.one_month_isCompleted, "1 month challenge"),
       status: data.activeChallenges.one_month_isCompleted ? "completed" : "active",
       startTime: data.activeChallenges.one_month_startTime,
-      challengeId: data.activeChallenges.one_month_id
+      challengeId: data.activeChallenges.one_month_id || "one-month-challenge"
     },
     {
       id: "three-month-challenge",
@@ -150,7 +150,7 @@ export function ActiveChallenges() {
       progress: calculateProgress(data.activeChallenges.three_month_startTime, data.activeChallenges.three_month_isCompleted, "3 months challenge"),
       status: data.activeChallenges.three_month_isCompleted ? "completed" : "active",
       startTime: data.activeChallenges.three_month_startTime,
-      challengeId: data.activeChallenges.three_month_id
+      challengeId: data.activeChallenges.three_month_id || "three-month-challenge"
     },
     {
       id: "six-month-challenge",
@@ -162,7 +162,7 @@ export function ActiveChallenges() {
       progress: calculateProgress(data.activeChallenges.six_month_startTime, data.activeChallenges.six_month_isCompleted, "6 months challenge"),
       status: data.activeChallenges.six_month_isCompleted ? "completed" : "active",
       startTime: data.activeChallenges.six_month_startTime,
-      challengeId: data.activeChallenges.six_month_id
+      challengeId: data.activeChallenges.six_month_id || "six-month-challenge"
     },
     {
       id: "one-year-challenge",
@@ -174,7 +174,7 @@ export function ActiveChallenges() {
       progress: calculateProgress(data.activeChallenges.one_year_startTime, data.activeChallenges.one_year_isCompleted, "1 year challenge"),
       status: data.activeChallenges.one_year_isCompleted ? "completed" : "active",
       startTime: data.activeChallenges.one_year_startTime,
-      challengeId: data.activeChallenges.one_year_id
+      challengeId: data.activeChallenges.one_year_id || "one-year-challenge"
     }
   ]
 

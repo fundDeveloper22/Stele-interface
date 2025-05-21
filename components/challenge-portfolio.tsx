@@ -3,13 +3,14 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowRight, BarChart3, LineChart, PieChart, Loader2 } from "lucide-react"
+import { ArrowRight, BarChart3, LineChart, PieChart, Loader2, User } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ethers } from "ethers"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import { ChallengeTypeModal } from "@/components/challenge-type-modal"
+import { useRouter } from "next/navigation"
 import { 
   BASE_CHAIN_ID, 
   BASE_CHAIN_CONFIG, 
@@ -24,10 +25,62 @@ interface ChallengePortfolioProps {
 }
 
 export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
+  const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee();
   
+  useEffect(() => {
+    // Get wallet address from localStorage
+    const storedAddress = localStorage.getItem('walletAddress');
+    if (storedAddress) {
+      setWalletAddress(storedAddress);
+    }
+  }, []);
+
+  // Handle navigation to account page
+  const handleNavigateToAccount = async () => {
+    try {
+      // If wallet address is not in state, try to get it from Phantom wallet
+      if (!walletAddress) {
+        if (typeof window.phantom === 'undefined') {
+          throw new Error("Phantom wallet is not installed. Please install it from https://phantom.app/");
+        }
+
+        if (!window.phantom?.ethereum) {
+          throw new Error("Ethereum provider not found in Phantom wallet");
+        }
+
+        const accounts = await window.phantom.ethereum.request({
+          method: 'eth_requestAccounts'
+        });
+
+        if (!accounts || accounts.length === 0) {
+          throw new Error("No accounts found. Please connect to Phantom wallet first.");
+        }
+
+        // Save address to state and localStorage
+        const address = accounts[0];
+        setWalletAddress(address);
+        localStorage.setItem('walletAddress', address);
+        
+        // Navigate to account page
+        router.push(`/challenge/${challengeId}/${address}`);
+      } else {
+        // Use the existing wallet address
+        router.push(`/challenge/${challengeId}/${walletAddress}`);
+      }
+    } catch (error: any) {
+      console.error("Error connecting wallet:", error);
+      toast({
+        variant: "destructive",
+        title: "Error Connecting Wallet",
+        description: error.message || "An unknown error occurred",
+      });
+    }
+  };
+
   // This would typically fetch data based on the challengeId
   
   // Display title based on challenge ID
@@ -321,6 +374,11 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
             onCreateChallenge={handleCreateChallenge}
             isCreating={isCreating}
           />
+          
+          <Button variant="outline" size="sm" onClick={handleNavigateToAccount}>
+            <User className="mr-2 h-4 w-4" />
+            My Account
+          </Button>
           
           <Button variant="outline" size="sm" onClick={handleJoinChallenge} disabled={isJoining || isLoadingEntryFee}>
             {isJoining ? (
