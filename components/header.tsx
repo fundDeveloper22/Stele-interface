@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
-import { Home, Trophy, BarChart3 } from "lucide-react"
+import { Home, Trophy, BarChart3, Vote } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Bell, Search, User, Wallet, DollarSign } from "lucide-react"
 import {
@@ -307,7 +307,7 @@ export function Header() {
               <span>Challenges</span>
             </div>
           </Link>
-          <Link href={"/portfolio"}>
+          <Link href={"/portfolio"} className="mr-4">
             <div 
               className={cn(
                 "flex flex-row items-center font-medium text-sm transition-colors",
@@ -318,6 +318,19 @@ export function Header() {
             >
               <BarChart3 className="h-4 w-4 mr-1.5" />
               <span>Portfolio</span>
+            </div>
+          </Link>
+          <Link href={"/vote"}>
+            <div 
+              className={cn(
+                "flex flex-row items-center font-medium text-sm transition-colors",
+                pathname.includes("/vote") 
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Vote className="h-4 w-4 mr-1.5" />
+              <span>Vote</span>
             </div>
           </Link>
         </div>
