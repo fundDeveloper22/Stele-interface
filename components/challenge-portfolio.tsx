@@ -181,7 +181,6 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       const discountedEntryFeeAmount = ethers.parseUnits(entryFee, USDC_DECIMALS);
 
       // First approve the Stele contract to spend USDC
-      console.log(`Approving ${entryFee} USDC (${discountedEntryFeeAmount}) for Stele contract...`);
       const approveTx = await usdcContract.approve(STELE_CONTRACT_ADDRESS, discountedEntryFeeAmount);
       
       // Show toast notification for approve transaction submitted
@@ -210,7 +209,6 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       });
 
       // Now call joinChallenge with challenge ID 1
-      console.log("Joining challenge with ID: 1");
       const tx = await steleContract.joinChallenge("1");
       
       // Show toast notification for transaction submitted
@@ -238,7 +236,6 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         ),
       });
       
-      console.log("Transaction confirmed:", tx.hash);
     } catch (error: any) {
       console.error("Error joining challenge:", error);
       
@@ -319,7 +316,6 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       );
 
       // Call createChallenge with the selected challenge type
-      console.log(`Creating challenge with type: ${challengeType}`);
       const tx = await steleContract.createChallenge(challengeType);
       
       // Show toast notification for transaction submitted
@@ -347,7 +343,6 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         ),
       });
       
-      console.log("Transaction confirmed:", tx.hash);
     } catch (error: any) {
       console.error("Error creating challenge:", error);
       
@@ -393,11 +388,11 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
               </>
             ) : (
               <>
-                <LineChart className="mr-2 h-4 w-4" />
+          <LineChart className="mr-2 h-4 w-4" />
                 Join Challenge ({entryFee} USDC)
               </>
             )}
-          </Button>
+        </Button>
         </div>
       </div>
 
@@ -482,10 +477,10 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
             </CardContent>
             <CardFooter>
               <Link href={`/swap?challenge=${challengeId}`} className="w-full">
-                <Button className="w-full">
-                  Swap Assets
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+              <Button className="w-full">
+                Swap Assets
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
               </Link>
             </CardFooter>
           </Card>
