@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Clock, XCircle, Plus, FileText, Vote as VoteIcon, Loader2 } from "lucide-react"
-import { useProposalsData, useActiveProposalsData, useCompletedProposalsData } from "@/app/subgraph/Proposals"
+import { useProposalsData, useActiveProposalsData, useCompletedProposalsData, useMultipleProposalVoteResults } from "@/app/subgraph/Proposals"
+import { STELE_DECIMALS } from "@/lib/constants"
+import { ethers } from "ethers"
 
 // Interface for proposal data
 interface Proposal {
@@ -40,6 +42,17 @@ export default function VotePage() {
   const { data: activeProposalsData, isLoading: isLoadingActive, error: errorActive, refetch: refetchActive } = useActiveProposalsData()
   // Fetch completed proposals from subgraph
   const { data: completedProposalsData, isLoading: isLoadingCompleted, error: errorCompleted, refetch: refetchCompleted } = useCompletedProposalsData()
+  
+  // Get all proposal IDs for fetching vote results
+  const allProposalIds = [
+    ...(proposalsData?.proposalCreateds?.map(p => p.proposalId) || []),
+    ...(activeProposalsData?.proposalCreateds?.map(p => p.proposalId) || []),
+    ...(completedProposalsData?.proposalCreateds?.map(p => p.proposalId) || [])
+  ].filter((id, index, self) => self.indexOf(id) === index) // Remove duplicates
+  
+  // Fetch vote results for all proposals
+  const { data: voteResultsData, isLoading: isLoadingVoteResults } = useMultipleProposalVoteResults(allProposalIds)
+  
   // Load wallet address when page loads
   useEffect(() => {
     const savedAddress = localStorage.getItem('walletAddress')
@@ -87,6 +100,16 @@ export default function VotePage() {
     const details = parseProposalDetails(proposalData.description)
     const status = forceStatus || getProposalStatus(proposalData.voteStart, proposalData.voteEnd)
     
+    // Find vote result for this proposal
+    const voteResult = voteResultsData?.proposalVoteResults?.find(
+      result => result.id === proposalData.proposalId
+    )
+    
+    // Convert vote counts from wei to STELE tokens
+    const votesFor = voteResult ? parseFloat(ethers.formatUnits(voteResult.forVotes, STELE_DECIMALS)) : 0
+    const votesAgainst = voteResult ? parseFloat(ethers.formatUnits(voteResult.againstVotes, STELE_DECIMALS)) : 0
+    const abstain = voteResult ? parseFloat(ethers.formatUnits(voteResult.abstainVotes, STELE_DECIMALS)) : 0
+    
     return {
       id: proposalData.proposalId,
       proposalId: proposalData.proposalId,
@@ -94,9 +117,9 @@ export default function VotePage() {
       description: details.description,
       proposer: `${proposalData.proposer.slice(0, 6)}...${proposalData.proposer.slice(-4)}`,
       status,
-      votesFor: 0, // These would need to be fetched separately or included in subgraph
-      votesAgainst: 0,
-      abstain: 0,
+      votesFor,
+      votesAgainst,
+      abstain,
       startTime: new Date(Number(proposalData.voteStart) * 1000),
       endTime: new Date(Number(proposalData.voteEnd) * 1000),
       blockTimestamp: proposalData.blockTimestamp,
@@ -106,38 +129,45 @@ export default function VotePage() {
     }
   }
 
-  // Process all proposals data
-  useEffect(() => {
-    if (proposalsData?.proposalCreateds) {
-      const processedProposals: Proposal[] = proposalsData.proposalCreateds
-        .map((proposal) => processProposalData(proposal))
-        .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
-      
-      setProposals(processedProposals)
-    }
-  }, [proposalsData])
+  // Process all proposals data using useMemo
+  const processedProposals = useMemo(() => {
+    if (!proposalsData?.proposalCreateds) return []
+    
+    return proposalsData.proposalCreateds
+      .map((proposal) => processProposalData(proposal))
+      .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
+  }, [proposalsData?.proposalCreateds, voteResultsData?.proposalVoteResults])
 
-  // Process active proposals data
-  useEffect(() => {
-    if (activeProposalsData?.proposalCreateds) {
-      const processedActiveProposals: Proposal[] = activeProposalsData.proposalCreateds
-        .map((proposal) => processProposalData(proposal, 'active'))
-        .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
-      
-      setActiveProposals(processedActiveProposals)
-    }
-  }, [activeProposalsData])
+  // Process active proposals data using useMemo
+  const processedActiveProposals = useMemo(() => {
+    if (!activeProposalsData?.proposalCreateds) return []
+    
+    return activeProposalsData.proposalCreateds
+      .map((proposal) => processProposalData(proposal, 'active'))
+      .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
+  }, [activeProposalsData?.proposalCreateds, voteResultsData?.proposalVoteResults])
 
-  // Process completed proposals data
+  // Process completed proposals data using useMemo
+  const processedCompletedProposals = useMemo(() => {
+    if (!completedProposalsData?.proposalCreateds) return []
+    
+    return completedProposalsData.proposalCreateds
+      .map((proposal) => processProposalData(proposal, 'completed'))
+      .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
+  }, [completedProposalsData?.proposalCreateds, voteResultsData?.proposalVoteResults])
+
+  // Update state when processed data changes
   useEffect(() => {
-    if (completedProposalsData?.proposalCreateds) {
-      const processedCompletedProposals: Proposal[] = completedProposalsData.proposalCreateds
-        .map((proposal) => processProposalData(proposal, 'completed'))
-        .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
-      
-      setCompletedProposals(processedCompletedProposals)
-    }
-  }, [completedProposalsData])
+    setProposals(processedProposals)
+  }, [processedProposals])
+
+  useEffect(() => {
+    setActiveProposals(processedActiveProposals)
+  }, [processedActiveProposals])
+
+  useEffect(() => {
+    setCompletedProposals(processedCompletedProposals)
+  }, [processedCompletedProposals])
 
   // Status badge component
   const StatusBadge = ({ status }: { status: string }) => {
@@ -212,11 +242,11 @@ export default function VotePage() {
     })
   }
 
-  if (isLoading || isLoadingActive || isLoadingCompleted) {
+  if (isLoading || isLoadingActive || isLoadingCompleted || isLoadingVoteResults) {
     return (
       <div className="container mx-auto py-6 flex flex-col items-center justify-center min-h-[50vh]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">Loading proposals...</p>
+        <p className="text-muted-foreground">Loading proposals and vote results...</p>
       </div>
     )
   }

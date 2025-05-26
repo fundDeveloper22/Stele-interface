@@ -81,6 +81,24 @@ export const getProposalVoteResultQuery = (proposalId: string) => {
   }`
 }
 
+export const getMultipleProposalVoteResultsQuery = (proposalIds: string[]) => {
+  const idsFilter = proposalIds.map(id => `"${id}"`).join(', ')
+  return gql`{
+    proposalVoteResults(where: { id_in: [${idsFilter}] }) {
+      id
+      forVotes
+      againstVotes
+      abstainVotes
+      forPercentage
+      againstPercentage
+      abstainPercentage
+      totalVotes
+      voterCount
+      isFinalized
+    }
+  }`
+}
+
 export interface ProposalCreatedData {
   id: string
   proposalId: string
@@ -99,6 +117,7 @@ export interface ProposalsData {
 }
 
 export interface ProposalVoteResultData {
+  id?: string
   forVotes: string
   againstVotes: string
   abstainVotes: string
@@ -112,6 +131,10 @@ export interface ProposalVoteResultData {
 
 export interface ProposalVoteResultResponse {
   proposalVoteResult: ProposalVoteResultData | null
+}
+
+export interface MultipleProposalVoteResultsResponse {
+  proposalVoteResults: ProposalVoteResultData[]
 }
 
 export function useProposalsData() {
@@ -182,12 +205,25 @@ export function useProposalVoteResult(proposalId: string) {
   return useQuery<ProposalVoteResultResponse>({
     queryKey: ['proposalVoteResult', proposalId],
     queryFn: async () => {
-      console.log('Fetching vote result for proposal:', proposalId)
       const result = await request(url, getProposalVoteResultQuery(proposalId), {}, headers) as ProposalVoteResultResponse
-      console.log('Vote result response:', result)
       return result
     },
     enabled: !!proposalId, // Only run query if proposalId is provided
     refetchInterval: 30000, // Refetch every 30 seconds to keep vote counts updated
+  })
+}
+
+export function useMultipleProposalVoteResults(proposalIds: string[]) {
+  return useQuery<MultipleProposalVoteResultsResponse>({
+    queryKey: ['multipleProposalVoteResults', proposalIds],
+    queryFn: async () => {
+      if (proposalIds.length === 0) {
+        return { proposalVoteResults: [] }
+      }
+      const result = await request(url, getMultipleProposalVoteResultsQuery(proposalIds), {}, headers) as MultipleProposalVoteResultsResponse
+      return result
+    },
+    enabled: proposalIds.length > 0, // Only run query if there are proposal IDs
+    refetchInterval: 60000, // Refetch every minute to keep vote counts updated
   })
 } 

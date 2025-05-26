@@ -51,11 +51,6 @@ export default function ProposalDetailPage() {
   // Get vote result data or use defaults
   const voteResult = voteResultData?.proposalVoteResult
   
-  // Debug logging
-  console.log('Proposal ID:', id)
-  console.log('Vote result data:', voteResultData)
-  console.log('Vote result:', voteResult)
-  
   // Example proposal data (in a real implementation, this would come from an API or contract)
   const proposal = {
     id: id,
