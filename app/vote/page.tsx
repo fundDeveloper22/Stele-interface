@@ -75,11 +75,6 @@ export default function VotePage() {
           blockNumber: currentBlock.number,
           timestamp: currentBlock.timestamp
         })
-        console.log('Current block info:', {
-          blockNumber: currentBlock.number,
-          timestamp: currentBlock.timestamp,
-          date: new Date(currentBlock.timestamp * 1000)
-        })
       }
     } catch (error) {
       console.error('Error getting current block info:', error)

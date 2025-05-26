@@ -112,12 +112,6 @@ export default function ProposalDetailPage() {
 
   // Get proposal data (from URL params or defaults)
   const proposal = getProposalFromParams()
-  
-  // Debug: Log proposal data
-  useEffect(() => {
-    console.log('Proposal data:', proposal)
-    console.log('Search params:', Object.fromEntries(searchParams.entries()))
-  }, [proposal, searchParams])
 
   // Load wallet address when page loads
   useEffect(() => {
