@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { 
   Card, 
@@ -30,6 +30,7 @@ import { useQueryClient } from "@tanstack/react-query"
 export default function ProposalDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const id = params?.id as string
   
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
@@ -51,22 +52,72 @@ export default function ProposalDetailPage() {
   // Get vote result data or use defaults
   const voteResult = voteResultData?.proposalVoteResult
   
-  // Example proposal data (in a real implementation, this would come from an API or contract)
-  const proposal = {
-    id: id,
-    title: 'Increase reward for 1 week challenge',
-    description: 'This proposal aims to increase the reward for the 1 week challenge from 100 USDC to 150 USDC to attract more participants.',
-    proposer: '0x1234...5678',
-    fullProposer: '0x1234567890abcdef1234567890abcdef12345678',
-    status: 'active',
-    votesFor: voteResult ? parseFloat(ethers.formatUnits(voteResult.forVotes, STELE_DECIMALS)) : 0,
-    votesAgainst: voteResult ? parseFloat(ethers.formatUnits(voteResult.againstVotes, STELE_DECIMALS)) : 0,
-    abstain: voteResult ? parseFloat(ethers.formatUnits(voteResult.abstainVotes, STELE_DECIMALS)) : 0,
-    startTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-    details: 'The current reward for the 1 week challenge is 100 USDC, which is relatively low compared to other DeFi platforms. By increasing the reward to 150 USDC, we can attract more participants and create a more competitive environment. The additional funds will come from the treasury, which currently has sufficient reserves to support this increase for at least the next 6 months. After this period, we can reassess the impact of the increased rewards on participation rates and platform growth.\n\nThis proposal would require updating the smart contract to adjust the reward calculation formula. The implementation would take effect immediately after passing and would apply to all new challenges created after that date.',
-    hasVoted: hasVoted,
+  // Extract proposal data from URL parameters
+  const getProposalFromParams = () => {
+    const title = searchParams.get('title') || 'Increase reward for 1 week challenge'
+    const description = searchParams.get('description') || 'This proposal aims to increase the reward for the 1 week challenge from 100 USDC to 150 USDC to attract more participants.'
+    const proposer = searchParams.get('proposer') || '0x1234...5678'
+    const status = searchParams.get('status') || 'active'
+    const startTimeStr = searchParams.get('startTime')
+    const endTimeStr = searchParams.get('endTime')
+    const votesForStr = searchParams.get('votesFor')
+    const votesAgainstStr = searchParams.get('votesAgainst')
+    const abstainStr = searchParams.get('abstain')
+    const blockTimestamp = searchParams.get('blockTimestamp') || ''
+    const blockNumber = searchParams.get('blockNumber') || ''
+    const valuesStr = searchParams.get('values')
+    const transactionHash = searchParams.get('transactionHash') || ''
+
+    // Parse dates
+    const startTime = startTimeStr ? new Date(startTimeStr) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const endTime = endTimeStr ? new Date(endTimeStr) : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+
+    // Parse vote counts (use subgraph data if available, otherwise use URL params)
+    const votesFor = voteResult ? parseFloat(ethers.formatUnits(voteResult.forVotes, STELE_DECIMALS)) : 
+                    (votesForStr ? parseFloat(votesForStr) : 0)
+    const votesAgainst = voteResult ? parseFloat(ethers.formatUnits(voteResult.againstVotes, STELE_DECIMALS)) : 
+                        (votesAgainstStr ? parseFloat(votesAgainstStr) : 0)
+    const abstain = voteResult ? parseFloat(ethers.formatUnits(voteResult.abstainVotes, STELE_DECIMALS)) : 
+                   (abstainStr ? parseFloat(abstainStr) : 0)
+
+    // Parse values array
+    let values: string[] = []
+    try {
+      values = valuesStr ? JSON.parse(valuesStr) : []
+    } catch (error) {
+      console.error('Error parsing values:', error)
+      values = []
+    }
+
+    return {
+      id: id,
+      title,
+      description,
+      proposer,
+      fullProposer: proposer.includes('...') ? '0x1234567890abcdef1234567890abcdef12345678' : proposer,
+      status,
+      votesFor,
+      votesAgainst,
+      abstain,
+      startTime,
+      endTime,
+      blockTimestamp,
+      blockNumber,
+      values,
+      transactionHash,
+      details: description, // Use description as details for now
+      hasVoted: hasVoted,
+    }
   }
+
+  // Get proposal data (from URL params or defaults)
+  const proposal = getProposalFromParams()
+  
+  // Debug: Log proposal data
+  useEffect(() => {
+    console.log('Proposal data:', proposal)
+    console.log('Search params:', Object.fromEntries(searchParams.entries()))
+  }, [proposal, searchParams])
 
   // Load wallet address when page loads
   useEffect(() => {
@@ -448,12 +499,18 @@ export default function ProposalDetailPage() {
                 </div>
                 <div className="flex items-center">
                   <Calendar className="h-4 w-4 mr-2" />
-                  <span>Created: {formatDate(proposal.startTime)}</span>
+                  <span>Vote Start: {formatDate(proposal.startTime)}</span>
                 </div>
                 <div className="flex items-center">
                   <Clock className="h-4 w-4 mr-2" />
-                  <span>Voting Ends: {formatDate(proposal.endTime)}</span>
+                  <span>Vote End: {formatDate(proposal.endTime)}</span>
                 </div>
+                {proposal.blockNumber && (
+                  <div className="flex items-center">
+                    <FileText className="h-4 w-4 mr-2" />
+                    <span>Block: {proposal.blockNumber}</span>
+                  </div>
+                )}
               </div>
               
               <Separator />

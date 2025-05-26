@@ -53,6 +53,55 @@ export default function VotePage() {
   // Fetch vote results for all proposals
   const { data: voteResultsData, isLoading: isLoadingVoteResults } = useMultipleProposalVoteResults(allProposalIds)
   
+  // State for current block info (for timestamp calculation)
+  const [currentBlockInfo, setCurrentBlockInfo] = useState<{blockNumber: number, timestamp: number} | null>(null)
+  const [isLoadingBlockInfo, setIsLoadingBlockInfo] = useState(false)
+
+  // Get current block info from RPC (called only once)
+  const getCurrentBlockInfo = async () => {
+    if (currentBlockInfo || isLoadingBlockInfo) return // Prevent multiple calls
+    
+    setIsLoadingBlockInfo(true)
+    try {
+      const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
+        ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
+        : 'https://mainnet.base.org'
+        
+      const provider = new ethers.JsonRpcProvider(rpcUrl)
+      const currentBlock = await provider.getBlock('latest')
+      
+      if (currentBlock) {
+        setCurrentBlockInfo({
+          blockNumber: currentBlock.number,
+          timestamp: currentBlock.timestamp
+        })
+        console.log('Current block info:', {
+          blockNumber: currentBlock.number,
+          timestamp: currentBlock.timestamp,
+          date: new Date(currentBlock.timestamp * 1000)
+        })
+      }
+    } catch (error) {
+      console.error('Error getting current block info:', error)
+    } finally {
+      setIsLoadingBlockInfo(false)
+    }
+  }
+
+  // Calculate timestamp for any block number based on current block info
+  const calculateBlockTimestamp = (targetBlockNumber: string): number => {
+    if (!currentBlockInfo) return 0
+    
+    const targetBlock = parseInt(targetBlockNumber)
+    const blockDifference = targetBlock - currentBlockInfo.blockNumber
+    
+    // Base mainnet has ~2 second block time
+    const BLOCK_TIME_SECONDS = 2
+    const estimatedTimestamp = currentBlockInfo.timestamp + (blockDifference * BLOCK_TIME_SECONDS)
+    
+    return estimatedTimestamp
+  }
+
   // Load wallet address when page loads
   useEffect(() => {
     const savedAddress = localStorage.getItem('walletAddress')
@@ -60,6 +109,11 @@ export default function VotePage() {
       setWalletAddress(savedAddress)
       setIsConnected(true)
     }
+  }, [])
+
+  // Get current block info on page load (only once)
+  useEffect(() => {
+    getCurrentBlockInfo()
   }, [])
 
   // Parse proposal details from description
@@ -110,6 +164,10 @@ export default function VotePage() {
     const votesAgainst = voteResult ? parseFloat(ethers.formatUnits(voteResult.againstVotes, STELE_DECIMALS)) : 0
     const abstain = voteResult ? parseFloat(ethers.formatUnits(voteResult.abstainVotes, STELE_DECIMALS)) : 0
     
+    // Calculate timestamps based on current block info
+    const startTimestamp = calculateBlockTimestamp(proposalData.voteStart)
+    const endTimestamp = calculateBlockTimestamp(proposalData.voteEnd)
+
     return {
       id: proposalData.proposalId,
       proposalId: proposalData.proposalId,
@@ -120,8 +178,8 @@ export default function VotePage() {
       votesFor,
       votesAgainst,
       abstain,
-      startTime: new Date(Number(proposalData.voteStart) * 1000),
-      endTime: new Date(Number(proposalData.voteEnd) * 1000),
+      startTime: new Date(startTimestamp * 1000),
+      endTime: new Date(endTimestamp * 1000),
       blockTimestamp: proposalData.blockTimestamp,
       blockNumber: proposalData.blockNumber,
       values: proposalData.values,
@@ -131,30 +189,30 @@ export default function VotePage() {
 
   // Process all proposals data using useMemo
   const processedProposals = useMemo(() => {
-    if (!proposalsData?.proposalCreateds) return []
+    if (!proposalsData?.proposalCreateds || !currentBlockInfo) return []
     
     return proposalsData.proposalCreateds
       .map((proposal) => processProposalData(proposal))
       .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
-  }, [proposalsData?.proposalCreateds, voteResultsData?.proposalVoteResults])
+  }, [proposalsData?.proposalCreateds, voteResultsData?.proposalVoteResults, currentBlockInfo])
 
   // Process active proposals data using useMemo
   const processedActiveProposals = useMemo(() => {
-    if (!activeProposalsData?.proposalCreateds) return []
+    if (!activeProposalsData?.proposalCreateds || !currentBlockInfo) return []
     
     return activeProposalsData.proposalCreateds
       .map((proposal) => processProposalData(proposal, 'active'))
       .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
-  }, [activeProposalsData?.proposalCreateds, voteResultsData?.proposalVoteResults])
+  }, [activeProposalsData?.proposalCreateds, voteResultsData?.proposalVoteResults, currentBlockInfo])
 
   // Process completed proposals data using useMemo
   const processedCompletedProposals = useMemo(() => {
-    if (!completedProposalsData?.proposalCreateds) return []
+    if (!completedProposalsData?.proposalCreateds || !currentBlockInfo) return []
     
     return completedProposalsData.proposalCreateds
       .map((proposal) => processProposalData(proposal, 'completed'))
       .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
-  }, [completedProposalsData?.proposalCreateds, voteResultsData?.proposalVoteResults])
+  }, [completedProposalsData?.proposalCreateds, voteResultsData?.proposalVoteResults, currentBlockInfo])
 
   // Update state when processed data changes
   useEffect(() => {
@@ -242,11 +300,34 @@ export default function VotePage() {
     })
   }
 
-  if (isLoading || isLoadingActive || isLoadingCompleted || isLoadingVoteResults) {
+  // Create URL with proposal data as query parameters
+  const createProposalUrl = (proposal: Proposal) => {
+    const params = new URLSearchParams({
+      title: proposal.title,
+      description: proposal.description,
+      proposer: proposal.proposer,
+      status: proposal.status,
+      startTime: proposal.startTime.toISOString(),
+      endTime: proposal.endTime.toISOString(),
+      votesFor: proposal.votesFor.toString(),
+      votesAgainst: proposal.votesAgainst.toString(),
+      abstain: proposal.abstain.toString(),
+      blockTimestamp: proposal.blockTimestamp,
+      blockNumber: proposal.blockNumber,
+      values: JSON.stringify(proposal.values),
+      transactionHash: proposal.transactionHash || ''
+    })
+    
+    return `/vote/${proposal.id}?${params.toString()}`
+  }
+
+  if (isLoading || isLoadingActive || isLoadingCompleted || isLoadingVoteResults || isLoadingBlockInfo) {
     return (
       <div className="container mx-auto py-6 flex flex-col items-center justify-center min-h-[50vh]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">Loading proposals and vote results...</p>
+        <p className="text-muted-foreground">
+          {isLoadingBlockInfo ? 'Loading block information...' : 'Loading proposals and vote results...'}
+        </p>
       </div>
     )
   }
@@ -324,13 +405,14 @@ export default function VotePage() {
                       votesAgainst={proposal.votesAgainst} 
                       abstain={proposal.abstain}
                     />
-                    <div className="mt-4 text-sm">
+                    <div className="mt-4 text-sm space-y-1">
                       <p>Proposer: {proposal.proposer}</p>
-                      <p>Ends: {formatDate(proposal.endTime)}</p>
+                      <p>Vote Start: {formatDate(proposal.startTime)}</p>
+                      <p>Vote End: {formatDate(proposal.endTime)}</p>
                     </div>
                   </CardContent>
                   <CardFooter>
-                    <Link href={`/vote/${proposal.id}`} className="w-full">
+                    <Link href={createProposalUrl(proposal)} className="w-full">
                       <Button className="w-full">
                         <VoteIcon className="mr-2 h-4 w-4" />
                         Cast Vote
@@ -365,13 +447,14 @@ export default function VotePage() {
                       votesAgainst={proposal.votesAgainst} 
                       abstain={proposal.abstain}
                     />
-                    <div className="mt-4 text-sm">
+                    <div className="mt-4 text-sm space-y-1">
                       <p>Proposer: {proposal.proposer}</p>
-                      <p>Ended: {formatDate(proposal.endTime)}</p>
+                      <p>Vote Start: {formatDate(proposal.startTime)}</p>
+                      <p>Vote End: {formatDate(proposal.endTime)}</p>
                     </div>
                   </CardContent>
                   <CardFooter>
-                    <Link href={`/vote/${proposal.id}`} className="w-full">
+                    <Link href={createProposalUrl(proposal)} className="w-full">
                       <Button variant="outline" className="w-full">
                         <FileText className="mr-2 h-4 w-4" />
                         View Details
@@ -406,21 +489,22 @@ export default function VotePage() {
                       votesAgainst={proposal.votesAgainst} 
                       abstain={proposal.abstain}
                     />
-                    <div className="mt-4 text-sm">
+                    <div className="mt-4 text-sm space-y-1">
                       <p>Proposer: {proposal.proposer}</p>
-                      <p>{proposal.status === 'active' ? 'Ends' : 'Ended'}: {formatDate(proposal.endTime)}</p>
+                      <p>Vote Start: {formatDate(proposal.startTime)}</p>
+                      <p>Vote End: {formatDate(proposal.endTime)}</p>
                     </div>
                   </CardContent>
                   <CardFooter>
                     {proposal.status === 'active' ? (
-                      <Link href={`/vote/${proposal.id}`} className="w-full">
+                      <Link href={createProposalUrl(proposal)} className="w-full">
                         <Button className="w-full">
                           <VoteIcon className="mr-2 h-4 w-4" />
                           Cast Vote
                         </Button>
                       </Link>
                     ) : (
-                      <Link href={`/vote/${proposal.id}`} className="w-full">
+                      <Link href={createProposalUrl(proposal)} className="w-full">
                         <Button variant="outline" className="w-full">
                           <FileText className="mr-2 h-4 w-4" />
                           View Details
