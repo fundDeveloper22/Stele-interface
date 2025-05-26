@@ -20,8 +20,12 @@ export const GOVERNANCE_CONTRACT_ADDRESS = "0x8f08aDA72cCEE0E1FaB09f25602b20624E
 
 // Token decimals
 export const USDC_DECIMALS = 6;
+export const STELE_DECIMALS = 18;
 
 //subgraph
 export const url = 'https://api.studio.thegraph.com/query/110372/stele-base-2/version/latest'
 //export const url = 'https://gateway.thegraph.com/api/subgraphs/id/7j7CYjgLEhQZoAB2NR1EHTreZZT8z57tpYR2C51C5Sis'
 export const headers = { Authorization: `Bearer ${process.env.NEXT_PUBLIC_THE_GRAPH_API_KEY}` }
+
+// STELE Token total supply (1 billion tokens = 1,000,000,000 * 10^18)
+export const STELE_TOTAL_SUPPLY = "1000000000000000000000000000";

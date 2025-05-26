@@ -20,10 +20,12 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import { ethers } from "ethers"
-import { GOVERNANCE_CONTRACT_ADDRESS, STELE_TOKEN_ADDRESS } from "@/lib/constants"
+import { GOVERNANCE_CONTRACT_ADDRESS, STELE_TOKEN_ADDRESS, STELE_DECIMALS, STELE_TOTAL_SUPPLY } from "@/lib/constants"
 import GovernorABI from "@/app/abis/SteleGovernor.json"
 import ERC20VotesABI from "@/app/abis/ERC20Votes.json"
 import ERC20ABI from "@/app/abis/ERC20.json"
+import { useProposalVoteResult } from "@/app/subgraph/Proposals"
+import { useQueryClient } from "@tanstack/react-query"
 
 export default function ProposalDetailPage() {
   const router = useRouter()
@@ -42,6 +44,18 @@ export default function ProposalDetailPage() {
   const [delegatedTo, setDelegatedTo] = useState<string>("")
   const [isDelegating, setIsDelegating] = useState(false)
   
+  // Fetch vote results from subgraph
+  const { data: voteResultData, isLoading: isLoadingVoteResult } = useProposalVoteResult(id)
+  const queryClient = useQueryClient()
+  
+  // Get vote result data or use defaults
+  const voteResult = voteResultData?.proposalVoteResult
+  
+  // Debug logging
+  console.log('Proposal ID:', id)
+  console.log('Vote result data:', voteResultData)
+  console.log('Vote result:', voteResult)
+  
   // Example proposal data (in a real implementation, this would come from an API or contract)
   const proposal = {
     id: id,
@@ -50,9 +64,9 @@ export default function ProposalDetailPage() {
     proposer: '0x1234...5678',
     fullProposer: '0x1234567890abcdef1234567890abcdef12345678',
     status: 'active',
-    votesFor: 120000,
-    votesAgainst: 45000,
-    abstain: 5000,
+    votesFor: voteResult ? parseFloat(ethers.formatUnits(voteResult.forVotes, STELE_DECIMALS)) : 0,
+    votesAgainst: voteResult ? parseFloat(ethers.formatUnits(voteResult.againstVotes, STELE_DECIMALS)) : 0,
+    abstain: voteResult ? parseFloat(ethers.formatUnits(voteResult.abstainVotes, STELE_DECIMALS)) : 0,
     startTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
     details: 'The current reward for the 1 week challenge is 100 USDC, which is relatively low compared to other DeFi platforms. By increasing the reward to 150 USDC, we can attract more participants and create a more competitive environment. The additional funds will come from the treasury, which currently has sufficient reserves to support this increase for at least the next 6 months. After this period, we can reassess the impact of the increased rewards on participation rates and platform growth.\n\nThis proposal would require updating the smart contract to adjust the reward calculation formula. The implementation would take effect immediately after passing and would apply to all new challenges created after that date.',
@@ -102,7 +116,7 @@ export default function ProposalDetailPage() {
       let balance = "0"
       try {
         const tokenBalance = await tokenContract.balanceOf(walletAddress)
-        balance = ethers.formatUnits(tokenBalance, 18)
+        balance = ethers.formatUnits(tokenBalance, STELE_DECIMALS)
         setTokenBalance(balance)
       } catch (balanceError) {
         console.error('Error getting token balance:', balanceError)
@@ -124,12 +138,8 @@ export default function ProposalDetailPage() {
       // For simplicity, we'll use current block - 1 as timepoint
       const timepoint = currentBlock - 1
       const userVotingPower = await governanceContract.getVotes(walletAddress, timepoint)
-      setVotingPower(ethers.formatUnits(userVotingPower, 18))
+      setVotingPower(ethers.formatUnits(userVotingPower, STELE_DECIMALS))
 
-      console.log('Token balance:', balance)
-      console.log('Delegated to:', delegatee)
-      console.log('Voting power:', ethers.formatUnits(userVotingPower, 18))
-      console.log('Has voted:', hasUserVoted)
     } catch (error) {
       console.error('Error checking voting power and status:', error)
       toast({
@@ -142,13 +152,16 @@ export default function ProposalDetailPage() {
     }
   }
 
-  // Calculate vote percentage
+  // Calculate vote percentage based on total supply (1 billion STELE)
   const calculatePercentage = () => {
-    const total = proposal.votesFor + proposal.votesAgainst + proposal.abstain
+    // Convert STELE_TOTAL_SUPPLY from wei to STELE tokens
+    const totalSupplyInStele = parseFloat(ethers.formatUnits(STELE_TOTAL_SUPPLY, STELE_DECIMALS))
+    
+    // Calculate percentage based on total supply
     return {
-      for: ((proposal.votesFor / total) * 100).toFixed(2),
-      against: ((proposal.votesAgainst / total) * 100).toFixed(2),
-      abstain: ((proposal.abstain / total) * 100).toFixed(2),
+      for: ((proposal.votesFor / totalSupplyInStele) * 100).toFixed(2),
+      against: ((proposal.votesAgainst / totalSupplyInStele) * 100).toFixed(2),
+      abstain: ((proposal.abstain / totalSupplyInStele) * 100).toFixed(2),
     }
   }
 
@@ -302,8 +315,9 @@ export default function ProposalDetailPage() {
         // Cast vote with reason
         tx = await contract.castVoteWithReason(id, support, reason.trim())
       } else {
-        // Cast vote without reason
-        tx = await contract.castVote(id, support)
+              // Cast vote without reason
+      console.log('Casting vote with:', { proposalId: id, support, votingPower })
+      tx = await contract.castVote(id, support)
       }
 
       toast({
@@ -313,11 +327,17 @@ export default function ProposalDetailPage() {
 
       // Wait for transaction confirmation
       const receipt = await tx.wait()
+      
+      console.log('Vote transaction confirmed:', {
+        hash: receipt.hash,
+        blockNumber: receipt.blockNumber,
+        gasUsed: receipt.gasUsed.toString()
+      })
 
       // Vote success message
       toast({
         title: "Vote Cast Successfully",
-        description: `You have voted ${voteOption} on proposal ${id} with ${votingPower} voting power`,
+        description: `You have voted ${voteOption} on proposal ${id} with ${Number(votingPower).toLocaleString()} voting power`,
         action: (
           <ToastAction 
             altText="View on BaseScan"
@@ -331,10 +351,13 @@ export default function ProposalDetailPage() {
       // Update voting status
       setHasVoted(true)
       
-      // Refresh the page after a short delay
+      // Invalidate and refetch vote result data
+      queryClient.invalidateQueries({ queryKey: ['proposalVoteResult', id] })
+      
+      // Refresh voting power and status
       setTimeout(() => {
-        router.refresh()
-      }, 2000)
+        checkVotingPowerAndStatus()
+      }, 3000)
 
     } catch (error: any) {
       console.error("Voting error:", error)
@@ -586,15 +609,42 @@ export default function ProposalDetailPage() {
           <Card className="mt-6">
             <CardHeader>
               <CardTitle>Current Results</CardTitle>
+              <CardDescription>
+                {voteResult ? (
+                  <>
+                    Total votes: {parseFloat(ethers.formatUnits(voteResult.totalVotes || "0", STELE_DECIMALS)).toLocaleString()} STELE • 
+                    Voters: {parseInt(voteResult.voterCount || "0").toLocaleString()}
+                  </>
+                ) : (
+                  <>
+                    Total votes: {(proposal.votesFor + proposal.votesAgainst + proposal.abstain).toLocaleString()} STELE
+                  </>
+                )}
+                <br />
+                <span className="text-xs">
+                  Participation: {((proposal.votesFor + proposal.votesAgainst + proposal.abstain) / parseFloat(ethers.formatUnits(STELE_TOTAL_SUPPLY, STELE_DECIMALS)) * 100).toFixed(2)}% of total supply
+                </span>
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {/* For */}
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium">For</span>
-                    <span className="text-sm text-green-500">{percentages.for}%</span>
-                  </div>
+              {isLoadingVoteResult ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  Loading vote results...
+                </div>
+              ) : !voteResult ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No vote data available yet.</p>
+                  <p className="text-sm mt-2">Votes may take a few minutes to appear after casting.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* For */}
+                                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">For</span>
+                      <span className="text-sm text-green-500">{percentages.for}% of total supply</span>
+                    </div>
                   <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                     <div 
                       className="bg-green-500 h-full" 
@@ -602,16 +652,16 @@ export default function ProposalDetailPage() {
                     ></div>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {proposal.votesFor.toLocaleString()} votes
+                    {proposal.votesFor.toLocaleString()} STELE
                   </div>
                 </div>
                 
                 {/* Against */}
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium">Against</span>
-                    <span className="text-sm text-red-500">{percentages.against}%</span>
-                  </div>
+                                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Against</span>
+                      <span className="text-sm text-red-500">{percentages.against}% of total supply</span>
+                    </div>
                   <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                     <div 
                       className="bg-red-500 h-full" 
@@ -619,16 +669,16 @@ export default function ProposalDetailPage() {
                     ></div>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {proposal.votesAgainst.toLocaleString()} votes
+                    {proposal.votesAgainst.toLocaleString()} STELE
                   </div>
                 </div>
                 
                 {/* Abstain */}
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium">Abstain</span>
-                    <span className="text-sm text-slate-500">{percentages.abstain}%</span>
-                  </div>
+                                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Abstain</span>
+                      <span className="text-sm text-slate-500">{percentages.abstain}% of total supply</span>
+                    </div>
                   <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                     <div 
                       className="bg-slate-400 h-full" 
@@ -636,10 +686,11 @@ export default function ProposalDetailPage() {
                     ></div>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {proposal.abstain.toLocaleString()} votes
+                    {proposal.abstain.toLocaleString()} STELE
                   </div>
                 </div>
               </div>
+              )}
             </CardContent>
           </Card>
         </div>

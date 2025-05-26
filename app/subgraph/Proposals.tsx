@@ -65,6 +65,22 @@ export const getCompletedProposalsQuery = (currentBlockNumber: string) => {
   }`
 }
 
+export const getProposalVoteResultQuery = (proposalId: string) => {
+  return gql`{
+    proposalVoteResult(id: "${proposalId}") {
+      forVotes
+      againstVotes
+      abstainVotes
+      forPercentage
+      againstPercentage
+      abstainPercentage
+      totalVotes
+      voterCount
+      isFinalized
+    }
+  }`
+}
+
 export interface ProposalCreatedData {
   id: string
   proposalId: string
@@ -80,6 +96,22 @@ export interface ProposalCreatedData {
 
 export interface ProposalsData {
   proposalCreateds: ProposalCreatedData[]
+}
+
+export interface ProposalVoteResultData {
+  forVotes: string
+  againstVotes: string
+  abstainVotes: string
+  forPercentage: string
+  againstPercentage: string
+  abstainPercentage: string
+  totalVotes: string
+  voterCount: string
+  isFinalized: boolean
+}
+
+export interface ProposalVoteResultResponse {
+  proposalVoteResult: ProposalVoteResultData | null
 }
 
 export function useProposalsData() {
@@ -143,5 +175,19 @@ export function useCompletedProposalsData() {
       }
     },
     refetchInterval: 60000, // Refetch every minute to keep status updated
+  })
+}
+
+export function useProposalVoteResult(proposalId: string) {
+  return useQuery<ProposalVoteResultResponse>({
+    queryKey: ['proposalVoteResult', proposalId],
+    queryFn: async () => {
+      console.log('Fetching vote result for proposal:', proposalId)
+      const result = await request(url, getProposalVoteResultQuery(proposalId), {}, headers) as ProposalVoteResultResponse
+      console.log('Vote result response:', result)
+      return result
+    },
+    enabled: !!proposalId, // Only run query if proposalId is provided
+    refetchInterval: 30000, // Refetch every 30 seconds to keep vote counts updated
   })
 } 
