@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Clock, XCircle, Plus, FileText, Vote as VoteIcon, Loader2 } from "lucide-react"
-import { useProposalsData } from "@/app/subgraph/Proposals"
+import { useProposalsData, useActiveProposalsData, useCompletedProposalsData } from "@/app/subgraph/Proposals"
 
 // Interface for proposal data
 interface Proposal {
@@ -24,15 +24,22 @@ interface Proposal {
   blockTimestamp: string;
   blockNumber: string;
   values: string[];
+  transactionHash: string;
 }
 
 export default function VotePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [proposals, setProposals] = useState<Proposal[]>([])
+  const [activeProposals, setActiveProposals] = useState<Proposal[]>([])
+  const [completedProposals, setCompletedProposals] = useState<Proposal[]>([])
   
-  // Fetch proposals from subgraph
+  // Fetch all proposals from subgraph
   const { data: proposalsData, isLoading, error, refetch } = useProposalsData()
+  // Fetch active proposals from subgraph
+  const { data: activeProposalsData, isLoading: isLoadingActive, error: errorActive, refetch: refetchActive } = useActiveProposalsData()
+  // Fetch completed proposals from subgraph
+  const { data: completedProposalsData, isLoading: isLoadingCompleted, error: errorCompleted, refetch: refetchCompleted } = useCompletedProposalsData()
   // Load wallet address when page loads
   useEffect(() => {
     const savedAddress = localStorage.getItem('walletAddress')
@@ -57,9 +64,12 @@ export default function VotePage() {
     return { title, description: desc }
   }
 
-  // Determine proposal status based on timestamps
+  // Simple status determination - since active proposals are filtered by subgraph,
+  // we just need basic logic for all proposals view
   const getProposalStatus = (voteStart: string, voteEnd: string): 'active' | 'completed' | 'rejected' => {
-    const now = Date.now() / 1000 // Current time in seconds
+    // For simplicity, we'll use timestamp-based logic here
+    // The accurate filtering is done in the subgraph for active proposals
+    const now = Date.now() / 1000
     const startTime = Number(voteStart)
     const endTime = Number(voteEnd)
     
@@ -68,38 +78,70 @@ export default function VotePage() {
     } else if (now >= startTime && now <= endTime) {
       return 'active' // Currently active
     } else {
-      return 'completed' // Ended (we'll assume completed for now)
+      return 'completed' // Ended
     }
   }
 
-  // Process subgraph data into proposals
+  // Helper function to process proposal data
+  const processProposalData = (proposalData: any, forceStatus?: 'active' | 'completed' | 'rejected') => {
+    const details = parseProposalDetails(proposalData.description)
+    const status = forceStatus || getProposalStatus(proposalData.voteStart, proposalData.voteEnd)
+    
+    return {
+      id: proposalData.proposalId,
+      proposalId: proposalData.proposalId,
+      title: details.title || `Proposal #${proposalData.proposalId}`,
+      description: details.description,
+      proposer: `${proposalData.proposer.slice(0, 6)}...${proposalData.proposer.slice(-4)}`,
+      status,
+      votesFor: 0, // These would need to be fetched separately or included in subgraph
+      votesAgainst: 0,
+      abstain: 0,
+      startTime: new Date(Number(proposalData.voteStart) * 1000),
+      endTime: new Date(Number(proposalData.voteEnd) * 1000),
+      blockTimestamp: proposalData.blockTimestamp,
+      blockNumber: proposalData.blockNumber,
+      values: proposalData.values,
+      transactionHash: proposalData.transactionHash
+    }
+  }
+
+  // Process all proposals data
   useEffect(() => {
     if (proposalsData?.proposalCreateds) {
-      const processedProposals: Proposal[] = proposalsData.proposalCreateds.map((proposal) => {
-        const details = parseProposalDetails(proposal.description)
-        const status = getProposalStatus(proposal.voteStart, proposal.voteEnd)
-        
-        return {
-          id: proposal.proposalId,
-          proposalId: proposal.proposalId,
-          title: details.title || `Proposal #${proposal.proposalId}`,
-          description: details.description,
-          proposer: `${proposal.proposer.slice(0, 6)}...${proposal.proposer.slice(-4)}`,
-          status,
-          votesFor: 0, // These would need to be fetched separately or included in subgraph
-          votesAgainst: 0,
-          abstain: 0,
-          startTime: new Date(Number(proposal.voteStart) * 1000),
-          endTime: new Date(Number(proposal.voteEnd) * 1000),
-          blockTimestamp: proposal.blockTimestamp,
-          blockNumber: proposal.blockNumber,
-          values: proposal.values
-        }
-      }).sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
+      const processedProposals: Proposal[] = proposalsData.proposalCreateds
+        .map((proposal) => processProposalData(proposal))
+        .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
       
       setProposals(processedProposals)
     }
   }, [proposalsData])
+
+  // Process active proposals data
+  useEffect(() => {
+    if (activeProposalsData?.proposalCreateds) {
+      console.log('Active proposals data:', activeProposalsData.proposalCreateds)
+      const processedActiveProposals: Proposal[] = activeProposalsData.proposalCreateds
+        .map((proposal) => processProposalData(proposal, 'active'))
+        .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
+      
+      setActiveProposals(processedActiveProposals)
+      console.log('Processed active proposals:', processedActiveProposals)
+    }
+  }, [activeProposalsData])
+
+  // Process completed proposals data
+  useEffect(() => {
+    if (completedProposalsData?.proposalCreateds) {
+      console.log('Completed proposals data:', completedProposalsData.proposalCreateds)
+      const processedCompletedProposals: Proposal[] = completedProposalsData.proposalCreateds
+        .map((proposal) => processProposalData(proposal, 'completed'))
+        .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
+      
+      setCompletedProposals(processedCompletedProposals)
+      console.log('Processed completed proposals:', processedCompletedProposals)
+    }
+  }, [completedProposalsData])
 
   // Status badge component
   const StatusBadge = ({ status }: { status: string }) => {
@@ -174,7 +216,7 @@ export default function VotePage() {
     })
   }
 
-  if (isLoading) {
+  if (isLoading || isLoadingActive || isLoadingCompleted) {
     return (
       <div className="container mx-auto py-6 flex flex-col items-center justify-center min-h-[50vh]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
@@ -183,15 +225,20 @@ export default function VotePage() {
     )
   }
 
-  if (error && proposals.length === 0) {
+  if ((error || errorActive || errorCompleted) && proposals.length === 0 && activeProposals.length === 0 && completedProposals.length === 0) {
+    const displayError = error || errorActive || errorCompleted
     return (
       <div className="container mx-auto py-6">
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
           <p className="font-medium">Error loading proposals</p>
-          <p className="text-sm">{error.message || 'Failed to load proposals'}</p>
+          <p className="text-sm">{displayError?.message || 'Failed to load proposals'}</p>
         </div>
         <div className="mt-4">
-          <Button variant="outline" onClick={() => refetch()}>Retry</Button>
+          <Button variant="outline" onClick={() => {
+            refetch()
+            refetchActive()
+            refetchCompleted()
+          }}>Retry</Button>
         </div>
       </div>
     )
@@ -202,7 +249,11 @@ export default function VotePage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Governance</h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => refetch()} disabled={isLoading}>
+          <Button variant="outline" onClick={() => {
+            refetch()
+            refetchActive()
+            refetchCompleted()
+          }} disabled={isLoading || isLoadingActive || isLoadingCompleted}>
             <Clock className="mr-2 h-4 w-4" />
             Refresh
           </Button>
@@ -215,9 +266,9 @@ export default function VotePage() {
         </div>
       </div>
 
-      {error && (
+      {(error || errorActive || errorCompleted) && (
         <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-md mb-6">
-          <p>Warning: {error.message || 'Failed to load proposals'}</p>
+          <p>Warning: {(error || errorActive || errorCompleted)?.message || 'Failed to load proposals'}</p>
           <p className="text-sm">Showing cached or example data.</p>
         </div>
       )}
@@ -231,8 +282,8 @@ export default function VotePage() {
 
         <TabsContent value="active" className="mt-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {proposals.filter(p => p.status === 'active').length > 0 ? (
-              proposals.filter(p => p.status === 'active').map((proposal) => (
+            {activeProposals.length > 0 ? (
+              activeProposals.map((proposal) => (
                 <Card key={proposal.id} className="flex flex-col">
                   <CardHeader>
                     <div className="flex justify-between items-start">
@@ -272,8 +323,8 @@ export default function VotePage() {
 
         <TabsContent value="completed" className="mt-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {proposals.filter(p => p.status === 'completed').length > 0 ? (
-              proposals.filter(p => p.status === 'completed').map((proposal) => (
+            {completedProposals.length > 0 ? (
+              completedProposals.map((proposal) => (
                 <Card key={proposal.id} className="flex flex-col">
                   <CardHeader>
                     <div className="flex justify-between items-start">
