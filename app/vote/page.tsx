@@ -6,9 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Clock, XCircle, Plus, FileText, Vote as VoteIcon, Loader2 } from "lucide-react"
-import { ethers } from "ethers"
-import { GOVERNANCE_CONTRACT_ADDRESS } from "@/lib/constants"
-import GovernorABI from "@/app/abis/SteleGovernor.json"
+import { useProposalsData } from "@/app/subgraph/Proposals"
 
 // Interface for proposal data
 interface Proposal {
@@ -22,26 +20,19 @@ interface Proposal {
   abstain: number;
   startTime: Date;
   endTime: Date;
-  proposalId?: string; // Raw proposal ID from the contract
-}
-
-interface ProposalEvent extends ethers.Log {
-  args?: {
-    proposalId: bigint;
-    proposer: string;
-    description: string;
-    voteStart: bigint;
-    voteEnd: bigint;
-  };
+  proposalId: string;
+  blockTimestamp: string;
+  blockNumber: string;
+  values: string[];
 }
 
 export default function VotePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [proposals, setProposals] = useState<Proposal[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   
+  // Fetch proposals from subgraph
+  const { data: proposalsData, isLoading, error, refetch } = useProposalsData()
   // Load wallet address when page loads
   useEffect(() => {
     const savedAddress = localStorage.getItem('walletAddress')
@@ -49,38 +40,7 @@ export default function VotePage() {
       setWalletAddress(savedAddress)
       setIsConnected(true)
     }
-    
-    // Load proposals from smart contract
-    fetchProposals()
   }, [])
-
-  // Get state of proposal from the contract
-  const getProposalState = async (provider: ethers.Provider, governorContract: ethers.Contract, proposalId: string) => {
-    try {
-      const state = await governorContract.state(proposalId)
-      
-      // Convert numeric state to string status
-      // 0: Pending, 1: Active, 2: Canceled, 3: Defeated, 4: Succeeded, 5: Queued, 6: Expired, 7: Executed
-      switch (Number(state)) {
-        case 0: // Pending
-        case 1: // Active
-        case 5: // Queued
-          return 'active'
-        case 4: // Succeeded
-        case 7: // Executed
-          return 'completed'
-        case 2: // Canceled
-        case 3: // Defeated
-        case 6: // Expired
-          return 'rejected'
-        default:
-          return 'active'
-      }
-    } catch (error) {
-      console.error("Error getting proposal state:", error)
-      return 'active' // Default to active if error
-    }
-  }
 
   // Parse proposal details from description
   const parseProposalDetails = (description: string) => {
@@ -97,106 +57,49 @@ export default function VotePage() {
     return { title, description: desc }
   }
 
-  // Fetch proposals from the contract
-  const fetchProposals = async () => {
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      // Connect to provider using Infura
-      const provider = new ethers.JsonRpcProvider(
-        `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
-      )
-      
-      // Create contract instance
-      const governorContract = new ethers.Contract(
-        GOVERNANCE_CONTRACT_ADDRESS,
-        GovernorABI.abi,
-        provider
-      )
-
-      // Get the current block number
-      const currentBlock = await provider.getBlockNumber()
-      
-      // Query for ProposalCreated events
-      const filter = governorContract.filters.ProposalCreated()
-      const events = await governorContract.queryFilter(filter, currentBlock - 10000, currentBlock)
-      
-      // Process each event
-      const proposalPromises = events.map(async (event) => {
-        try {
-          const eventArgs = (event as ProposalEvent).args
-          if (!eventArgs) return null
-          
-          const proposalId = eventArgs.proposalId.toString()
-          const proposer = eventArgs.proposer
-          const description = eventArgs.description
-          const voteStart = new Date(Number(eventArgs.voteStart) * 1000)
-          const voteEnd = new Date(Number(eventArgs.voteEnd) * 1000)
-          
-          // Get proposal details
-          const details = parseProposalDetails(description)
-          
-          // Get proposal status
-          const status = await getProposalState(provider, governorContract, proposalId)
-          
-          // Get proposal votes
-          const votes = await governorContract.proposalVotes(proposalId)
-          const votesAgainst = Number(ethers.formatUnits(votes.againstVotes, 0))
-          const votesFor = Number(ethers.formatUnits(votes.forVotes, 0))
-          const abstain = Number(ethers.formatUnits(votes.abstainVotes, 0))
-          
-          return {
-            id: proposalId,
-            proposalId: proposalId,
-            title: details.title || `Proposal #${proposalId}`,
-            description: details.description,
-            proposer: `${proposer.slice(0, 6)}...${proposer.slice(-4)}`,
-            status: status as 'active' | 'completed' | 'rejected',
-            votesFor,
-            votesAgainst,
-            abstain,
-            startTime: voteStart,
-            endTime: voteEnd
-          }
-        } catch (error) {
-          console.error("Error processing proposal event:", error)
-          return null
-        }
-      })
-      
-      // Wait for all promises to resolve
-      const results = await Promise.all(proposalPromises)
-      
-      // Filter out null values and sort by end time (newest first)
-      const filteredProposals = results
-        .filter(Boolean)
-        .sort((a, b) => b!.endTime.getTime() - a!.endTime.getTime()) as Proposal[]
-      
-      setProposals(filteredProposals)
-      
-      // Save to localStorage as cache
-      localStorage.setItem('cachedProposals', JSON.stringify(filteredProposals))
-      localStorage.setItem('proposalsCacheTime', Date.now().toString())
-      
-    } catch (error: any) {
-      console.error("Error fetching proposals:", error)
-      setError(error.message || "Failed to load proposals")
-      
-      // Try to load from cache if available
-      const cachedProposals = localStorage.getItem('cachedProposals')
-      if (cachedProposals) {
-        try {
-          const parsed = JSON.parse(cachedProposals)
-          setProposals(parsed)
-        } catch (cacheError) {
-          console.error("Error loading cached proposals:", cacheError)
-        }
-      }
-    } finally {
-      setIsLoading(false)
+  // Determine proposal status based on timestamps
+  const getProposalStatus = (voteStart: string, voteEnd: string): 'active' | 'completed' | 'rejected' => {
+    const now = Date.now() / 1000 // Current time in seconds
+    const startTime = Number(voteStart)
+    const endTime = Number(voteEnd)
+    
+    if (now < startTime) {
+      return 'active' // Pending/upcoming
+    } else if (now >= startTime && now <= endTime) {
+      return 'active' // Currently active
+    } else {
+      return 'completed' // Ended (we'll assume completed for now)
     }
   }
+
+  // Process subgraph data into proposals
+  useEffect(() => {
+    if (proposalsData?.proposalCreateds) {
+      const processedProposals: Proposal[] = proposalsData.proposalCreateds.map((proposal) => {
+        const details = parseProposalDetails(proposal.description)
+        const status = getProposalStatus(proposal.voteStart, proposal.voteEnd)
+        
+        return {
+          id: proposal.proposalId,
+          proposalId: proposal.proposalId,
+          title: details.title || `Proposal #${proposal.proposalId}`,
+          description: details.description,
+          proposer: `${proposal.proposer.slice(0, 6)}...${proposal.proposer.slice(-4)}`,
+          status,
+          votesFor: 0, // These would need to be fetched separately or included in subgraph
+          votesAgainst: 0,
+          abstain: 0,
+          startTime: new Date(Number(proposal.voteStart) * 1000),
+          endTime: new Date(Number(proposal.voteEnd) * 1000),
+          blockTimestamp: proposal.blockTimestamp,
+          blockNumber: proposal.blockNumber,
+          values: proposal.values
+        }
+      }).sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
+      
+      setProposals(processedProposals)
+    }
+  }, [proposalsData])
 
   // Status badge component
   const StatusBadge = ({ status }: { status: string }) => {
@@ -285,10 +188,10 @@ export default function VotePage() {
       <div className="container mx-auto py-6">
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
           <p className="font-medium">Error loading proposals</p>
-          <p className="text-sm">{error}</p>
+          <p className="text-sm">{error.message || 'Failed to load proposals'}</p>
         </div>
         <div className="mt-4">
-          <Button variant="outline" onClick={fetchProposals}>Retry</Button>
+          <Button variant="outline" onClick={() => refetch()}>Retry</Button>
         </div>
       </div>
     )
@@ -299,7 +202,7 @@ export default function VotePage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Governance</h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={fetchProposals} disabled={isLoading}>
+          <Button variant="outline" onClick={() => refetch()} disabled={isLoading}>
             <Clock className="mr-2 h-4 w-4" />
             Refresh
           </Button>
@@ -314,7 +217,7 @@ export default function VotePage() {
 
       {error && (
         <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-md mb-6">
-          <p>Warning: {error}</p>
+          <p>Warning: {error.message || 'Failed to load proposals'}</p>
           <p className="text-sm">Showing cached or example data.</p>
         </div>
       )}
