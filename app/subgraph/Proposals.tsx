@@ -105,15 +105,13 @@ export function useActiveProposalsData() {
         const provider = new ethers.JsonRpcProvider(rpcUrl)
         const currentBlockNumber = await provider.getBlockNumber()
         const currentBlockNumberString = currentBlockNumber.toString()
-        
-        console.log('Current block number from RPC (active):', currentBlockNumberString)
+              
         return await request(url, getActiveProposalsQuery(currentBlockNumberString), {}, headers)
       } catch (error) {
         console.error('Error fetching current block number for active proposals:', error)
         // Fallback: use a very high block number to ensure we get all potentially active proposals
         // This way we don't miss any proposals due to estimation errors
         const fallbackBlockNumber = "999999999"
-        console.log('Using fallback block number (high value) for active:', fallbackBlockNumber)
         return await request(url, getActiveProposalsQuery(fallbackBlockNumber), {}, headers)
       }
     },
@@ -136,13 +134,11 @@ export function useCompletedProposalsData() {
         const currentBlockNumber = await provider.getBlockNumber()
         const currentBlockNumberString = currentBlockNumber.toString()
         
-        console.log('Current block number from RPC (completed):', currentBlockNumberString)
         return await request(url, getCompletedProposalsQuery(currentBlockNumberString), {}, headers)
       } catch (error) {
         console.error('Error fetching current block number for completed proposals:', error)
         // Fallback: use block number 0 to get all proposals (they would all be completed)
         const fallbackBlockNumber = "0"
-        console.log('Using fallback block number (0) for completed:', fallbackBlockNumber)
         return await request(url, getCompletedProposalsQuery(fallbackBlockNumber), {}, headers)
       }
     },

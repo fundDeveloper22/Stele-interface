@@ -120,26 +120,22 @@ export default function VotePage() {
   // Process active proposals data
   useEffect(() => {
     if (activeProposalsData?.proposalCreateds) {
-      console.log('Active proposals data:', activeProposalsData.proposalCreateds)
       const processedActiveProposals: Proposal[] = activeProposalsData.proposalCreateds
         .map((proposal) => processProposalData(proposal, 'active'))
         .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
       
       setActiveProposals(processedActiveProposals)
-      console.log('Processed active proposals:', processedActiveProposals)
     }
   }, [activeProposalsData])
 
   // Process completed proposals data
   useEffect(() => {
     if (completedProposalsData?.proposalCreateds) {
-      console.log('Completed proposals data:', completedProposalsData.proposalCreateds)
       const processedCompletedProposals: Proposal[] = completedProposalsData.proposalCreateds
         .map((proposal) => processProposalData(proposal, 'completed'))
         .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
       
       setCompletedProposals(processedCompletedProposals)
-      console.log('Processed completed proposals:', processedCompletedProposals)
     }
   }, [completedProposalsData])
 

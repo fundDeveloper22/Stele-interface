@@ -67,7 +67,6 @@ export default function SwapPage() {
   
   // Get whitelisted tokens from the subgraph
   const { data: whitelistedTokensData, isLoading: isLoadingTokens } = useTokensData()
-  console.log(whitelistedTokensData)
   // Parse tokens and amounts into usable format
   const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([])
   const [availableTokens, setAvailableTokens] = useState<string[]>([])

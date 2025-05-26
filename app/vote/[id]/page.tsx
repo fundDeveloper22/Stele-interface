@@ -12,13 +12,18 @@ import {
   CardTitle 
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Check, Clock, Calendar, User, FileText, Vote as VoteIcon } from "lucide-react"
+import { ArrowLeft, Check, Clock, Calendar, User, FileText, Vote as VoteIcon, Loader2 } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
+import { ethers } from "ethers"
+import { GOVERNANCE_CONTRACT_ADDRESS, STELE_TOKEN_ADDRESS } from "@/lib/constants"
+import GovernorABI from "@/app/abis/SteleGovernor.json"
+import ERC20VotesABI from "@/app/abis/ERC20Votes.json"
+import ERC20ABI from "@/app/abis/ERC20.json"
 
 export default function ProposalDetailPage() {
   const router = useRouter()
@@ -30,6 +35,12 @@ export default function ProposalDetailPage() {
   const [voteOption, setVoteOption] = useState<string | null>(null)
   const [reason, setReason] = useState("")
   const [isVoting, setIsVoting] = useState(false)
+  const [votingPower, setVotingPower] = useState<string>("0")
+  const [hasVoted, setHasVoted] = useState(false)
+  const [isLoadingVotingPower, setIsLoadingVotingPower] = useState(false)
+  const [tokenBalance, setTokenBalance] = useState<string>("0")
+  const [delegatedTo, setDelegatedTo] = useState<string>("")
+  const [isDelegating, setIsDelegating] = useState(false)
   
   // Example proposal data (in a real implementation, this would come from an API or contract)
   const proposal = {
@@ -45,7 +56,7 @@ export default function ProposalDetailPage() {
     startTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
     details: 'The current reward for the 1 week challenge is 100 USDC, which is relatively low compared to other DeFi platforms. By increasing the reward to 150 USDC, we can attract more participants and create a more competitive environment. The additional funds will come from the treasury, which currently has sufficient reserves to support this increase for at least the next 6 months. After this period, we can reassess the impact of the increased rewards on participation rates and platform growth.\n\nThis proposal would require updating the smart contract to adjust the reward calculation formula. The implementation would take effect immediately after passing and would apply to all new challenges created after that date.',
-    hasVoted: false,
+    hasVoted: hasVoted,
   }
 
   // Load wallet address when page loads
@@ -56,6 +67,80 @@ export default function ProposalDetailPage() {
       setIsConnected(true)
     }
   }, [])
+
+  // Check voting power and voting status when wallet is connected
+  useEffect(() => {
+    if (walletAddress && id) {
+      checkVotingPowerAndStatus()
+    }
+  }, [walletAddress, id])
+
+  // Get voting power and check if user has already voted
+  const checkVotingPowerAndStatus = async () => {
+    if (!walletAddress || !id) return
+
+    setIsLoadingVotingPower(true)
+    try {
+      // Connect to provider
+      const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
+        ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
+        : 'https://mainnet.base.org'
+        
+      const provider = new ethers.JsonRpcProvider(rpcUrl)
+      const governanceContract = new ethers.Contract(GOVERNANCE_CONTRACT_ADDRESS, GovernorABI.abi, provider)
+      const tokenContract = new ethers.Contract(STELE_TOKEN_ADDRESS, ERC20ABI.abi, provider)
+      const votesContract = new ethers.Contract(STELE_TOKEN_ADDRESS, ERC20VotesABI.abi, provider)
+
+      // Get current block number for voting power calculation
+      const currentBlock = await provider.getBlockNumber()
+      
+      // Check if user has already voted
+      const hasUserVoted = await governanceContract.hasVoted(id, walletAddress)
+      setHasVoted(hasUserVoted)
+
+      // Get token balance
+      let balance = "0"
+      try {
+        const tokenBalance = await tokenContract.balanceOf(walletAddress)
+        balance = ethers.formatUnits(tokenBalance, 18)
+        setTokenBalance(balance)
+      } catch (balanceError) {
+        console.error('Error getting token balance:', balanceError)
+        setTokenBalance("0")
+      }
+
+      // Check who the user has delegated to
+      let delegatee = ""
+      try {
+        const delegateAddress = await votesContract.delegates(walletAddress)
+        delegatee = delegateAddress
+        setDelegatedTo(delegatee)
+      } catch (delegateError) {
+        console.error('Error getting delegate info:', delegateError)
+        setDelegatedTo("")
+      }
+
+      // Get voting power at proposal start block
+      // For simplicity, we'll use current block - 1 as timepoint
+      const timepoint = currentBlock - 1
+      const userVotingPower = await governanceContract.getVotes(walletAddress, timepoint)
+      setVotingPower(ethers.formatUnits(userVotingPower, 18))
+
+      console.log('Token balance:', balance)
+      console.log('Delegated to:', delegatee)
+      console.log('Voting power:', ethers.formatUnits(userVotingPower, 18))
+      console.log('Has voted:', hasUserVoted)
+    } catch (error) {
+      console.error('Error checking voting power and status:', error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to check voting power. Please try again.",
+      })
+    } finally {
+      setIsLoadingVotingPower(false)
+    }
+  }
 
   // Calculate vote percentage
   const calculatePercentage = () => {
@@ -68,6 +153,85 @@ export default function ProposalDetailPage() {
   }
 
   const percentages = calculatePercentage()
+
+  // Delegate tokens to self
+  const handleDelegate = async () => {
+    if (!walletAddress) {
+      toast({
+        variant: "destructive",
+        title: "Phantom Wallet Not Connected",
+        description: "Please connect your Phantom wallet to delegate",
+      })
+      return
+    }
+
+    setIsDelegating(true)
+
+    try {
+      // Check if Phantom wallet is available
+      if (!window.phantom?.ethereum) {
+        throw new Error("Phantom wallet is not installed or Ethereum support is not enabled")
+      }
+
+      // Request wallet connection
+      await window.phantom.ethereum.request({ method: 'eth_requestAccounts' })
+      
+      // Connect to provider with signer using Phantom's ethereum provider
+      const provider = new ethers.BrowserProvider(window.phantom.ethereum)
+      const signer = await provider.getSigner()
+      const votesContract = new ethers.Contract(STELE_TOKEN_ADDRESS, ERC20VotesABI.abi, signer)
+
+      // Delegate to self
+      const tx = await votesContract.delegate(walletAddress)
+
+      toast({
+        title: "Transaction Submitted",
+        description: "Your delegation is being processed...",
+      })
+
+      // Wait for transaction confirmation
+      const receipt = await tx.wait()
+
+      toast({
+        title: "Delegation Successful",
+        description: "You have successfully delegated your tokens to yourself. Your voting power should now be available.",
+        action: (
+          <ToastAction 
+            altText="View on BaseScan"
+            onClick={() => window.open(`https://basescan.org/tx/${receipt.hash}`, '_blank')}
+          >
+            View on BaseScan
+          </ToastAction>
+        ),
+      })
+
+      // Refresh voting power after delegation
+      setTimeout(() => {
+        checkVotingPowerAndStatus()
+      }, 3000)
+
+    } catch (error: any) {
+      console.error("Delegation error:", error)
+      
+      let errorMessage = "There was an error delegating your tokens. Please try again."
+      
+      if (error.code === 4001) {
+        errorMessage = "Transaction was rejected by user"
+      } else if (error.message?.includes("insufficient funds")) {
+        errorMessage = "Insufficient funds for gas fees"
+      } else if (error.message?.includes("Phantom wallet is not installed")) {
+        errorMessage = "Phantom wallet is not installed or Ethereum support is not enabled"
+      }
+
+      toast({
+        variant: "destructive",
+        title: "Delegation Failed",
+        description: errorMessage,
+      })
+    } finally {
+      setIsDelegating(false)
+    }
+  }
 
   // Vote function
   const handleVote = async () => {
@@ -84,8 +248,18 @@ export default function ProposalDetailPage() {
     if (!walletAddress) {
       toast({
         variant: "destructive",
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to vote",
+        title: "Phantom Wallet Not Connected",
+        description: "Please connect your Phantom wallet to vote",
+      })
+      return
+    }
+
+    // Check if user has voting power
+    if (Number(votingPower) === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Voting Power",
+        description: "You don't have any voting power for this proposal",
       })
       return
     }
@@ -93,27 +267,94 @@ export default function ProposalDetailPage() {
     setIsVoting(true)
 
     try {
-      // In a real implementation, this would call the castVote or castVoteWithReason function of the SteleGovernor contract
-      // For example purposes, a timeout is used
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Check if Phantom wallet is available
+      if (!window.phantom?.ethereum) {
+        throw new Error("Phantom wallet is not installed or Ethereum support is not enabled")
+      }
+
+      // Request wallet connection
+      await window.phantom.ethereum.request({ method: 'eth_requestAccounts' })
+      
+      // Connect to provider with signer using Phantom's ethereum provider
+      const provider = new ethers.BrowserProvider(window.phantom.ethereum)
+      const signer = await provider.getSigner()
+      const contract = new ethers.Contract(GOVERNANCE_CONTRACT_ADDRESS, GovernorABI.abi, signer)
+
+      // Convert vote option to support value
+      // 0 = Against, 1 = For, 2 = Abstain
+      let support: number
+      switch (voteOption) {
+        case 'for':
+          support = 1
+          break
+        case 'against':
+          support = 0
+          break
+        case 'abstain':
+          support = 2
+          break
+        default:
+          throw new Error("Invalid vote option")
+      }
+
+      let tx
+      if (reason.trim()) {
+        // Cast vote with reason
+        tx = await contract.castVoteWithReason(id, support, reason.trim())
+      } else {
+        // Cast vote without reason
+        tx = await contract.castVote(id, support)
+      }
+
+      toast({
+        title: "Transaction Submitted",
+        description: "Your vote is being processed...",
+      })
+
+      // Wait for transaction confirmation
+      const receipt = await tx.wait()
 
       // Vote success message
       toast({
         title: "Vote Cast Successfully",
-        description: `You have voted ${voteOption} on proposal ${id}`,
+        description: `You have voted ${voteOption} on proposal ${id} with ${votingPower} voting power`,
         action: (
-          <ToastAction altText="View on BaseScan">View on BaseScan</ToastAction>
+          <ToastAction 
+            altText="View on BaseScan"
+            onClick={() => window.open(`https://basescan.org/tx/${receipt.hash}`, '_blank')}
+          >
+            View on BaseScan
+          </ToastAction>
         ),
       })
 
-      // Update state after voting
-      router.push("/vote")
-    } catch (error) {
+      // Update voting status
+      setHasVoted(true)
+      
+      // Refresh the page after a short delay
+      setTimeout(() => {
+        router.refresh()
+      }, 2000)
+
+    } catch (error: any) {
       console.error("Voting error:", error)
+      
+      let errorMessage = "There was an error casting your vote. Please try again."
+      
+      if (error.code === 4001) {
+        errorMessage = "Transaction was rejected by user"
+      } else if (error.message?.includes("insufficient funds")) {
+        errorMessage = "Insufficient funds for gas fees"
+      } else if (error.message?.includes("already voted")) {
+        errorMessage = "You have already voted on this proposal"
+      } else if (error.message?.includes("Phantom wallet is not installed")) {
+        errorMessage = "Phantom wallet is not installed or Ethereum support is not enabled"
+      }
+
       toast({
         variant: "destructive",
         title: "Voting Failed",
-        description: "There was an error casting your vote. Please try again.",
+        description: errorMessage,
       })
     } finally {
       setIsVoting(false)
@@ -229,6 +470,30 @@ export default function ProposalDetailPage() {
                   : "Select your voting option and submit your vote"
                 }
               </CardDescription>
+              {isConnected && (
+                <div className="text-sm text-muted-foreground space-y-1">
+                  {isLoadingVotingPower ? (
+                    <div className="flex items-center">
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                      Loading voting power...
+                    </div>
+                  ) : (
+                    <>
+                      <div>Token balance: {Number(tokenBalance).toLocaleString()} STELE</div>
+                      <div>Your voting power: {Number(votingPower).toLocaleString()}</div>
+                      {delegatedTo && (
+                        <div>Delegated to: {
+                          delegatedTo === "0x0000000000000000000000000000000000000000" 
+                            ? "Not delegated" 
+                            : delegatedTo === walletAddress 
+                              ? "Self" 
+                              : `${delegatedTo.slice(0, 6)}...${delegatedTo.slice(-4)}`
+                        }</div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -263,16 +528,51 @@ export default function ProposalDetailPage() {
                 </div>
               </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex flex-col space-y-3">
+              {/* Delegate Button - Show when user has tokens but no voting power */}
+              {isConnected && !isLoadingVotingPower && Number(tokenBalance) > 0 && Number(votingPower) === 0 && (
+                <Button 
+                  variant="outline"
+                  className="w-full" 
+                  onClick={handleDelegate}
+                  disabled={isDelegating}
+                >
+                  {isDelegating ? (
+                    <div className="flex items-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Delegating...
+                    </div>
+                  ) : (
+                    <>
+                      <VoteIcon className="mr-2 h-4 w-4" />
+                      Delegate Tokens to Enable Voting
+                    </>
+                  )}
+                </Button>
+              )}
+              
+              {/* Vote Button */}
               <Button 
                 className="w-full" 
                 onClick={handleVote}
-                disabled={proposal.hasVoted || !voteOption || isVoting}
+                disabled={proposal.hasVoted || !voteOption || isVoting || !isConnected || Number(votingPower) === 0 || isLoadingVotingPower}
               >
                 {isVoting ? (
-                  <>Loading...</>
+                  <div className="flex items-center">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting Vote...
+                  </div>
                 ) : proposal.hasVoted ? (
                   "Already Voted"
+                ) : !isConnected ? (
+                  "Connect Phantom Wallet to Vote"
+                                  ) : Number(votingPower) === 0 ? (
+                    "Insufficient Voting Power"
+                ) : isLoadingVotingPower ? (
+                  <div className="flex items-center">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Checking Voting Power...
+                  </div>
                 ) : (
                   <>
                     <VoteIcon className="mr-2 h-4 w-4" />
