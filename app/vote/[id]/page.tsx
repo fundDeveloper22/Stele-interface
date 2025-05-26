@@ -355,9 +355,8 @@ export default function ProposalDetailPage() {
         // Cast vote with reason
         tx = await contract.castVoteWithReason(id, support, reason.trim())
       } else {
-              // Cast vote without reason
-      console.log('Casting vote with:', { proposalId: id, support, votingPower })
-      tx = await contract.castVote(id, support)
+        // Cast vote without reason
+        tx = await contract.castVote(id, support)
       }
 
       toast({
@@ -368,12 +367,6 @@ export default function ProposalDetailPage() {
       // Wait for transaction confirmation
       const receipt = await tx.wait()
       
-      console.log('Vote transaction confirmed:', {
-        hash: receipt.hash,
-        blockNumber: receipt.blockNumber,
-        gasUsed: receipt.gasUsed.toString()
-      })
-
       // Vote success message
       toast({
         title: "Vote Cast Successfully",
