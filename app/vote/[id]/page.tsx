@@ -89,12 +89,17 @@ export default function ProposalDetailPage() {
       values = []
     }
 
+    // Determine if proposer is full address or abbreviated
+    const isFullAddress = proposer.length === 42 && proposer.startsWith('0x')
+    const fullProposer = isFullAddress ? proposer : '0x1234567890abcdef1234567890abcdef12345678' // fallback for abbreviated
+    const displayProposer = isFullAddress ? `${proposer.slice(0, 6)}...${proposer.slice(-4)}` : proposer
+
     return {
       id: id,
       title,
       description,
-      proposer,
-      fullProposer: proposer.includes('...') ? '0x1234567890abcdef1234567890abcdef12345678' : proposer,
+      proposer: displayProposer,
+      fullProposer: fullProposer,
       status,
       votesFor,
       votesAgainst,
