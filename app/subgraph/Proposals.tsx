@@ -4,6 +4,39 @@ import { gql, request } from 'graphql-request'
 import { url, headers, BASE_CHAIN_CONFIG } from '@/lib/constants'
 import { ethers } from 'ethers'
 
+// New query structure by status with voteResult and voting period info
+export const getProposalsByStatusQuery = () => gql`
+  query GetProposalsByStatus($statuses: [ProposalStatus!]!) {
+    proposals(
+      where: { status_in: $statuses }
+      orderBy: createdAt
+      orderDirection: desc
+      first: 50
+    ) {
+      id
+      proposalId
+      description
+      proposer
+      status
+      createdAt
+      queuedAt
+      executedAt
+      voteStart
+      voteEnd
+      values
+      voteResult {
+        forVotes
+        againstVotes
+        abstainVotes
+        totalVotes
+        forPercentage
+        againstPercentage
+        abstainPercentage
+      }
+    }
+  }
+`
+
 export const getProposalsQuery = () => gql`{
   proposalCreateds(first: 10, orderBy: blockTimestamp, orderDirection: desc) {
     id
@@ -137,6 +170,38 @@ export interface MultipleProposalVoteResultsResponse {
   proposalVoteResults: ProposalVoteResultData[]
 }
 
+// New interfaces for the status-based query
+export interface VoteResultData {
+  forVotes: string
+  againstVotes: string
+  abstainVotes: string
+  totalVotes: string
+  forPercentage: string
+  againstPercentage: string
+  abstainPercentage: string
+}
+
+export interface ProposalWithVoteResult {
+  id: string
+  proposalId: string
+  description: string
+  proposer: string
+  status: string
+  createdAt: string
+  queuedAt?: string
+  executedAt?: string
+  voteStart?: string
+  voteEnd?: string
+  values?: string[]
+  blockNumber?: string
+  transactionHash?: string
+  voteResult: VoteResultData
+}
+
+export interface ProposalsByStatusResponse {
+  proposals: ProposalWithVoteResult[]
+}
+
 export function useProposalsData() {
   return useQuery<ProposalsData>({
     queryKey: ['proposals'],
@@ -225,5 +290,29 @@ export function useMultipleProposalVoteResults(proposalIds: string[]) {
     },
     enabled: proposalIds.length > 0, // Only run query if there are proposal IDs
     refetchInterval: 60000, // Refetch every minute to keep vote counts updated
+  })
+}
+
+// New hook for proposals by status with vote results
+export function useProposalsByStatus(
+  statuses: string[] = ['ACTIVE']
+) {
+  return useQuery<ProposalsByStatusResponse>({
+    queryKey: ['proposalsByStatus', statuses],
+    queryFn: async () => {
+      const variables = {
+        statuses
+      }
+      
+      const result = await request(
+        url, 
+        getProposalsByStatusQuery(),
+        variables,
+        headers
+      ) as ProposalsByStatusResponse
+      
+      return result
+    },
+    refetchInterval: 60000, // Refetch every minute to keep data updated
   })
 } 
