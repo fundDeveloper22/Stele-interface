@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Clock, XCircle, Plus, FileText, Vote as VoteIcon, Loader2 } from "lucide-react"
 import { useProposalsData, useActiveProposalsData, useCompletedProposalsData, useMultipleProposalVoteResults, useProposalsByStatus } from "@/app/subgraph/Proposals"
-import { STELE_DECIMALS } from "@/lib/constants"
+import { BASE_BLOCK_TIME_MS, STELE_DECIMALS } from "@/lib/constants"
 import { ethers } from "ethers"
 import { useGovernanceConfig } from "@/app/hooks/useGovernanceConfig"
 
@@ -325,9 +325,8 @@ export default function VotePage() {
       const votingDelayBlocks = governanceConfig?.votingDelay || 7200 // Default: ~1 day at 2 sec/block
       
       // Convert blocks to milliseconds (Base mainnet: ~2 seconds per block)
-      const BLOCK_TIME_MS = 2 * 1000
-      const votingPeriodMs = votingPeriodBlocks * BLOCK_TIME_MS
-      const votingDelayMs = votingDelayBlocks * BLOCK_TIME_MS
+      const votingPeriodMs = votingPeriodBlocks * BASE_BLOCK_TIME_MS
+      const votingDelayMs = votingDelayBlocks * BASE_BLOCK_TIME_MS
       
       if (proposalData.status === 'PENDING') {
         // For pending proposals, voting hasn't started yet
