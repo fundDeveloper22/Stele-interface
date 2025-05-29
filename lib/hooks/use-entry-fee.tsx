@@ -13,6 +13,7 @@ import {
   USDC_DECIMALS,
   BASE_CHAIN_ID
 } from "@/lib/constants"
+import SteleABI from "@/app/abis/Stele.json"
 
 type EntryFeeContextType = {
   entryFee: string | null
@@ -36,13 +37,10 @@ export function EntryFeeProvider({ children }: { children: ReactNode }) {
       // Create a read-only provider for Base
       const provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
       
-      // Dynamically import the ABI to avoid issues with SSR
-      const SteleABI = await import("@/app/abis/Stele.json")
-      
       // Create contract instance
       const steleContract = new ethers.Contract(
         STELE_CONTRACT_ADDRESS,
-        SteleABI.default.abi,
+        SteleABI.abi,
         provider
       )
       
