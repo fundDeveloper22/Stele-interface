@@ -132,6 +132,25 @@ export const getMultipleProposalVoteResultsQuery = (proposalIds: string[]) => {
   }`
 }
 
+export const getProposalDetailsQuery = (proposalId: string) => {
+  return gql`{
+    proposalCreateds(where: { proposalId: "${proposalId}" }) {
+      id
+      proposalId
+      proposer
+      description
+      voteStart
+      voteEnd
+      values
+      targets
+      calldatas
+      blockTimestamp
+      blockNumber
+      transactionHash
+    }
+  }`
+}
+
 export interface ProposalCreatedData {
   id: string
   proposalId: string
@@ -143,6 +162,25 @@ export interface ProposalCreatedData {
   blockTimestamp: string
   blockNumber: string
   transactionHash: string
+}
+
+export interface ProposalDetailsData {
+  id: string
+  proposalId: string
+  proposer: string
+  description: string
+  voteStart: string
+  voteEnd: string
+  values: string[]
+  targets: string[]
+  calldatas: string[]
+  blockTimestamp: string
+  blockNumber: string
+  transactionHash: string
+}
+
+export interface ProposalDetailsResponse {
+  proposalCreateds: ProposalDetailsData[]
 }
 
 export interface ProposalsData {
@@ -314,5 +352,17 @@ export function useProposalsByStatus(
       return result
     },
     refetchInterval: 60000, // Refetch every minute to keep data updated
+  })
+}
+
+// New hook for proposal details
+export function useProposalDetails(proposalId: string) {
+  return useQuery<ProposalDetailsResponse>({
+    queryKey: ['proposalDetails', proposalId],
+    queryFn: async () => {
+      const result = await request(url, getProposalDetailsQuery(proposalId), {}, headers) as ProposalDetailsResponse
+      return result
+    },
+    enabled: !!proposalId, // Only run query if proposalId is provided
   })
 } 
