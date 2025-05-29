@@ -12,7 +12,7 @@ import {
   CardTitle 
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Check, Clock, Calendar, User, FileText, Vote as VoteIcon, Loader2 } from "lucide-react"
+import { ArrowLeft, Check, Clock, Calendar, User, FileText, Vote as VoteIcon, Loader2, CheckCircle } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -47,6 +47,7 @@ export default function ProposalDetailPage() {
   const [isQueuing, setIsQueuing] = useState(false)
   const [proposalState, setProposalState] = useState<number | null>(null)
   const [currentTime, setCurrentTime] = useState<string>("")
+  const [isExecuting, setIsExecuting] = useState(false)
   
   // Fetch vote results from subgraph
   const { data: voteResultData, isLoading: isLoadingVoteResult } = useProposalVoteResult(id)
@@ -217,19 +218,46 @@ export default function ProposalDetailPage() {
     if (!id) return
 
     try {
-      const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
-        ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
-        : 'https://mainnet.base.org'
-        
-      const provider = new ethers.JsonRpcProvider(rpcUrl)
+      // Try multiple RPC providers for better reliability
+      let provider
+      try {
+        // Primary: Base public RPC
+        provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
+        await provider.getBlockNumber() // Test connection
+      } catch (primaryError) {
+        console.log('Primary RPC failed, trying Infura fallback...')
+        // Fallback: Infura
+        const infuraUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
+          ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
+          : null
+        if (infuraUrl) {
+          provider = new ethers.JsonRpcProvider(infuraUrl)
+        } else {
+          throw new Error('No working RPC provider available')
+        }
+      }
+      
       const governanceContract = new ethers.Contract(GOVERNANCE_CONTRACT_ADDRESS, GovernorABI.abi, provider)
 
-      const state = await governanceContract.state(id)
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      )
+      
+      const state = await Promise.race([
+        governanceContract.state(id),
+        timeoutPromise
+      ])
+      
       // Convert BigInt to number to ensure proper comparison
       setProposalState(Number(state))
       console.log('Proposal state:', Number(state), typeof Number(state))
     } catch (error) {
       console.error('Error checking proposal state:', error)
+      // Don't set state to null on error, keep previous state if any
+      if (proposalState === null) {
+        console.log('Using default governance parameters. Showing cached or example data.')
+      }
     }
   }
 
@@ -555,6 +583,140 @@ export default function ProposalDetailPage() {
     }
   }
 
+  // Handle execute operation
+  const handleExecute = async () => {
+    if (!walletAddress || !proposalDetailsData?.proposalCreateds?.[0]) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Wallet not connected or proposal data not available.",
+      })
+      return
+    }
+
+    const proposalDetails = proposalDetailsData.proposalCreateds[0]
+    
+    setIsExecuting(true)
+    try {
+      // Check if wallet is available
+      if (typeof window.ethereum === 'undefined') {
+        throw new Error('Wallet is not installed')
+      }
+
+      // Connect to provider with signer
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      const signer = await provider.getSigner()
+      const governanceContract = new ethers.Contract(GOVERNANCE_CONTRACT_ADDRESS, GovernorABI.abi, signer)
+
+      // Double-check proposal state before executing
+      let currentState
+      try {
+        currentState = await governanceContract.state(id)
+      } catch (stateError) {
+        console.error('Error checking proposal state:', stateError)
+        throw new Error('Unable to verify proposal state. Please try again.')
+      }
+      
+      const numericState = Number(currentState)
+      
+      console.log('🔍 Execute Pre-check:', {
+        proposalId: id,
+        currentState: numericState,
+        expectedState: 5, // Queued
+        stateDescription: numericState === 5 ? 'Queued' : 'Not Queued'
+      })
+
+      if (numericState !== 5) {
+        throw new Error(`Proposal is not in queued state. Current state: ${numericState}`)
+      }
+
+      // Prepare execute parameters
+      const targets = proposalDetails.targets || []
+      const values = proposalDetails.values || []
+      const calldatas = proposalDetails.calldatas || []
+      const descriptionHash = ethers.keccak256(ethers.toUtf8Bytes(proposalDetails.description))
+
+      console.log('Execute parameters:', {
+        proposalId: id,
+        targets,
+        values,
+        calldatas,
+        descriptionHash
+      })
+
+      // Try to estimate gas first to catch potential issues
+      try {
+        await governanceContract.execute.estimateGas(targets, values, calldatas, descriptionHash)
+      } catch (gasError) {
+        console.error('Gas estimation failed:', gasError)
+        throw new Error('Transaction would fail. The proposal may not be ready for execution or the timelock period has not expired.')
+      }
+
+      // Call execute function
+      const tx = await governanceContract.execute(targets, values, calldatas, descriptionHash)
+      
+      toast({
+        title: "Transaction Submitted",
+        description: "Your execute transaction has been submitted. Please wait for confirmation.",
+      })
+
+      // Wait for transaction confirmation
+      const receipt = await tx.wait()
+      
+      if (receipt.status === 1) {
+        toast({
+          title: "Proposal Executed Successfully",
+          description: `Proposal #${id} has been executed successfully!`,
+          action: (
+            <ToastAction altText="View transaction">
+              <a 
+                href={`https://basescan.org/tx/${receipt.hash}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                View Transaction
+              </a>
+            </ToastAction>
+          ),
+        })
+        
+        // Refresh proposal state
+        await checkProposalState()
+      } else {
+        throw new Error('Transaction failed')
+      }
+
+    } catch (error: any) {
+      console.error("Execute error:", error)
+      
+      let errorMessage = "There was an error executing the proposal. Please try again."
+      
+      if (error.code === 4001) {
+        errorMessage = "Transaction was rejected by user"
+      } else if (error.message?.includes("insufficient funds")) {
+        errorMessage = "Insufficient funds for gas fees"
+      } else if (error.message?.includes("not in queued state")) {
+        errorMessage = "Proposal is not in queued state"
+      } else if (error.message?.includes("timelock")) {
+        errorMessage = "Timelock period has not expired yet. Please wait before executing."
+      } else if (error.message?.includes("would fail")) {
+        errorMessage = error.message
+      } else if (error.code === "CALL_EXCEPTION") {
+        errorMessage = "Transaction would fail. The proposal may not be ready for execution or the timelock period hasn't expired."
+      } else if (error.message?.includes("Unable to verify")) {
+        errorMessage = error.message
+      }
+
+      toast({
+        variant: "destructive",
+        title: "Execute Failed",
+        description: errorMessage,
+      })
+    } finally {
+      setIsExecuting(false)
+    }
+  }
+
   // Check if proposal is ready for queue (pending queue status)
   const isReadyForQueue = () => {
     const now = new Date()
@@ -804,6 +966,9 @@ export default function ProposalDetailPage() {
                 <div className="text-gray-700">🎯 Queue Button Should Show: <span className={`font-semibold ${currentTime ? (isConnected && isReadyForQueue() ? "text-green-600" : "text-red-600") : "text-yellow-600"}`}>
                   {currentTime ? (isConnected && isReadyForQueue() ? "Yes" : "No") : "Checking..."}
                 </span></div>
+                <div className="text-gray-700">⚡ Execute Button Should Show: <span className={`font-semibold ${isConnected && proposalState === 5 ? "text-green-600" : "text-red-600"}`}>
+                  {isConnected && proposalState === 5 ? "Yes" : "No"}
+                </span></div>
                 
                 <div className="border-t border-gray-300 pt-2 mt-3">
                   <div className="font-bold text-gray-900">⚙️ Queue Logic:</div>
@@ -978,6 +1143,33 @@ export default function ProposalDetailPage() {
                     <>
                       <Clock className="mr-2 h-4 w-4" />
                       Queue for Execution
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {/* Execute Button - Show when proposal is queued (state 5) */}
+              {isConnected && proposalState === 5 && (
+                <Button 
+                  variant="default"
+                  className="w-full bg-green-600 hover:bg-green-700" 
+                  onClick={handleExecute}
+                  disabled={isExecuting || isLoadingProposalDetails}
+                >
+                  {isExecuting ? (
+                    <div className="flex items-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Executing Proposal...
+                    </div>
+                  ) : isLoadingProposalDetails ? (
+                    <div className="flex items-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading Proposal Data...
+                    </div>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Execute Proposal
                     </>
                   )}
                 </Button>
