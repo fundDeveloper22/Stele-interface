@@ -24,7 +24,7 @@ export const USDC_DECIMALS = 6;
 export const STELE_DECIMALS = 18;
 
 //subgraph
-export const url = 'https://api.studio.thegraph.com/query/110372/stele-base-2/version/latest'
+export const url = 'https://api.studio.thegraph.com/query/110372/stele-base-3/version/latest'
 //export const url = 'https://gateway.thegraph.com/api/subgraphs/id/7j7CYjgLEhQZoAB2NR1EHTreZZT8z57tpYR2C51C5Sis'
 export const headers = { Authorization: `Bearer ${process.env.NEXT_PUBLIC_THE_GRAPH_API_KEY}` }
 
