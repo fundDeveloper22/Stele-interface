@@ -11,36 +11,24 @@ import { query } from '@/app/subgraph/DashBoard'
 import { url, headers } from '@/lib/constants'
 
 export function DashboardStats({ data }: { data: any }) {
-  if (!data?.activeChallenges) return null;
+  if (!data?.challenges) return null;
   
-  const activeChallenges = data.activeChallenges;
+  const challenges = data.challenges;
   
   // Calculate number of active challenges
-  const activeChallengesCount = [
-    activeChallenges.one_week_isCompleted === false,
-    activeChallenges.one_month_isCompleted === false,
-    activeChallenges.three_month_isCompleted === false,
-    activeChallenges.six_month_isCompleted === false,
-    activeChallenges.one_year_isCompleted === false
-  ].filter(Boolean).length;
+  const activeChallengesCount = challenges.filter((challenge: any) => 
+    !challenge.isCompleted && challenge.startTime && challenge.startTime !== "0"
+  ).length;
 
   // Calculate total number of participants
-  const totalParticipants = [
-    activeChallenges.one_week_investorCounter,
-    activeChallenges.one_month_investorCounter,
-    activeChallenges.three_month_investorCounter,
-    activeChallenges.six_month_investorCounter,
-    activeChallenges.one_year_investorCounter
-  ].reduce((sum, count) => sum + (Number(count) || 0), 0);
+  const totalParticipants = challenges.reduce((sum: number, challenge: any) => 
+    sum + (Number(challenge.investorCounter) || 0), 0
+  );
 
   // Calculate total reward amount (USD)
-  const totalRewards = [
-    activeChallenges.one_week_rewardAmountUSD,
-    activeChallenges.one_month_rewardAmountUSD,
-    activeChallenges.three_month_rewardAmountUSD,
-    activeChallenges.six_month_rewardAmountUSD,
-    activeChallenges.one_year_rewardAmountUSD
-  ].reduce((sum, amount) => sum + (Number(amount) || 0), 0);
+  const totalRewards = challenges.reduce((sum: number, challenge: any) => 
+    sum + (Number(challenge.rewardAmountUSD) || 0), 0
+  );
 
   return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
