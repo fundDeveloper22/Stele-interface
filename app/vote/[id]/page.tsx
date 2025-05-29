@@ -24,7 +24,7 @@ import { GOVERNANCE_CONTRACT_ADDRESS, STELE_TOKEN_ADDRESS, STELE_DECIMALS, STELE
 import GovernorABI from "@/app/abis/SteleGovernor.json"
 import ERC20VotesABI from "@/app/abis/ERC20Votes.json"
 import ERC20ABI from "@/app/abis/ERC20.json"
-import { useProposalVoteResult } from "@/app/subgraph/Proposals"
+import { useProposalVoteResult, useProposalDetails } from "@/app/subgraph/Proposals"
 import { useQueryClient } from "@tanstack/react-query"
 
 export default function ProposalDetailPage() {
@@ -44,9 +44,14 @@ export default function ProposalDetailPage() {
   const [tokenBalance, setTokenBalance] = useState<string>("0")
   const [delegatedTo, setDelegatedTo] = useState<string>("")
   const [isDelegating, setIsDelegating] = useState(false)
+  const [isQueuing, setIsQueuing] = useState(false)
+  const [proposalState, setProposalState] = useState<number | null>(null)
+  const [currentTime, setCurrentTime] = useState<string>("")
   
   // Fetch vote results from subgraph
   const { data: voteResultData, isLoading: isLoadingVoteResult } = useProposalVoteResult(id)
+  // Fetch proposal details for queue function
+  const { data: proposalDetailsData, isLoading: isLoadingProposalDetails } = useProposalDetails(id)
   const queryClient = useQueryClient()
   
   // Get vote result data or use defaults
@@ -89,12 +94,17 @@ export default function ProposalDetailPage() {
       values = []
     }
 
+    // Determine if proposer is full address or abbreviated
+    const isFullAddress = proposer.length === 42 && proposer.startsWith('0x')
+    const fullProposer = isFullAddress ? proposer : '0x1234567890abcdef1234567890abcdef12345678' // fallback for abbreviated
+    const displayProposer = isFullAddress ? `${proposer.slice(0, 6)}...${proposer.slice(-4)}` : proposer
+
     return {
       id: id,
       title,
       description,
-      proposer,
-      fullProposer: proposer.includes('...') ? '0x1234567890abcdef1234567890abcdef12345678' : proposer,
+      proposer: displayProposer,
+      fullProposer: fullProposer,
       status,
       votesFor,
       votesAgainst,
@@ -126,8 +136,18 @@ export default function ProposalDetailPage() {
   useEffect(() => {
     if (walletAddress && id) {
       checkVotingPowerAndStatus()
+      checkProposalState()
     }
   }, [walletAddress, id])
+
+  // Set current time on client side only
+  useEffect(() => {
+    setCurrentTime(new Date().toLocaleString())
+    const interval = setInterval(() => {
+      setCurrentTime(new Date().toLocaleString())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Get voting power and check if user has already voted
   const checkVotingPowerAndStatus = async () => {
@@ -189,6 +209,27 @@ export default function ProposalDetailPage() {
       })
     } finally {
       setIsLoadingVotingPower(false)
+    }
+  }
+
+  // Check proposal state
+  const checkProposalState = async () => {
+    if (!id) return
+
+    try {
+      const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
+        ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
+        : 'https://mainnet.base.org'
+        
+      const provider = new ethers.JsonRpcProvider(rpcUrl)
+      const governanceContract = new ethers.Contract(GOVERNANCE_CONTRACT_ADDRESS, GovernorABI.abi, provider)
+
+      const state = await governanceContract.state(id)
+      // Convert BigInt to number to ensure proper comparison
+      setProposalState(Number(state))
+      console.log('Proposal state:', Number(state), typeof Number(state))
+    } catch (error) {
+      console.error('Error checking proposal state:', error)
     }
   }
 
@@ -417,6 +458,130 @@ export default function ProposalDetailPage() {
     }
   }
 
+  // Handle queue operation
+  const handleQueue = async () => {
+    if (!walletAddress || !proposalDetailsData?.proposalCreateds?.[0]) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Wallet not connected or proposal data not available.",
+      })
+      return
+    }
+
+    const proposalDetails = proposalDetailsData.proposalCreateds[0]
+    
+    setIsQueuing(true)
+    try {
+      // Check if Phantom wallet is available
+      if (typeof window.ethereum === 'undefined') {
+        throw new Error('Phantom wallet is not installed')
+      }
+
+      // Connect to provider with signer
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      const signer = await provider.getSigner()
+      const governanceContract = new ethers.Contract(GOVERNANCE_CONTRACT_ADDRESS, GovernorABI.abi, signer)
+
+      // Prepare queue parameters
+      const targets = proposalDetails.targets || []
+      const values = proposalDetails.values || []
+      const calldatas = proposalDetails.calldatas || []
+      const descriptionHash = ethers.keccak256(ethers.toUtf8Bytes(proposalDetails.description))
+
+      console.log('Queue parameters:', {
+        targets,
+        values,
+        calldatas,
+        descriptionHash
+      })
+
+      // Call queue function
+      const tx = await governanceContract.queue(targets, values, calldatas, descriptionHash)
+      
+      toast({
+        title: "Transaction Submitted",
+        description: "Your queue transaction has been submitted. Please wait for confirmation.",
+      })
+
+      // Wait for transaction confirmation
+      const receipt = await tx.wait()
+      
+      if (receipt.status === 1) {
+        toast({
+          title: "Proposal Queued Successfully",
+          description: `Proposal #${id} has been queued for execution.`,
+          action: (
+            <ToastAction altText="View transaction">
+              <a 
+                href={`https://basescan.org/tx/${receipt.hash}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                View Transaction
+              </a>
+            </ToastAction>
+          ),
+        })
+        
+        // Refresh proposal state
+        await checkProposalState()
+      } else {
+        throw new Error('Transaction failed')
+      }
+
+    } catch (error: any) {
+      console.error("Queue error:", error)
+      
+      let errorMessage = "There was an error queuing the proposal. Please try again."
+      
+      if (error.code === 4001) {
+        errorMessage = "Transaction was rejected by user"
+      } else if (error.message?.includes("insufficient funds")) {
+        errorMessage = "Insufficient funds for gas fees"
+      } else if (error.message?.includes("Phantom wallet is not installed")) {
+        errorMessage = "Phantom wallet is not installed or Ethereum support is not enabled"
+      } else if (error.message?.includes("Governor: proposal not successful")) {
+        errorMessage = "Proposal has not succeeded yet and cannot be queued"
+      }
+
+      toast({
+        variant: "destructive",
+        title: "Queue Failed",
+        description: errorMessage,
+      })
+    } finally {
+      setIsQueuing(false)
+    }
+  }
+
+  // Check if proposal is ready for queue (pending queue status)
+  const isReadyForQueue = () => {
+    const now = new Date()
+    const voteEndTime = proposal.endTime
+    
+    // Check if voting period has ended
+    const votingEnded = now > voteEndTime
+    
+    // Check if majority voted for (more than 50% of votes cast)
+    const totalVotes = proposal.votesFor + proposal.votesAgainst + proposal.abstain
+    const hasMajority = totalVotes > 0 && proposal.votesFor > proposal.votesAgainst
+    
+    // Check if there are enough votes (at least some participation)
+    const hasMinimumParticipation = totalVotes > 0
+    
+    // Also check if proposal state is succeeded (4) if available - this is the most reliable check
+    const isSucceeded = proposalState === 4
+    
+    // If we have proposal state, use it as the primary check
+    if (proposalState !== null) {
+      return isSucceeded
+    }
+    
+    // Fallback to manual calculation if proposal state is not available
+    return votingEnded && hasMajority && hasMinimumParticipation
+  }
+
   // Date formatting function
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -430,6 +595,81 @@ export default function ProposalDetailPage() {
 
   // Status badge component
   const StatusBadge = ({ status }: { status: string }) => {
+    // Check if proposal is ready for queue but not yet queued
+    if (isReadyForQueue() && proposalState !== 5) {
+      return (
+        <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+          <Clock className="w-3 h-3 mr-1" />
+          Pending Queue
+        </div>
+      )
+    }
+
+    // Show proposal state if available
+    if (proposalState !== null) {
+      switch (proposalState) {
+        case 0: // Pending
+          return (
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+              <Clock className="w-3 h-3 mr-1" />
+              Pending
+            </div>
+          )
+        case 1: // Active
+          return (
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              <Clock className="w-3 h-3 mr-1" />
+              Active
+            </div>
+          )
+        case 2: // Canceled
+          return (
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+              <FileText className="w-3 h-3 mr-1" />
+              Canceled
+            </div>
+          )
+        case 3: // Defeated
+          return (
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+              <FileText className="w-3 h-3 mr-1" />
+              Defeated
+            </div>
+          )
+        case 4: // Succeeded
+          return (
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <Check className="w-3 h-3 mr-1" />
+              Succeeded
+            </div>
+          )
+        case 5: // Queued
+          return (
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+              <Clock className="w-3 h-3 mr-1" />
+              Queued
+            </div>
+          )
+        case 6: // Expired
+          return (
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+              <FileText className="w-3 h-3 mr-1" />
+              Expired
+            </div>
+          )
+        case 7: // Executed
+          return (
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              <Check className="w-3 h-3 mr-1" />
+              Executed
+            </div>
+          )
+        default:
+          break
+      }
+    }
+
+    // Fallback to original status logic
     if (status === 'active') {
       return (
         <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -532,6 +772,65 @@ export default function ProposalDetailPage() {
                   : "Select your voting option and submit your vote"
                 }
               </CardDescription>
+              
+              {/* Debug Information */}
+              <div className="text-sm bg-gray-100 border border-gray-300 p-4 rounded-md space-y-2 text-gray-800">
+                <div className="font-bold text-gray-900">🔍 Debug Information:</div>
+                <div className="text-gray-700">⏰ Current Time: <span className="font-semibold">{currentTime}</span></div>
+                <div className="text-gray-700">📅 Vote End Time: <span className="font-semibold">{proposal.endTime.toLocaleString()}</span></div>
+                <div className="text-gray-700">✅ Voting Ended: <span className={`font-semibold ${currentTime ? (new Date() > proposal.endTime ? "text-green-600" : "text-red-600") : "text-yellow-600"}`}>
+                  {currentTime ? (new Date() > proposal.endTime ? "Yes" : "No") : "Checking..."}
+                </span></div>
+                <div className="text-gray-700">👍 Votes For: <span className="font-semibold text-green-600">{proposal.votesFor.toLocaleString()}</span></div>
+                <div className="text-gray-700">👎 Votes Against: <span className="font-semibold text-red-600">{proposal.votesAgainst.toLocaleString()}</span></div>
+                <div className="text-gray-700">🤷 Abstain: <span className="font-semibold text-gray-600">{proposal.abstain.toLocaleString()}</span></div>
+                <div className="text-gray-700">📊 Total Votes: <span className="font-semibold">{(proposal.votesFor + proposal.votesAgainst + proposal.abstain).toLocaleString()}</span></div>
+                <div className="text-gray-700">🏆 Has Majority (For &gt; Against): <span className={`font-semibold ${proposal.votesFor > proposal.votesAgainst ? "text-green-600" : "text-red-600"}`}>
+                  {proposal.votesFor > proposal.votesAgainst ? "Yes" : "No"}
+                </span></div>
+                <div className="text-gray-700">📈 Has Minimum Participation: <span className={`font-semibold ${(proposal.votesFor + proposal.votesAgainst + proposal.abstain) > 0 ? "text-green-600" : "text-red-600"}`}>
+                  {(proposal.votesFor + proposal.votesAgainst + proposal.abstain) > 0 ? "Yes" : "No"}
+                </span></div>
+                <div className="text-gray-700">🏛️ Proposal State: <span className="font-semibold text-blue-600">{proposalState !== null ? `${proposalState} (${typeof proposalState})` : "Loading..."}</span></div>
+                <div className="text-gray-700">✨ Proposal State is Succeeded (4): <span className={`font-semibold ${proposalState === 4 ? "text-green-600" : "text-red-600"}`}>
+                  {proposalState === 4 ? "Yes" : "No"}
+                </span></div>
+                <div className="text-gray-700">🔗 Is Connected: <span className={`font-semibold ${isConnected ? "text-green-600" : "text-red-600"}`}>
+                  {isConnected ? "Yes" : "No"}
+                </span></div>
+                <div className="text-gray-700">🚀 Is Ready for Queue: <span className={`font-semibold ${currentTime ? (isReadyForQueue() ? "text-green-600" : "text-red-600") : "text-yellow-600"}`}>
+                  {currentTime ? (isReadyForQueue() ? "Yes" : "No") : "Checking..."}
+                </span></div>
+                <div className="text-gray-700">🎯 Queue Button Should Show: <span className={`font-semibold ${currentTime ? (isConnected && isReadyForQueue() ? "text-green-600" : "text-red-600") : "text-yellow-600"}`}>
+                  {currentTime ? (isConnected && isReadyForQueue() ? "Yes" : "No") : "Checking..."}
+                </span></div>
+                
+                <div className="border-t border-gray-300 pt-2 mt-3">
+                  <div className="font-bold text-gray-900">⚙️ Queue Logic:</div>
+                  <div className="text-gray-700 ml-2">📍 Using Proposal State: <span className={`font-semibold ${proposalState !== null ? "text-green-600" : "text-red-600"}`}>
+                    {proposalState !== null ? "Yes" : "No"}
+                  </span></div>
+                  {proposalState !== null ? (
+                    <div className="text-gray-700 ml-2">🎯 State Check Result: <span className={`font-semibold ${proposalState === 4 ? "text-green-600" : "text-red-600"}`}>
+                      {proposalState === 4 ? "Succeeded (Ready)" : `Not Succeeded (State: ${proposalState})`}
+                    </span></div>
+                  ) : (
+                    <div className="ml-2">
+                      <div className="text-gray-700">🔄 Fallback to Manual Check:</div>
+                      <div className="text-gray-700 ml-4">• Voting Ended: <span className={`font-semibold ${currentTime ? (new Date() > proposal.endTime ? "text-green-600" : "text-red-600") : "text-yellow-600"}`}>
+                        {currentTime ? (new Date() > proposal.endTime ? "✓" : "✗") : "?"}
+                      </span></div>
+                      <div className="text-gray-700 ml-4">• Has Majority: <span className={`font-semibold ${proposal.votesFor > proposal.votesAgainst ? "text-green-600" : "text-red-600"}`}>
+                        {proposal.votesFor > proposal.votesAgainst ? "✓" : "✗"}
+                      </span></div>
+                      <div className="text-gray-700 ml-4">• Has Participation: <span className={`font-semibold ${(proposal.votesFor + proposal.votesAgainst + proposal.abstain) > 0 ? "text-green-600" : "text-red-600"}`}>
+                        {(proposal.votesFor + proposal.votesAgainst + proposal.abstain) > 0 ? "✓" : "✗"}
+                      </span></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {isConnected && (
                 <div className="text-sm text-muted-foreground space-y-1">
                   {isLoadingVotingPower ? (
@@ -550,6 +849,20 @@ export default function ProposalDetailPage() {
                             : delegatedTo === walletAddress 
                               ? "Self" 
                               : `${delegatedTo.slice(0, 6)}...${delegatedTo.slice(-4)}`
+                        }</div>
+                      )}
+                      {proposalState !== null && (
+                        <div>Proposal state: {
+                          isReadyForQueue() && proposalState !== 5 ? "Pending Queue" :
+                          proposalState === 0 ? "Pending" :
+                          proposalState === 1 ? "Active" :
+                          proposalState === 2 ? "Canceled" :
+                          proposalState === 3 ? "Defeated" :
+                          proposalState === 4 ? "Succeeded" :
+                          proposalState === 5 ? "Queued" :
+                          proposalState === 6 ? "Expired" :
+                          proposalState === 7 ? "Executed" :
+                          "Unknown"
                         }</div>
                       )}
                     </>
@@ -642,6 +955,33 @@ export default function ProposalDetailPage() {
                   </>
                 )}
               </Button>
+
+              {/* Queue Button - Show when proposal is ready for queue (voting ended + majority for) */}
+              {currentTime && isConnected && isReadyForQueue() && (
+                <Button 
+                  variant="outline"
+                  className="w-full" 
+                  onClick={handleQueue}
+                  disabled={isQueuing || isLoadingProposalDetails}
+                >
+                  {isQueuing ? (
+                    <div className="flex items-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Queuing Proposal...
+                    </div>
+                  ) : isLoadingProposalDetails ? (
+                    <div className="flex items-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading Proposal Data...
+                    </div>
+                  ) : (
+                    <>
+                      <Clock className="mr-2 h-4 w-4" />
+                      Queue for Execution
+                    </>
+                  )}
+                </Button>
+              )}
             </CardFooter>
           </Card>
           

@@ -11,6 +11,7 @@ export const BASE_CHAIN_CONFIG = {
   rpcUrls: ['https://mainnet.base.org'],
   blockExplorerUrls: ['https://basescan.org']
 };
+export const BASE_BLOCK_TIME_MS = 2; // 2 seconds per block
 
 // Contract Addresses
 export const STELE_CONTRACT_ADDRESS = "0x0CbF0816CDFd0bC56eFC9a80Af88cC2210Ff5548";

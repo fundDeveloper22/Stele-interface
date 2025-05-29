@@ -19,6 +19,8 @@ import {
   USDC_DECIMALS
 } from "@/lib/constants"
 import { useEntryFee } from "@/lib/hooks/use-entry-fee"
+import SteleABI from "@/app/abis/Stele.json"
+import ERC20ABI from "@/app/abis/ERC20.json"
 
 interface ChallengePortfolioProps {
   challengeId: string
@@ -154,10 +156,6 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         throw new Error("Entry fee not loaded yet. Please try again later.");
       }
 
-      // Dynamically import the ABIs
-      const SteleABI = await import("@/app/abis/Stele.json");
-      const ERC20ABI = await import("@/app/abis/ERC20.json");
-
       // Create a Web3Provider using the Phantom ethereum provider
       const provider = new ethers.BrowserProvider(window.phantom.ethereum);
       
@@ -167,7 +165,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       // Create contract instances
       const steleContract = new ethers.Contract(
         STELE_CONTRACT_ADDRESS,
-        SteleABI.default.abi,
+        SteleABI.abi,
         signer
       );
 
@@ -299,9 +297,6 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         }
       }
 
-      // Dynamically import the ABI to avoid issues with SSR
-      const SteleABI = await import("@/app/abis/Stele.json");
-
       // Create a Web3Provider using the Phantom ethereum provider
       const provider = new ethers.BrowserProvider(window.phantom.ethereum);
       
@@ -311,7 +306,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       // Create contract instance
       const steleContract = new ethers.Contract(
         STELE_CONTRACT_ADDRESS,
-        SteleABI.default.abi,
+        SteleABI.abi,
         signer
       );
 
