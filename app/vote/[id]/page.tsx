@@ -76,6 +76,9 @@ export default function ProposalDetailPage() {
     const blockNumber = searchParams.get('blockNumber') || ''
     const valuesStr = searchParams.get('values')
     const transactionHash = searchParams.get('transactionHash') || ''
+    // Get cached token info from URL parameters
+    const cachedTokenBalance = searchParams.get('tokenBalance') || '0'
+    const cachedDelegatedTo = searchParams.get('delegatedTo') || ''
 
     // Parse dates
     const startTime = startTimeStr ? new Date(startTimeStr) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -121,6 +124,9 @@ export default function ProposalDetailPage() {
       transactionHash,
       details: description, // Use description as details for now
       hasVoted: hasVoted,
+      // Cached token info from parent page
+      cachedTokenBalance,
+      cachedDelegatedTo,
     }
   }
 
@@ -166,8 +172,6 @@ export default function ProposalDetailPage() {
         
       const provider = new ethers.JsonRpcProvider(rpcUrl)
       const governanceContract = new ethers.Contract(GOVERNANCE_CONTRACT_ADDRESS, GovernorABI.abi, provider)
-      const tokenContract = new ethers.Contract(STELE_TOKEN_ADDRESS, ERC20ABI.abi, provider)
-      const votesContract = new ethers.Contract(STELE_TOKEN_ADDRESS, ERC20VotesABI.abi, provider)
 
       // Use cached block number from global hook, fallback to RPC call if not available
       let currentBlock: number
@@ -182,28 +186,6 @@ export default function ProposalDetailPage() {
       // Check if user has already voted
       const hasUserVoted = await governanceContract.hasVoted(id, walletAddress)
       setHasVoted(hasUserVoted)
-
-      // Get token balance
-      let balance = "0"
-      try {
-        const tokenBalance = await tokenContract.balanceOf(walletAddress)
-        balance = ethers.formatUnits(tokenBalance, STELE_DECIMALS)
-        setTokenBalance(balance)
-      } catch (balanceError) {
-        console.error('Error getting token balance:', balanceError)
-        setTokenBalance("0")
-      }
-
-      // Check who the user has delegated to
-      let delegatee = ""
-      try {
-        const delegateAddress = await votesContract.delegates(walletAddress)
-        delegatee = delegateAddress
-        setDelegatedTo(delegatee)
-      } catch (delegateError) {
-        console.error('Error getting delegate info:', delegateError)
-        setDelegatedTo("")
-      }
 
       // Get voting power at proposal start block
       // For simplicity, we'll use current block - 1 as timepoint
@@ -1015,15 +997,15 @@ export default function ProposalDetailPage() {
                     </div>
                   ) : (
                     <>
-                      <div>Token balance: {Number(tokenBalance).toLocaleString()} STELE</div>
+                      <div>Token balance: {Number(proposal.cachedTokenBalance).toLocaleString()} STELE</div>
                       <div>Your voting power: {Number(votingPower).toLocaleString()}</div>
-                      {delegatedTo && (
+                      {proposal.cachedDelegatedTo && (
                         <div>Delegated to: {
-                          delegatedTo === "0x0000000000000000000000000000000000000000" 
+                          proposal.cachedDelegatedTo === "0x0000000000000000000000000000000000000000" 
                             ? "Not delegated" 
-                            : delegatedTo === walletAddress 
+                            : proposal.cachedDelegatedTo === walletAddress 
                               ? "Self" 
-                              : `${delegatedTo.slice(0, 6)}...${delegatedTo.slice(-4)}`
+                              : `${proposal.cachedDelegatedTo.slice(0, 6)}...${proposal.cachedDelegatedTo.slice(-4)}`
                         }</div>
                       )}
                       {proposalState !== null && (
@@ -1080,7 +1062,7 @@ export default function ProposalDetailPage() {
             </CardContent>
             <CardFooter className="flex flex-col space-y-3">
               {/* Delegate Button - Show when user has tokens but no voting power */}
-              {isConnected && !isLoadingVotingPower && Number(tokenBalance) > 0 && Number(votingPower) === 0 && (
+              {isConnected && !isLoadingVotingPower && parseFloat(proposal.cachedTokenBalance) > 0 && Number(votingPower) === 0 && (
                 <Button 
                   variant="outline"
                   className="w-full" 

@@ -11,6 +11,7 @@ import { BASE_BLOCK_TIME_MS, STELE_DECIMALS } from "@/lib/constants"
 import { ethers } from "ethers"
 import { useGovernanceConfig } from "@/app/hooks/useGovernanceConfig"
 import { useBlockNumber } from "@/app/hooks/useBlockNumber"
+import { useWalletTokenInfo } from "@/app/hooks/useWalletTokenInfo"
 
 // Interface for proposal data
 interface Proposal {
@@ -44,6 +45,9 @@ export default function VotePage() {
   
   // Get current block number with global caching
   const { data: blockInfo, isLoading: isLoadingBlockNumber } = useBlockNumber()
+
+  // Get wallet token info with global caching
+  const { data: walletTokenInfo, isLoading: isLoadingWalletTokenInfo } = useWalletTokenInfo(walletAddress)
 
   // Fetch all proposals from subgraph
   const { data: proposalsData, isLoading, error, refetch } = useProposalsData()
@@ -715,19 +719,23 @@ export default function VotePage() {
       blockTimestamp: proposal.blockTimestamp,
       blockNumber: proposal.blockNumber,
       values: JSON.stringify(proposal.values),
-      transactionHash: proposal.transactionHash || ''
+      transactionHash: proposal.transactionHash || '',
+      // Add cached token info to avoid RPC requests in detail page
+      tokenBalance: walletTokenInfo?.formattedBalance || '0',
+      delegatedTo: walletTokenInfo?.delegatedTo || ''
     })
     
     return `/vote/${proposal.id}?${params.toString()}`
   }
 
-  if (isLoading || isLoadingActive || isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus || isLoadingVoteResults || isLoadingBlockNumber || isLoadingGovernanceConfig) {
+  if (isLoading || isLoadingActive || isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus || isLoadingVoteResults || isLoadingBlockNumber || isLoadingGovernanceConfig || isLoadingWalletTokenInfo) {
     return (
       <div className="container mx-auto py-6 flex flex-col items-center justify-center min-h-[50vh]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
         <p className="text-muted-foreground">
           {isLoadingBlockNumber ? 'Loading block information...' : 
            isLoadingGovernanceConfig ? 'Loading governance configuration...' :
+           isLoadingWalletTokenInfo ? 'Loading wallet token information...' :
            'Loading proposals and vote results...'}
         </p>
       </div>
@@ -777,6 +785,75 @@ export default function VotePage() {
           </Link>
         </div>
       </div>
+
+      {/* Wallet Token Info Card */}
+      {isConnected && (
+        <Card className="mb-6">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h3 className="text-sm font-medium text-muted-foreground">Connected Wallet</h3>
+                <p className="text-sm font-mono">{walletAddress}</p>
+              </div>
+              
+              {isLoadingWalletTokenInfo ? (
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Loading token info...</span>
+                </div>
+              ) : walletTokenInfo ? (
+                <div className="text-right space-y-1">
+                  <div className="text-sm">
+                    <span className="font-medium">Balance: </span>
+                    <span className="font-mono">{Number(walletTokenInfo.formattedBalance).toLocaleString()} STELE</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    <span>Delegated to: </span>
+                    {walletTokenInfo.delegatedTo === "0x0000000000000000000000000000000000000000" ? (
+                      <span className="text-orange-600">Not delegated</span>
+                    ) : walletTokenInfo.delegatedTo === walletAddress ? (
+                      <span className="text-green-600">Self</span>
+                    ) : (
+                      <span className="font-mono">{walletTokenInfo.delegatedTo.slice(0, 6)}...{walletTokenInfo.delegatedTo.slice(-4)}</span>
+                    )}
+                  </div>
+                  {/* Voting Power Status */}
+                  <div className="text-xs">
+                    {walletTokenInfo.delegatedTo === "0x0000000000000000000000000000000000000000" ? (
+                      <span className="text-orange-600">⚠️ Delegate tokens to vote</span>
+                    ) : Number(walletTokenInfo.formattedBalance) > 0 ? (
+                      <span className="text-green-600">✅ Ready to vote</span>
+                    ) : (
+                      <span className="text-gray-500">No STELE tokens</span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-right">
+                  <div className="text-sm text-muted-foreground">Token info unavailable</div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Wallet Connection Prompt */}
+      {!isConnected && (
+        <Card className="mb-6 border-dashed">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h3 className="text-sm font-medium text-muted-foreground">Wallet Not Connected</h3>
+                <p className="text-xs text-muted-foreground">Connect your wallet to view token balance and vote on proposals</p>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-orange-600">🔗 Please connect your wallet</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {(error || errorActive || errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError) && (
         <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-md mb-6">
