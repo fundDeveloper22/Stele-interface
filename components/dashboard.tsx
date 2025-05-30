@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ActiveChallenges } from "@/components/active-challenges"
+import { InvestableTokens } from "@/components/investable-tokens"
 import {
   dehydrate,
   HydrationBoundary,
@@ -8,39 +9,28 @@ import {
 import { gql, request } from 'graphql-request'
 import DashBoardQuery from '@/app/subgraph/DashBoard'
 import { query } from '@/app/subgraph/DashBoard'
+import { getInvestableTokensQuery } from '@/app/subgraph/WhiteListTokens'
 import { url, headers } from '@/lib/constants'
 
 export function DashboardStats({ data }: { data: any }) {
-  if (!data?.activeChallenges) return null;
+  if (!data?.challenges) return null;
   
-  const activeChallenges = data.activeChallenges;
+  const challenges = data.challenges;
   
   // Calculate number of active challenges
-  const activeChallengesCount = [
-    activeChallenges.one_week_isCompleted === false,
-    activeChallenges.one_month_isCompleted === false,
-    activeChallenges.three_month_isCompleted === false,
-    activeChallenges.six_month_isCompleted === false,
-    activeChallenges.one_year_isCompleted === false
-  ].filter(Boolean).length;
+  const activeChallengesCount = challenges.filter((challenge: any) => 
+    !challenge.isCompleted && challenge.startTime && challenge.startTime !== "0"
+  ).length;
 
   // Calculate total number of participants
-  const totalParticipants = [
-    activeChallenges.one_week_investorCounter,
-    activeChallenges.one_month_investorCounter,
-    activeChallenges.three_month_investorCounter,
-    activeChallenges.six_month_investorCounter,
-    activeChallenges.one_year_investorCounter
-  ].reduce((sum, count) => sum + (Number(count) || 0), 0);
+  const totalParticipants = challenges.reduce((sum: number, challenge: any) => 
+    sum + (Number(challenge.investorCounter) || 0), 0
+  );
 
   // Calculate total reward amount (USD)
-  const totalRewards = [
-    activeChallenges.one_week_rewardAmountUSD,
-    activeChallenges.one_month_rewardAmountUSD,
-    activeChallenges.three_month_rewardAmountUSD,
-    activeChallenges.six_month_rewardAmountUSD,
-    activeChallenges.one_year_rewardAmountUSD
-  ].reduce((sum, amount) => sum + (Number(amount) || 0), 0);
+  const totalRewards = challenges.reduce((sum: number, challenge: any) => 
+    sum + (Number(challenge.rewardAmountUSD) || 0), 0
+  );
 
   return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -85,10 +75,20 @@ export function DashboardStats({ data }: { data: any }) {
 
 export async function Dashboard() {
   const queryClient = new QueryClient()
+  
+  // Prefetch dashboard data
   await queryClient.prefetchQuery({
     queryKey: ['data'],
     async queryFn() {
       return await request(url, query, {}, headers)
+    }
+  })
+  
+  // Prefetch tokens data
+  await queryClient.prefetchQuery({
+    queryKey: ['tokens'],
+    async queryFn() {
+      return await request(url, getInvestableTokensQuery(), {}, headers)
     }
   })
   
@@ -97,10 +97,11 @@ export async function Dashboard() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-                    </div>
+        </div>
         <DashBoardQuery />
-          <ActiveChallenges />
-    </div>
+        <ActiveChallenges />
+        <InvestableTokens />
+      </div>
     </HydrationBoundary>
   )
 }
