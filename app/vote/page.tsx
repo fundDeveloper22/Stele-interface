@@ -10,6 +10,7 @@ import { useProposalsData, useActiveProposalsData, useCompletedProposalsData, us
 import { BASE_BLOCK_TIME_MS, STELE_DECIMALS } from "@/lib/constants"
 import { ethers } from "ethers"
 import { useGovernanceConfig } from "@/app/hooks/useGovernanceConfig"
+import { useBlockNumber } from "@/app/hooks/useBlockNumber"
 
 // Interface for proposal data
 interface Proposal {
@@ -41,10 +42,13 @@ export default function VotePage() {
   // Fetch governance configuration from smart contract
   const { config: governanceConfig, isLoading: isLoadingGovernanceConfig, error: governanceConfigError } = useGovernanceConfig()
   
+  // Get current block number with global caching
+  const { data: blockInfo, isLoading: isLoadingBlockNumber } = useBlockNumber()
+
   // Fetch all proposals from subgraph
   const { data: proposalsData, isLoading, error, refetch } = useProposalsData()
-  // Fetch active proposals from subgraph
-  const { data: activeProposalsData, isLoading: isLoadingActive, error: errorActive, refetch: refetchActive } = useActiveProposalsData()
+  // Fetch active proposals from subgraph with cached block number
+  const { data: activeProposalsData, isLoading: isLoadingActive, error: errorActive, refetch: refetchActive } = useActiveProposalsData(blockInfo?.blockNumber)
   // Fetch actionable proposals for Active tab (PENDING, ACTIVE, QUEUED, EXECUTED)
   const { data: actionableProposals, isLoading: isLoadingActionable, error: errorActionable, refetch: refetchActionable } = useProposalsByStatus(['PENDING', 'ACTIVE', 'QUEUED', 'EXECUTED'])
   // Fetch completed proposals for Completed tab (EXECUTED only)
@@ -717,12 +721,12 @@ export default function VotePage() {
     return `/vote/${proposal.id}?${params.toString()}`
   }
 
-  if (isLoading || isLoadingActive || isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus || isLoadingVoteResults || isLoadingBlockInfo || isLoadingGovernanceConfig) {
+  if (isLoading || isLoadingActive || isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus || isLoadingVoteResults || isLoadingBlockNumber || isLoadingGovernanceConfig) {
     return (
       <div className="container mx-auto py-6 flex flex-col items-center justify-center min-h-[50vh]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
         <p className="text-muted-foreground">
-          {isLoadingBlockInfo ? 'Loading block information...' : 
+          {isLoadingBlockNumber ? 'Loading block information...' : 
            isLoadingGovernanceConfig ? 'Loading governance configuration...' :
            'Loading proposals and vote results...'}
         </p>

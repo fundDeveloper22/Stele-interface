@@ -26,6 +26,7 @@ import ERC20VotesABI from "@/app/abis/ERC20Votes.json"
 import ERC20ABI from "@/app/abis/ERC20.json"
 import { useProposalVoteResult, useProposalDetails } from "@/app/subgraph/Proposals"
 import { useQueryClient } from "@tanstack/react-query"
+import { useBlockNumber } from "@/app/hooks/useBlockNumber"
 
 export default function ProposalDetailPage() {
   const router = useRouter()
@@ -53,6 +54,8 @@ export default function ProposalDetailPage() {
   const { data: voteResultData, isLoading: isLoadingVoteResult } = useProposalVoteResult(id)
   // Fetch proposal details for queue function
   const { data: proposalDetailsData, isLoading: isLoadingProposalDetails } = useProposalDetails(id)
+  // Get current block number with global caching
+  const { data: blockInfo, isLoading: isLoadingBlockNumber } = useBlockNumber()
   const queryClient = useQueryClient()
   
   // Get vote result data or use defaults
@@ -166,8 +169,15 @@ export default function ProposalDetailPage() {
       const tokenContract = new ethers.Contract(STELE_TOKEN_ADDRESS, ERC20ABI.abi, provider)
       const votesContract = new ethers.Contract(STELE_TOKEN_ADDRESS, ERC20VotesABI.abi, provider)
 
-      // Get current block number for voting power calculation
-      const currentBlock = await provider.getBlockNumber()
+      // Use cached block number from global hook, fallback to RPC call if not available
+      let currentBlock: number
+      if (blockInfo && !isLoadingBlockNumber) {
+        currentBlock = blockInfo.blockNumber
+        console.log('Using cached block number:', currentBlock)
+      } else {
+        console.log('Fetching block number via RPC...')
+        currentBlock = await provider.getBlockNumber()
+      }
       
       // Check if user has already voted
       const hasUserVoted = await governanceContract.hasVoted(id, walletAddress)

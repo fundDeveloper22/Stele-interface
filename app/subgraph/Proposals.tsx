@@ -249,58 +249,79 @@ export function useProposalsData() {
   })
 }
 
-export function useActiveProposalsData() {
+export function useActiveProposalsData(currentBlockNumber?: number) {
   return useQuery<ProposalsData>({
-    queryKey: ['activeProposals'],
+    queryKey: ['activeProposals', currentBlockNumber],
     queryFn: async () => {
       try {
-        // Get current block number from Base RPC
-        // Try Infura first if available, then fallback to public RPC
-        const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
-          ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
-          : BASE_CHAIN_CONFIG.rpcUrls[0]
-          
-        const provider = new ethers.JsonRpcProvider(rpcUrl)
-        const currentBlockNumber = await provider.getBlockNumber()
-        const currentBlockNumberString = currentBlockNumber.toString()
+        let blockNumberToUse: string
+        
+        if (currentBlockNumber) {
+          // Use provided block number from global hook
+          blockNumberToUse = currentBlockNumber.toString()
+          console.log('Using cached block number for active proposals:', blockNumberToUse)
+        } else {
+          // Fallback: fetch block number
+          console.log('Fetching block number for active proposals...')
+          const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
+            ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
+            : BASE_CHAIN_CONFIG.rpcUrls[0]
+            
+          const provider = new ethers.JsonRpcProvider(rpcUrl)
+          const fetchedBlockNumber = await provider.getBlockNumber()
+          blockNumberToUse = fetchedBlockNumber.toString()
+        }
               
-        return await request(url, getActiveProposalsQuery(currentBlockNumberString), {}, headers)
+        return await request(url, getActiveProposalsQuery(blockNumberToUse), {}, headers)
       } catch (error) {
-        console.error('Error fetching current block number for active proposals:', error)
+        console.error('Error fetching active proposals:', error)
         // Fallback: use a very high block number to ensure we get all potentially active proposals
-        // This way we don't miss any proposals due to estimation errors
         const fallbackBlockNumber = "999999999"
         return await request(url, getActiveProposalsQuery(fallbackBlockNumber), {}, headers)
       }
     },
-    refetchInterval: 60000, // Refetch every minute to keep active status updated
+    enabled: !!currentBlockNumber, // Only run when we have block number
+    refetchInterval: 120000, // Reduced frequency since block number is cached
+    staleTime: 60000, // Data is considered fresh for 1 minute
+    retry: 1, // Reduce retry attempts
   })
 }
 
-export function useCompletedProposalsData() {
+export function useCompletedProposalsData(currentBlockNumber?: number) {
   return useQuery<ProposalsData>({
-    queryKey: ['completedProposals'],
+    queryKey: ['completedProposals', currentBlockNumber],
     queryFn: async () => {
       try {
-        // Get current block number from Base RPC
-        // Try Infura first if available, then fallback to public RPC
-        const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
-          ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
-          : BASE_CHAIN_CONFIG.rpcUrls[0]
-          
-        const provider = new ethers.JsonRpcProvider(rpcUrl)
-        const currentBlockNumber = await provider.getBlockNumber()
-        const currentBlockNumberString = currentBlockNumber.toString()
+        let blockNumberToUse: string
         
-        return await request(url, getCompletedProposalsQuery(currentBlockNumberString), {}, headers)
+        if (currentBlockNumber) {
+          // Use provided block number from global hook
+          blockNumberToUse = currentBlockNumber.toString()
+          console.log('Using cached block number for completed proposals:', blockNumberToUse)
+        } else {
+          // Fallback: fetch block number
+          console.log('Fetching block number for completed proposals...')
+          const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
+            ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
+            : BASE_CHAIN_CONFIG.rpcUrls[0]
+            
+          const provider = new ethers.JsonRpcProvider(rpcUrl)
+          const fetchedBlockNumber = await provider.getBlockNumber()
+          blockNumberToUse = fetchedBlockNumber.toString()
+        }
+        
+        return await request(url, getCompletedProposalsQuery(blockNumberToUse), {}, headers)
       } catch (error) {
-        console.error('Error fetching current block number for completed proposals:', error)
+        console.error('Error fetching completed proposals:', error)
         // Fallback: use block number 0 to get all proposals (they would all be completed)
         const fallbackBlockNumber = "0"
         return await request(url, getCompletedProposalsQuery(fallbackBlockNumber), {}, headers)
       }
     },
-    refetchInterval: 60000, // Refetch every minute to keep status updated
+    enabled: !!currentBlockNumber, // Only run when we have block number
+    refetchInterval: 300000, // 5 minutes since completed proposals rarely change
+    staleTime: 180000, // Data is considered fresh for 3 minutes
+    retry: 1, // Reduce retry attempts
   })
 }
 
