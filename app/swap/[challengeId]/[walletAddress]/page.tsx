@@ -15,39 +15,63 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useTokensData } from '@/app/subgraph/WhiteListTokens'
+import { useInvestorData } from '@/app/subgraph/Account'
 
-// Token Icon Component
-const TokenIcon = ({ symbol }: { symbol: string }) => {
-  // Create icon from the first letter of token symbol
-  const firstChar = symbol.charAt(0)
+// Format token amount with proper decimals
+const formatTokenAmount = (amount: string, decimals: string | number) => {
+  if (!amount || !decimals) return '0'
+  
+  const decimalPlaces = typeof decimals === 'string' ? parseInt(decimals) : decimals
+  const amountBN = BigInt(amount)
+  const divisor = BigInt(10 ** decimalPlaces)
+  const quotient = amountBN / divisor
+  const remainder = amountBN % divisor
+  
+  if (remainder === BigInt(0)) {
+    return quotient.toString()
+  }
+  
+  const fractionalPart = remainder.toString().padStart(decimalPlaces, '0')
+  return `${quotient}.${fractionalPart.replace(/0+$/, '')}`
+}
+
+// Token Icon Component with symbol support
+const TokenIcon = ({ symbol, address }: { symbol?: string; address?: string }) => {
+  // Use symbol if available, otherwise use first chars of address
+  const displayText = symbol ? symbol.slice(0, 2) : (address ? address.slice(2, 4) : '??')
   
   // Generate unique color for each token (hash-based)
-  const getColorForToken = (symbol: string) => {
-    // Simple hash function to convert string to number
+  const getColorForToken = (input: string) => {
     let hash = 0
-    for (let i = 0; i < symbol.length; i++) {
-      hash = symbol.charCodeAt(i) + ((hash << 5) - hash)
+    for (let i = 0; i < input.length; i++) {
+      hash = input.charCodeAt(i) + ((hash << 5) - hash)
     }
     
-    // Predefined array of colors
     const colors = [
       'bg-blue-500', 'bg-green-500', 'bg-purple-500', 
       'bg-red-500', 'bg-yellow-500', 'bg-indigo-500',
       'bg-pink-500', 'bg-teal-500', 'bg-orange-500'
     ]
     
-    // Convert hash to color index
     const index = Math.abs(hash) % colors.length
     return colors[index]
   }
   
-  const colorClass = getColorForToken(symbol)
+  const colorClass = getColorForToken(symbol || address || 'default')
   
   return (
     <div className={`w-6 h-6 rounded-full ${colorClass} flex items-center justify-center mr-2`}>
-      <span className="text-xs font-bold text-white">{firstChar}</span>
+      <span className="text-xs font-bold text-white">{displayText}</span>
     </div>
   )
+}
+
+interface TokenInfo {
+  address: string;
+  symbol: string;
+  amount: string;
+  decimals: string;
+  formattedAmount: string;
 }
 
 interface TokenBalance {
@@ -61,16 +85,18 @@ export default function SwapPage() {
   const searchParams = useSearchParams()
   const { challengeId, walletAddress } = params
   
-  // Get token data from URL query params
-  const tokensParam = searchParams.get('tokens') || ''
-  const tokensAmountParam = searchParams.get('tokensAmount') || ''
+  // Get investor data with actual token symbols and decimals
+  const { data: investorData, isLoading: isLoadingInvestor } = useInvestorData(
+    challengeId as string, 
+    walletAddress as string
+  )
   
   // Get whitelisted tokens from the subgraph
   const { data: whitelistedTokensData, isLoading: isLoadingTokens } = useTokensData()
-  // Parse tokens and amounts into usable format
-  const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([])
-  const [availableTokens, setAvailableTokens] = useState<string[]>([])
-  const [whitelistedTokens, setWhitelistedTokens] = useState<string[]>([])
+  
+  // State for token information
+  const [userTokens, setUserTokens] = useState<TokenInfo[]>([])
+  const [whitelistedTokens, setWhitelistedTokens] = useState<TokenInfo[]>([])
   
   // State for swap values
   const [fromToken, setFromToken] = useState<string>('')
@@ -79,95 +105,102 @@ export default function SwapPage() {
   const [toAmount, setToAmount] = useState('')
   const [isSwapping, setIsSwapping] = useState(false)
   
-  // Set whitelisted tokens when data is loaded
+  // Process investor token data
   useEffect(() => {
-    if (whitelistedTokensData?.tokens && Array.isArray(whitelistedTokensData.tokens)) {
-      const tokenSymbols = whitelistedTokensData.tokens.map((token) => token.symbol)
-      setWhitelistedTokens(tokenSymbols)
-    }
-  }, [whitelistedTokensData])
-  
-  useEffect(() => {
-    if (tokensParam && tokensAmountParam) {
-      const tokens = tokensParam.split(',')
-      const amounts = tokensAmountParam.split(',')
+    if (investorData?.investor) {
+      const investor = investorData.investor
+      const tokens = investor.tokens || []
+      const tokensAmount = investor.tokensAmount || []
+      const tokensSymbols = investor.tokensSymbols || []
+      const tokensDecimals = investor.tokensDecimals || []
       
-      const balances: TokenBalance[] = []
-      tokens.forEach((token, index) => {
-        if (token && amounts[index]) {
-          balances.push({
-            token: token,
-            amount: amounts[index]
-          })
-        }
-      })
+      const tokenInfos: TokenInfo[] = tokens.map((address, index) => ({
+        address,
+        symbol: tokensSymbols[index] || `TOKEN_${index}`,
+        amount: tokensAmount[index] || '0',
+        decimals: tokensDecimals[index] || '18',
+        formattedAmount: formatTokenAmount(tokensAmount[index] || '0', tokensDecimals[index] || '18')
+      }))
       
-      setTokenBalances(balances)
-      setAvailableTokens(tokens)
+      setUserTokens(tokenInfos)
       
-      // Set initial fromToken to first token in the list if available
-      if (balances.length > 0) {
-        setFromToken(balances[0].token)
-        
-        // Set initial toToken to first whitelisted token that is not the fromToken
-        if (whitelistedTokens.length > 0) {
-          const initialToToken = whitelistedTokens.find(token => token !== balances[0].token) || whitelistedTokens[0]
-          setToToken(initialToToken)
-        } else if (balances.length > 1) {
-          // Fallback to second token in balances if whitelisted tokens not loaded yet
-          setToToken(balances[1].token)
-        } else {
-          // Fallback to first token if only one token available
-          setToToken(balances[0].token)
-        }
-        
-        setFromAmount('') // Reset amount when changing tokens
+      // Set initial fromToken if available
+      if (tokenInfos.length > 0) {
+        setFromToken(tokenInfos[0].address)
       }
     }
-  }, [tokensParam, tokensAmountParam, whitelistedTokens])
-  
-  // Get token balance for a specific token
-  const getTokenBalance = (token: string): string => {
-    const balance = tokenBalances.find(tb => tb.token === token)
-    return balance ? balance.amount : '0'
+  }, [investorData])
+
+  // Process whitelisted tokens data
+  useEffect(() => {
+    if (whitelistedTokensData?.tokens && Array.isArray(whitelistedTokensData.tokens)) {
+      const whitelistedTokenInfos: TokenInfo[] = whitelistedTokensData.tokens.map(token => ({
+        address: token.tokenAddress,
+        symbol: token.symbol,
+        amount: '0', // Whitelisted tokens don't have user amounts
+        decimals: token.decimals,
+        formattedAmount: '0'
+      }))
+      
+      setWhitelistedTokens(whitelistedTokenInfos)
+      
+      // Set initial toToken to first whitelisted token that's different from fromToken
+      if (whitelistedTokenInfos.length > 0 && !toToken) {
+        const initialToToken = whitelistedTokenInfos.find(token => 
+          token.address !== fromToken
+        ) || whitelistedTokenInfos[0]
+        setToToken(initialToToken.address)
+      }
+    }
+  }, [whitelistedTokensData, fromToken, toToken])
+
+  // Get token info by address
+  const getTokenInfo = (address: string): TokenInfo | null => {
+    const userToken = userTokens.find(t => t.address === address)
+    if (userToken) return userToken
+    
+    const whitelistedToken = whitelistedTokens.find(t => t.address === address)
+    return whitelistedToken || null
   }
-  
-  // Generate all possible token pairs
+
+  // Get formatted balance for display
+  const getFormattedBalance = (address: string): string => {
+    const tokenInfo = getTokenInfo(address)
+    return tokenInfo?.formattedAmount || '0'
+  }
+
+  // Generate exchange rates (simplified)
   const generateExchangeRates = () => {
     const rates: Record<string, number> = {}
-    
-    // Create rates for all available tokens and whitelisted tokens
-    const allTokens = [...new Set([...availableTokens, ...whitelistedTokens])]
+    const allTokens = [...userTokens, ...whitelistedTokens]
     
     allTokens.forEach(from => {
       allTokens.forEach(to => {
-        if (from !== to) {
-          // Random exchange rate generation (in real implementation, we would use oracle or market data)
-          let rate
-          if (from === 'USDC' && to === 'ETH') {
-            rate = 0.00056
-          } else if (from === 'ETH' && to === 'USDC') {
+        if (from.address !== to.address) {
+          // Simple rate generation based on symbols
+          let rate = 1
+          if (from.symbol === 'ETH' && to.symbol === 'USDC') {
             rate = 1786.45
+          } else if (from.symbol === 'USDC' && to.symbol === 'ETH') {
+            rate = 0.00056
           } else {
-            // Random rate between 0.001 and 100
-            rate = 0.001 + Math.random() * 100
+            rate = 0.5 + Math.random() * 2 // Random rate between 0.5 and 2.5
           }
-          rates[`${from}-${to}`] = rate
+          rates[`${from.address}-${to.address}`] = rate
         }
       })
     })
     
     return rates
   }
-  
-  // Dynamic exchange rates
+
   const exchangeRates = generateExchangeRates()
-  
+
   // Calculate estimated amount on input change
   const handleAmountChange = (amount: string) => {
     setFromAmount(amount)
     
-    if (amount && !isNaN(Number(amount))) {
+    if (amount && !isNaN(Number(amount)) && fromToken && toToken) {
       const pairKey = `${fromToken}-${toToken}`
       const rate = exchangeRates[pairKey] || 0
       setToAmount((Number(amount) * rate).toFixed(6))
@@ -175,23 +208,17 @@ export default function SwapPage() {
       setToAmount('')
     }
   }
-  
+
   // Set max amount based on token balance
   const handleSetMaxAmount = () => {
-    const balance = getTokenBalance(fromToken)
+    const balance = getFormattedBalance(fromToken)
     setFromAmount(balance)
-    
-    if (balance && !isNaN(Number(balance))) {
-      const pairKey = `${fromToken}-${toToken}`
-      const rate = exchangeRates[pairKey] || 0
-      setToAmount((Number(balance) * rate).toFixed(6))
-    }
+    handleAmountChange(balance)
   }
 
   // Handle swap token positions
   const handleSwapTokens = () => {
-    // Only allow swapping if toToken is in the user's balances or whitelisted
-    if (availableTokens.includes(toToken) || whitelistedTokens.includes(toToken)) {
+    if (fromToken && toToken) {
       const temp = fromToken
       setFromToken(toToken)
       setToToken(temp)
@@ -204,51 +231,33 @@ export default function SwapPage() {
       }
     }
   }
-  
+
   // Handle token selection
   const handleFromTokenChange = (value: string) => {
     setFromToken(value)
     if (value === toToken) {
-      // Find another token to use as toToken from whitelisted tokens
-      let newToToken = ''
-      
-      if (whitelistedTokens.length > 0) {
-        // Try to find a whitelisted token different from the fromToken
-        newToToken = whitelistedTokens.find(t => t !== value) || whitelistedTokens[0]
-      } else if (availableTokens.length > 1) {
-        // Fallback to available tokens if whitelisted tokens not loaded yet
-        newToToken = availableTokens.find(t => t !== value) || availableTokens[0]
-      }
-      
-      setToToken(newToToken)
+      // Find another token to use as toToken
+      const availableTokens = [...userTokens, ...whitelistedTokens]
+      const newToToken = availableTokens.find(t => t.address !== value)
+      setToToken(newToToken?.address || '')
     }
     
-    // Reset amount when changing tokens
+    // Reset amounts when changing tokens
     setFromAmount('')
     setToAmount('')
   }
-  
+
   const handleToTokenChange = (value: string) => {
     setToToken(value)
-    if (value === fromToken && availableTokens.includes(value)) {
+    if (value === fromToken) {
       // Find another token to use as fromToken
-      let newFromToken = ''
-      
-      if (availableTokens.length > 1) {
-        newFromToken = availableTokens.find(t => t !== value) || availableTokens[0]
-      }
-      
-      if (newFromToken) {
-        setFromToken(newFromToken)
-      }
+      const newFromToken = userTokens.find(t => t.address !== value)
+      setFromToken(newFromToken?.address || '')
     }
     
-    // Recalculate amounts if we have a from amount
-    if (fromAmount && !isNaN(Number(fromAmount))) {
-      const pairKey = `${fromToken}-${value}`
-      const rate = exchangeRates[pairKey] || 0
-      setToAmount((Number(fromAmount) * rate).toFixed(6))
-    }
+    // Reset amounts when changing tokens
+    setFromAmount('')
+    setToAmount('')
   }
   
   // Process swap
@@ -270,7 +279,7 @@ export default function SwapPage() {
   }
   
   // Show loading if tokens are not yet loaded
-  if (availableTokens.length === 0 || isLoadingTokens) {
+  if (userTokens.length === 0 || isLoadingInvestor || isLoadingTokens) {
     return (
       <div className="container mx-auto py-6 max-w-md">
         <div className="mb-6">
@@ -310,7 +319,7 @@ export default function SwapPage() {
               <label className="text-sm font-medium">From</label>
               <div className="flex items-center gap-1">
                 <span className="text-sm text-muted-foreground">
-                  Balance: {getTokenBalance(fromToken)}
+                  Balance: {getFormattedBalance(fromToken)}
                 </span>
                 <Button 
                   variant="ghost" 
@@ -334,19 +343,24 @@ export default function SwapPage() {
               <Select value={fromToken} onValueChange={(value: string) => handleFromTokenChange(value)}>
                 <SelectTrigger className="w-[120px]">
                   <div className="flex items-center">
-                    <SelectValue placeholder="Select token" />
+                    {fromToken && getTokenInfo(fromToken) && (
+                      <>
+                        <TokenIcon symbol={getTokenInfo(fromToken)?.symbol} address={fromToken} />
+                        <span>{getTokenInfo(fromToken)?.symbol}</span>
+                      </>
+                    )}
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  {tokenBalances.map((tb) => (
-                    <SelectItem key={tb.token} value={tb.token}>
+                  {userTokens.map((tb) => (
+                    <SelectItem key={tb.address} value={tb.address}>
                       <div className="flex items-center justify-between w-full pr-2">
                         <div className="flex items-center">
-                          <TokenIcon symbol={tb.token} />
-                          <span className="mr-2">{tb.token}</span>
+                          <TokenIcon symbol={tb.symbol} address={tb.address} />
+                          <span className="mr-2">{tb.symbol}</span>
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {Number(tb.amount).toFixed(4)}
+                          {tb.formattedAmount}
                         </span>
                       </div>
                     </SelectItem>
@@ -373,7 +387,7 @@ export default function SwapPage() {
             <div className="flex justify-between">
               <label className="text-sm font-medium">To (estimated)</label>
               <span className="text-sm text-muted-foreground">
-                Balance: {getTokenBalance(toToken)}
+                Balance: {getFormattedBalance(toToken)}
               </span>
             </div>
             <div className="flex gap-2">
@@ -388,31 +402,28 @@ export default function SwapPage() {
               <Select value={toToken} onValueChange={(value: string) => handleToTokenChange(value)}>
                 <SelectTrigger className="w-[120px]">
                   <div className="flex items-center">
-                    <SelectValue placeholder="Select token" />
+                    {toToken && getTokenInfo(toToken) && (
+                      <>
+                        <TokenIcon symbol={getTokenInfo(toToken)?.symbol} address={toToken} />
+                        <span>{getTokenInfo(toToken)?.symbol}</span>
+                      </>
+                    )}
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  {/* Show whitelisted tokens for the destination */}
-                  {whitelistedTokens.length > 0 ? (
-                    whitelistedTokens.map(token => (
-                      <SelectItem key={token} value={token}>
+                  {whitelistedTokens.map((tb) => (
+                    <SelectItem key={tb.address} value={tb.address}>
+                      <div className="flex items-center justify-between w-full pr-2">
                         <div className="flex items-center">
-                          <TokenIcon symbol={token} />
-                          {token}
+                          <TokenIcon symbol={tb.symbol} address={tb.address} />
+                          <span className="mr-2">{tb.symbol}</span>
                         </div>
-                      </SelectItem>
-                    ))
-                  ) : (
-                    // Fallback to available tokens if whitelisted tokens are not loaded
-                    availableTokens.map(token => (
-                      <SelectItem key={token} value={token}>
-                        <div className="flex items-center">
-                          <TokenIcon symbol={token} />
-                          {token}
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
+                        <span className="text-xs text-muted-foreground">
+                          Available
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -423,7 +434,11 @@ export default function SwapPage() {
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Exchange Rate</span>
               <div className="flex items-center gap-1">
-                <span>1 {fromToken} = {exchangeRates[`${fromToken}-${toToken}`]?.toFixed(6) || '0'} {toToken}</span>
+                <span>
+                  1 {getTokenInfo(fromToken)?.symbol || 'TOKEN'} = {' '}
+                  {exchangeRates[`${fromToken}-${toToken}`]?.toFixed(6) || '0'} {' '}
+                  {getTokenInfo(toToken)?.symbol || 'TOKEN'}
+                </span>
                 <Button variant="ghost" size="icon" className="h-5 w-5 opacity-50" onClick={() => {}}>
                   <RefreshCw className="h-3 w-3" />
                 </Button>
@@ -435,7 +450,7 @@ export default function SwapPage() {
           <Button 
             className="w-full" 
             size="lg"
-            disabled={!fromAmount || isSwapping || Number(fromAmount) <= 0 || Number(fromAmount) > Number(getTokenBalance(fromToken))}
+            disabled={!fromAmount || isSwapping || Number(fromAmount) <= 0 || Number(fromAmount) > Number(getFormattedBalance(fromToken))}
             onClick={handleSwap}
           >
             {isSwapping ? 'Processing...' : 'Swap'}

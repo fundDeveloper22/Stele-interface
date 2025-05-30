@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ActiveChallenges } from "@/components/active-challenges"
 import { InvestableTokens } from "@/components/investable-tokens"
+import { TokenStatsOverview } from "@/components/token-stats-overview"
 import {
   dehydrate,
   HydrationBoundary,
@@ -100,7 +101,10 @@ export async function Dashboard() {
         </div>
         <DashBoardQuery />
         <ActiveChallenges />
-        <InvestableTokens />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <InvestableTokens />
+          <TokenStatsOverview />
+        </div>
       </div>
     </HydrationBoundary>
   )

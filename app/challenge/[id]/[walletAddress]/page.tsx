@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { useInvestorData } from "@/app/subgraph/Account"
+import { InvestorPortfolio } from "@/components/investor-portfolio"
 
 export default function AccountPage() {
   const params = useParams()
@@ -39,6 +40,8 @@ export default function AccountPage() {
   // Get tokens and their amounts
   const tokens = investor.tokens || []
   const tokensAmount = investor.tokensAmount || []
+  const tokensSymbols = investor.tokensSymbols || []
+  const tokensDecimals = investor.tokensDecimals || []
 
   // Get challenge title
   const getChallengeTitle = () => {
@@ -83,7 +86,9 @@ export default function AccountPage() {
                 pathname: `/swap/${challengeId}/${walletAddress}`,
                 query: { 
                   tokens: tokens.join(','),
-                  tokensAmount: tokensAmount.join(',')
+                  tokensAmount: tokensAmount.join(','),
+                  tokensSymbols: tokensSymbols.join(','),
+                  tokensDecimals: tokensDecimals.join(',')
                 }
               }}
             >
@@ -135,44 +140,7 @@ export default function AccountPage() {
           </TabsList>
 
           <TabsContent value="portfolio" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Current Holdings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {tokens.map((token, index) => {
-                    const amount = tokensAmount[index] || "0"
-                    const tokenValue = (Number(amount) / tokens.length) * currentValue
-                    const percentage = (tokenValue / currentValue) * 100
-                    
-                    return (
-                      <div key={index} className="flex items-center justify-between py-3 border-b border-border">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center mr-3">
-                            <span className="text-xs font-bold">{token.slice(0, 3)}</span>
-                          </div>
-                          <div>
-                            <div className="font-medium">{token}</div>
-                            <div className="text-sm text-muted-foreground">{amount}</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium">${tokenValue.toFixed(2)}</div>
-                          <div className="text-sm text-emerald-500">{percentage.toFixed(0)}% of portfolio</div>
-                        </div>
-                      </div>
-                    )
-                  })}
-
-                  {tokens.length === 0 && (
-                    <div className="py-3 text-center text-muted-foreground">
-                      No tokens in portfolio yet
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <InvestorPortfolio challengeId={challengeId} walletAddress={walletAddress} />
           </TabsContent>
 
           <TabsContent value="history" className="mt-4">
