@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Clock, XCircle, Plus, FileText, Vote as VoteIcon, Loader2 } from "lucide-react"
-import { useProposalsData, useActiveProposalsData, useCompletedProposalsData, useMultipleProposalVoteResults, useProposalsByStatus } from "@/app/subgraph/Proposals"
+import { useProposalsData, useActiveProposalsData, useMultipleProposalVoteResults, useProposalsByStatus } from "@/app/subgraph/Proposals"
 import { BASE_BLOCK_TIME_MS, STELE_DECIMALS } from "@/lib/constants"
 import { ethers } from "ethers"
 import { useGovernanceConfig } from "@/app/hooks/useGovernanceConfig"
