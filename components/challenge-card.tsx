@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Clock, Trophy, Users } from "lucide-react"
 import Link from "next/link"
+import { useState, useEffect } from "react"
 
 interface ChallengeCardProps {
   id?: string
@@ -23,14 +24,24 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
   // If no ID is provided, convert the title to kebab-case and use it as ID
   const displayId = id || title.toLowerCase().replace(/\s+/g, '-');
   
-  // Detect user's browser locale
-  const userLocale = typeof navigator !== 'undefined' ? navigator.language : 'en-US';
+  const [startDate, setStartDate] = useState<string>("Not started yet");
   
-  const startDate = new Date(Number(startTime) * 1000).toLocaleDateString(userLocale, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  useEffect(() => {
+    // Handle display for challenges that haven't started yet
+    const hasStarted = startTime && startTime !== "0";
+    if (hasStarted) {
+      // Detect user's browser locale only on client side
+      const userLocale = navigator.language;
+      const formattedDate = new Date(Number(startTime) * 1000).toLocaleDateString(userLocale, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      setStartDate(formattedDate);
+    } else {
+      setStartDate("Not started yet");
+    }
+  }, [startTime]);
   
   return (
     <Card className="overflow-hidden">
