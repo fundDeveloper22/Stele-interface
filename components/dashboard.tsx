@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ActiveChallenges } from "@/components/active-challenges"
+import { InvestableTokens } from "@/components/investable-tokens"
 import {
   dehydrate,
   HydrationBoundary,
@@ -8,6 +9,7 @@ import {
 import { gql, request } from 'graphql-request'
 import DashBoardQuery from '@/app/subgraph/DashBoard'
 import { query } from '@/app/subgraph/DashBoard'
+import { getInvestableTokensQuery } from '@/app/subgraph/WhiteListTokens'
 import { url, headers } from '@/lib/constants'
 
 export function DashboardStats({ data }: { data: any }) {
@@ -73,10 +75,20 @@ export function DashboardStats({ data }: { data: any }) {
 
 export async function Dashboard() {
   const queryClient = new QueryClient()
+  
+  // Prefetch dashboard data
   await queryClient.prefetchQuery({
     queryKey: ['data'],
     async queryFn() {
       return await request(url, query, {}, headers)
+    }
+  })
+  
+  // Prefetch tokens data
+  await queryClient.prefetchQuery({
+    queryKey: ['tokens'],
+    async queryFn() {
+      return await request(url, getInvestableTokensQuery(), {}, headers)
     }
   })
   
@@ -85,10 +97,11 @@ export async function Dashboard() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-                    </div>
+        </div>
         <DashBoardQuery />
-          <ActiveChallenges />
-    </div>
+        <ActiveChallenges />
+        <InvestableTokens />
+      </div>
     </HydrationBoundary>
   )
 }
