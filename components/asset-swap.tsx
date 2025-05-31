@@ -3,37 +3,28 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowDown, ChevronDown } from "lucide-react"
+import { ArrowDown, ChevronDown, RefreshCw } from "lucide-react"
 import { HTMLAttributes, useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { useTokenPrices } from "@/app/hooks/useTokenPrices"
+import { useTokenPrices, calculateSwapQuote } from "@/app/hooks/useTokenPrices"
 
 interface AssetSwapProps extends HTMLAttributes<HTMLDivElement> {}
 
 export function AssetSwap({ className, ...props }: AssetSwapProps) {
   const { data: priceData, isLoading, error } = useTokenPrices();
   const [fromAmount, setFromAmount] = useState<string>("")
-  const [toAmount, setToAmount] = useState<string>("")
+  const [fromToken, setFromToken] = useState<string>("ETH")
+  const [toToken, setToToken] = useState<string>("USDC")
 
-  // Default value or loading display value
-  const exchangeRate = priceData?.exchangeRate || 0;
+  // Calculate swap quote using the new pricing function
+  const swapQuote = calculateSwapQuote(
+    fromToken,
+    toToken,
+    parseFloat(fromAmount) || 0,
+    priceData
+  );
+
   const isDataReady = !isLoading && !error && priceData;
-
-  // Auto-calculate To amount when From amount changes
-  useEffect(() => {
-    if (fromAmount && exchangeRate && isDataReady) {
-      const calculatedAmount = (parseFloat(fromAmount) * exchangeRate).toFixed(6)
-      setToAmount(calculatedAmount)
-    } else {
-      setToAmount("")
-    }
-  }, [fromAmount, exchangeRate, isDataReady])
-
-  // Calculate minimum received (1% slippage applied)
-  const minReceived = toAmount ? (parseFloat(toAmount) * 0.99).toFixed(2) : "0.00"
-  
-  // Calculate price impact (simple example)
-  const priceImpact = fromAmount ? Math.min(parseFloat(fromAmount) * 0.001, 0.5) : 0
 
   const handleFromAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -42,6 +33,15 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
       setFromAmount(value)
     }
   }
+
+  // Get available tokens
+  const availableTokens = priceData?.tokens ? Object.keys(priceData.tokens).concat(['cbBTC']) : ['ETH', 'USDC', 'USDT', 'WETH', 'cbBTC'];
+
+  const handleTokenSwap = () => {
+    const temp = fromToken;
+    setFromToken(toToken);
+    setToToken(temp);
+  };
 
   return (
     <div className={cn("max-w-md mx-auto", className)} {...props}>
@@ -54,56 +54,61 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
           <div className="rounded-lg border border-border bg-card p-4">
             <div className="flex justify-between mb-2">
               <span className="text-sm text-muted-foreground">From</span>
-              <span className="text-sm text-muted-foreground">Balance: 1.245 ETH</span>
+              <span className="text-sm text-muted-foreground">Balance: 1.245 {fromToken}</span>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <Input
                 type="text"
                 placeholder="0.0"
                 value={fromAmount}
                 onChange={handleFromAmountChange}
-                className="border-0 bg-transparent text-xl p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="border-0 bg-transparent text-xl p-0 focus-visible:ring-0 focus-visible:ring-offset-0 flex-1"
               />
-              <div className="flex items-center gap-2">
-                <Button variant="outline" className="h-9 gap-1">
-                  <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-white">ETH</span>
-                  </div>
-                  <span>ETH</span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </div>
+              <select 
+                value={fromToken} 
+                onChange={(e) => setFromToken(e.target.value)}
+                className="bg-transparent border border-gray-300 rounded px-2 py-1 text-sm"
+              >
+                {availableTokens.map(token => (
+                  <option key={token} value={token}>{token}</option>
+                ))}
+              </select>
             </div>
           </div>
 
           <div className="flex justify-center -my-2 relative z-10">
-            <Button variant="outline" size="icon" className="rounded-full bg-background h-10 w-10">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="rounded-full bg-background h-10 w-10"
+              onClick={handleTokenSwap}
+            >
               <ArrowDown className="h-4 w-4" />
             </Button>
           </div>
 
           <div className="rounded-lg border border-border bg-card p-4">
             <div className="flex justify-between mb-2">
-              <span className="text-sm text-muted-foreground">To</span>
-              <span className="text-sm text-muted-foreground">Balance: 2,500 USDC</span>
+              <span className="text-sm text-muted-foreground">To (estimated)</span>
+              <span className="text-sm text-muted-foreground">Balance: 2,500 {toToken}</span>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <Input
                 type="text"
                 placeholder="0.0"
-                value={toAmount}
+                value={swapQuote ? swapQuote.toAmount.toFixed(6) : ""}
                 readOnly
-                className="border-0 bg-transparent text-xl p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-muted-foreground"
+                className="border-0 bg-transparent text-xl p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-muted-foreground flex-1"
               />
-              <div className="flex items-center gap-2">
-                <Button variant="outline" className="h-9 gap-1">
-                  <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-white">USD</span>
-                  </div>
-                  <span>USDC</span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </div>
+              <select 
+                value={toToken} 
+                onChange={(e) => setToToken(e.target.value)}
+                className="bg-transparent border border-gray-300 rounded px-2 py-1 text-sm"
+              >
+                {availableTokens.map(token => (
+                  <option key={token} value={token}>{token}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -111,35 +116,73 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
           <div className="space-y-2 pt-2">
             <div className="flex items-center justify-between text-sm px-1">
               <span className="text-muted-foreground">Exchange Rate</span>
-              <span className={isDataReady ? "" : "animate-pulse"}>
-                {isDataReady ? `1 ETH = ${exchangeRate.toFixed(2)} USDC` : "Loading..."}
-              </span>
+              <div className="flex items-center gap-1">
+                <span className={isDataReady ? "" : "animate-pulse"}>
+                  {swapQuote ? 
+                    `1 ${fromToken} = ${swapQuote.exchangeRate.toFixed(6)} ${toToken}` : 
+                    "Loading..."
+                  }
+                </span>
+                <RefreshCw className="h-3 w-3 opacity-50" />
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-sm px-1">
               <span className="text-muted-foreground">Minimum Received</span>
-              <span>{minReceived} USDC</span>
+              <span>
+                {swapQuote ? `${swapQuote.minimumReceived.toFixed(4)} ${toToken}` : "0.00"}
+              </span>
             </div>
 
             <div className="flex items-center justify-between text-sm px-1">
               <span className="text-muted-foreground">Price Impact</span>
-              <span className={priceImpact < 0.1 ? "text-emerald-500" : priceImpact < 0.3 ? "text-yellow-500" : "text-red-500"}>
-                {priceImpact.toFixed(2)}%
+              <span className={
+                !swapQuote ? "text-muted-foreground" :
+                swapQuote.priceImpact < 0.1 ? "text-emerald-500" : 
+                swapQuote.priceImpact < 1 ? "text-yellow-500" : "text-red-500"
+              }>
+                {swapQuote ? `${swapQuote.priceImpact.toFixed(3)}%` : "0.00%"}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-sm px-1">
+              <span className="text-muted-foreground">Protocol Fee</span>
+              <span className="text-muted-foreground">
+                {swapQuote ? `$${swapQuote.fees.protocol.toFixed(2)}` : "$0.00"}
               </span>
             </div>
 
             <div className="flex items-center justify-between text-sm px-1">
               <span className="text-muted-foreground">Network Fee</span>
-              <span className="text-muted-foreground">~$2.50</span>
+              <span className="text-muted-foreground">
+                ~${swapQuote?.fees.network.toFixed(2) || "2.50"}
+              </span>
             </div>
+
+            {/* Price change indicator */}
+            {priceData?.tokens[fromToken]?.priceChange24h && (
+              <div className="flex items-center justify-between text-sm px-1">
+                <span className="text-muted-foreground">24h Change ({fromToken})</span>
+                <span className={
+                  priceData.tokens[fromToken].priceChange24h! >= 0 
+                    ? "text-emerald-500" 
+                    : "text-red-500"
+                }>
+                  {priceData.tokens[fromToken].priceChange24h! >= 0 ? "+" : ""}
+                  {priceData.tokens[fromToken].priceChange24h!.toFixed(2)}%
+                </span>
+              </div>
+            )}
           </div>
         </CardContent>
         <CardFooter>
           <Button 
             className="w-full bg-primary hover:bg-primary/90"
-            disabled={!fromAmount || !isDataReady || parseFloat(fromAmount) <= 0}
+            disabled={!fromAmount || !isDataReady || parseFloat(fromAmount) <= 0 || !swapQuote}
           >
-            {!isDataReady ? "Loading..." : !fromAmount ? "Enter amount" : "Swap"}
+            {!isDataReady ? "Loading..." : 
+             !fromAmount ? "Enter amount" : 
+             !swapQuote ? "Invalid pair" : "Swap"}
           </Button>
         </CardFooter>
       </Card>
