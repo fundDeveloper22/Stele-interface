@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Users, Clock, Trophy, BarChart3, LineChart, PieChart, ArrowLeftRight } from "lucide-react"
+import { ArrowLeft, Users, Clock, Trophy, BarChart3, LineChart, PieChart, ArrowLeftRight, Receipt } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -133,47 +133,14 @@ export default function AccountPage() {
         </div>
 
         <Tabs defaultValue="portfolio" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="stats">Stats</TabsTrigger>
           </TabsList>
 
           <TabsContent value="portfolio" className="mt-4">
             <InvestorPortfolio challengeId={challengeId} walletAddress={walletAddress} />
-          </TabsContent>
-
-          <TabsContent value="history" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Investment History</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between py-3 border-b border-border">
-                    <div>
-                      <div className="font-medium">Initial Investment</div>
-                      <div className="text-sm text-muted-foreground">{startDateFormatted}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">${seedMoney.toFixed(2)}</div>
-                      <div className="text-sm text-muted-foreground">Seed Money</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between py-3 border-b border-border">
-                    <div>
-                      <div className="font-medium">Current Value</div>
-                      <div className="text-sm text-muted-foreground">Last updated: {new Date(Number(investor.updatedAtTimestamp) * 1000).toLocaleDateString()}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">${currentValue.toFixed(2)}</div>
-                      <div className="text-sm text-emerald-500">+${profitUSD.toFixed(2)}</div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="stats" className="mt-4">
@@ -216,6 +183,69 @@ export default function AccountPage() {
                   View Detailed Analytics
                 </Button>
               </CardFooter>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="transactions" className="mt-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Recent Transactions</CardTitle>
+                <Receipt className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* ETH → USDC Transaction */}
+                  <div className="flex items-center justify-between py-3 border-b border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                        <ArrowLeftRight className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <div className="font-medium">ETH → USDC</div>
+                        <div className="text-sm text-muted-foreground">Apr 24, 2025 • 14:32</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium">0.15 ETH</div>
+                      <div className="text-sm text-muted-foreground">$267.35</div>
+                    </div>
+                  </div>
+
+                  {/* USDC → ETH Transaction */}
+                  <div className="flex items-center justify-between py-3 border-b border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                        <ArrowLeftRight className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <div className="font-medium">USDC → ETH</div>
+                        <div className="text-sm text-muted-foreground">Apr 22, 2025 • 09:15</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium">500 USDC</div>
+                      <div className="text-sm text-muted-foreground">$500.00</div>
+                    </div>
+                  </div>
+
+                  {/* Challenge Joined */}
+                  <div className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center">
+                        <Trophy className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <div className="font-medium">Challenge Joined</div>
+                        <div className="text-sm text-muted-foreground">Apr 20, 2025 • 10:00</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium">{getChallengeTitle()}</div>
+                      <div className="text-sm text-muted-foreground">Entry</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
