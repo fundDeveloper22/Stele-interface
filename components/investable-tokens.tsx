@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
-import { useTokensData } from "@/app/subgraph/WhiteListTokens"
+import { useInvestableTokens } from "@/app/hooks/useInvestableTokens"
 
 export function InvestableTokens() {
-  const { data: tokensData, isLoading, error } = useTokensData()
+  const { data: tokensData, isLoading, error } = useInvestableTokens()
 
   // Format token address for display
   const formatAddress = (address: string) => {
