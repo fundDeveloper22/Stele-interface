@@ -6,11 +6,20 @@ interface TokenPrice {
   symbol: string;
   priceUSD: number;
   priceChange24h?: number;
+  marketCap?: number;
+  volume24h?: number;
 }
 
 interface PriceData {
   tokens: Record<string, TokenPrice>;
   timestamp: number;
+  source?: string;
+  error?: string;
+  // Legacy compatibility fields
+  eth?: number;
+  usdc?: number;
+  exchangeRate?: number;
+  formatted?: string;
 }
 
 interface SwapQuote {
@@ -49,18 +58,21 @@ export function calculateSwapQuote(
   fromAmount: number,
   priceData: PriceData | undefined
 ): SwapQuote | null {
-  if (!priceData || !fromAmount || fromAmount <= 0) return null;
+  if (!priceData) return null;
 
   const fromPrice = priceData.tokens[fromToken]?.priceUSD;
   const toPrice = priceData.tokens[toToken]?.priceUSD;
 
   if (!fromPrice || !toPrice) return null;
 
+  // Use a default amount of 1 for rate calculation if no amount is provided
+  const calculationAmount = fromAmount || 1;
+
   // Base exchange rate (without fees and slippage)
   const baseExchangeRate = fromPrice / toPrice;
   
   // Calculate value in USD
-  const fromValueUSD = fromAmount * fromPrice;
+  const fromValueUSD = calculationAmount * fromPrice;
   
   // Simulate DEX price impact based on trade size
   // Larger trades have higher price impact
@@ -71,7 +83,7 @@ export function calculateSwapQuote(
   const impactAdjustedRate = baseExchangeRate * (1 - tradeImpactMultiplier);
   
   // Calculate output amount
-  const toAmountBase = fromAmount * impactAdjustedRate;
+  const toAmountBase = calculationAmount * impactAdjustedRate;
   
   // Protocol fees (0.3% typical for AMM DEXs)
   const protocolFeeRate = 0.003;
@@ -90,7 +102,7 @@ export function calculateSwapQuote(
   return {
     fromToken,
     toToken,
-    fromAmount,
+    fromAmount: calculationAmount,
     toAmount: toAmountAfterFees,
     exchangeRate: impactAdjustedRate,
     priceImpact,

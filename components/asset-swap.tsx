@@ -3,20 +3,21 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowDown, ChevronDown, RefreshCw } from "lucide-react"
-import { HTMLAttributes, useState, useEffect } from "react"
+import { ArrowDown, RefreshCw, TrendingUp, TrendingDown } from "lucide-react"
+import { HTMLAttributes, useState } from "react"
 import { cn } from "@/lib/utils"
 import { useTokenPrices, calculateSwapQuote } from "@/app/hooks/useTokenPrices"
+import { Badge } from "@/components/ui/badge"
 
 interface AssetSwapProps extends HTMLAttributes<HTMLDivElement> {}
 
 export function AssetSwap({ className, ...props }: AssetSwapProps) {
-  const { data: priceData, isLoading, error } = useTokenPrices();
+  const { data: priceData, isLoading, error, refetch } = useTokenPrices();
   const [fromAmount, setFromAmount] = useState<string>("")
   const [fromToken, setFromToken] = useState<string>("ETH")
   const [toToken, setToToken] = useState<string>("USDC")
 
-  // Calculate swap quote using the new pricing function
+  // Calculate swap quote using the CoinGecko pricing function
   const swapQuote = calculateSwapQuote(
     fromToken,
     toToken,
@@ -35,7 +36,7 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
   }
 
   // Get available tokens
-  const availableTokens = priceData?.tokens ? Object.keys(priceData.tokens).concat(['cbBTC']) : ['ETH', 'USDC', 'USDT', 'WETH', 'cbBTC'];
+  const availableTokens = priceData?.tokens ? Object.keys(priceData.tokens) : ['ETH', 'USDC', 'USDT', 'WETH', 'BTC', 'cbBTC', 'WBTC'];
 
   const handleTokenSwap = () => {
     const temp = fromToken;
@@ -43,12 +44,28 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
     setToToken(temp);
   };
 
+  // Calculate actual output amount based on user input
+  const outputAmount = fromAmount && swapQuote 
+    ? (parseFloat(fromAmount) * swapQuote.exchangeRate).toFixed(6)
+    : swapQuote?.toAmount.toFixed(6) || "0";
+  
+  const minimumReceived = fromAmount && swapQuote
+    ? (parseFloat(fromAmount) * swapQuote.exchangeRate * 0.99).toFixed(4)
+    : swapQuote?.minimumReceived.toFixed(4) || "0";
+
   return (
     <div className={cn("max-w-md mx-auto", className)} {...props}>
       <Card className="border-border bg-background">
         <CardHeader>
-          <CardTitle>Swap Assets</CardTitle>
-          <CardDescription>Exchange assets within the challenge</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            Swap Assets 
+            <Badge variant="secondary" className="text-xs">
+              {priceData?.source?.includes('CoinGecko') ? 'CoinGecko' : 'Fallback'}
+            </Badge>
+          </CardTitle>
+          <CardDescription>
+            {priceData?.source || 'Live pricing from CoinGecko API'}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg border border-border bg-card p-4">
@@ -67,7 +84,7 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
               <select 
                 value={fromToken} 
                 onChange={(e) => setFromToken(e.target.value)}
-                className="bg-transparent border border-gray-300 rounded px-2 py-1 text-sm"
+                className="bg-transparent border border-gray-300 rounded px-3 py-2 text-sm font-medium"
               >
                 {availableTokens.map(token => (
                   <option key={token} value={token}>{token}</option>
@@ -96,14 +113,14 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
               <Input
                 type="text"
                 placeholder="0.0"
-                value={swapQuote ? swapQuote.toAmount.toFixed(6) : ""}
+                value={outputAmount}
                 readOnly
                 className="border-0 bg-transparent text-xl p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-muted-foreground flex-1"
               />
               <select 
                 value={toToken} 
                 onChange={(e) => setToToken(e.target.value)}
-                className="bg-transparent border border-gray-300 rounded px-2 py-1 text-sm"
+                className="bg-transparent border border-gray-300 rounded px-3 py-2 text-sm font-medium"
               >
                 {availableTokens.map(token => (
                   <option key={token} value={token}>{token}</option>
@@ -112,37 +129,52 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
             </div>
           </div>
 
-          {/* Transaction information section */}
-          <div className="space-y-2 pt-2">
+          {/* Enhanced pricing information section */}
+          <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between text-sm px-1">
               <span className="text-muted-foreground">Exchange Rate</span>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 <span className={isDataReady ? "" : "animate-pulse"}>
                   {swapQuote ? 
                     `1 ${fromToken} = ${swapQuote.exchangeRate.toFixed(6)} ${toToken}` : 
                     "Loading..."
                   }
                 </span>
-                <RefreshCw className="h-3 w-3 opacity-50" />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-5 w-5 opacity-70 hover:opacity-100" 
+                  onClick={() => refetch()}
+                >
+                  <RefreshCw className="h-3 w-3" />
+                </Button>
               </div>
             </div>
 
             <div className="flex items-center justify-between text-sm px-1">
+              <span className="text-muted-foreground">Price Source</span>
+              <span className="text-xs">CoinGecko API</span>
+            </div>
+
+            <div className="flex items-center justify-between text-sm px-1">
               <span className="text-muted-foreground">Minimum Received</span>
-              <span>
-                {swapQuote ? `${swapQuote.minimumReceived.toFixed(4)} ${toToken}` : "0.00"}
-              </span>
+              <span>{minimumReceived} {toToken}</span>
             </div>
 
             <div className="flex items-center justify-between text-sm px-1">
               <span className="text-muted-foreground">Price Impact</span>
-              <span className={
-                !swapQuote ? "text-muted-foreground" :
-                swapQuote.priceImpact < 0.1 ? "text-emerald-500" : 
-                swapQuote.priceImpact < 1 ? "text-yellow-500" : "text-red-500"
-              }>
-                {swapQuote ? `${swapQuote.priceImpact.toFixed(3)}%` : "0.00%"}
-              </span>
+              <div className="flex items-center gap-1">
+                <span className={
+                  !swapQuote ? "text-muted-foreground" :
+                  swapQuote.priceImpact < 0.1 ? "text-emerald-500" : 
+                  swapQuote.priceImpact < 1 ? "text-yellow-500" : "text-red-500"
+                }>
+                  {swapQuote ? `${swapQuote.priceImpact.toFixed(3)}%` : "0.00%"}
+                </span>
+                {swapQuote && swapQuote.priceImpact > 0.1 && (
+                  <TrendingUp className="h-3 w-3 text-yellow-500" />
+                )}
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-sm px-1">
@@ -159,31 +191,91 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
               </span>
             </div>
 
-            {/* Price change indicator */}
-            {priceData?.tokens[fromToken]?.priceChange24h && (
+            {/* 24h Price change indicators for both tokens */}
+            {priceData?.tokens[fromToken]?.priceChange24h !== undefined && (
               <div className="flex items-center justify-between text-sm px-1">
                 <span className="text-muted-foreground">24h Change ({fromToken})</span>
-                <span className={
-                  priceData.tokens[fromToken].priceChange24h! >= 0 
-                    ? "text-emerald-500" 
-                    : "text-red-500"
-                }>
-                  {priceData.tokens[fromToken].priceChange24h! >= 0 ? "+" : ""}
-                  {priceData.tokens[fromToken].priceChange24h!.toFixed(2)}%
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className={
+                    priceData.tokens[fromToken].priceChange24h! >= 0 
+                      ? "text-emerald-500" 
+                      : "text-red-500"
+                  }>
+                    {priceData.tokens[fromToken].priceChange24h! >= 0 ? "+" : ""}
+                    {priceData.tokens[fromToken].priceChange24h!.toFixed(2)}%
+                  </span>
+                  {priceData.tokens[fromToken].priceChange24h! >= 0 ? (
+                    <TrendingUp className="h-3 w-3 text-emerald-500" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3 text-red-500" />
+                  )}
+                </div>
               </div>
             )}
+
+            {priceData?.tokens[toToken]?.priceChange24h !== undefined && toToken !== fromToken && (
+              <div className="flex items-center justify-between text-sm px-1">
+                <span className="text-muted-foreground">24h Change ({toToken})</span>
+                <div className="flex items-center gap-1">
+                  <span className={
+                    priceData.tokens[toToken].priceChange24h! >= 0 
+                      ? "text-emerald-500" 
+                      : "text-red-500"
+                  }>
+                    {priceData.tokens[toToken].priceChange24h! >= 0 ? "+" : ""}
+                    {priceData.tokens[toToken].priceChange24h!.toFixed(2)}%
+                  </span>
+                  {priceData.tokens[toToken].priceChange24h! >= 0 ? (
+                    <TrendingUp className="h-3 w-3 text-emerald-500" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3 text-red-500" />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Network status indicator */}
+            <div className="flex items-center justify-between text-sm px-1">
+              <span className="text-muted-foreground">Network</span>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                <span>Base Mainnet</span>
+              </div>
+            </div>
           </div>
+
+          {error && (
+            <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800">
+              <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                ⚠️ Using fallback pricing data. Prices may not be current.
+              </p>
+            </div>
+          )}
+
+          {priceData?.error && (
+            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-blue-600 dark:text-blue-400">
+                ℹ️ {priceData.error}
+              </p>
+            </div>
+          )}
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex flex-col gap-2">
           <Button 
             className="w-full bg-primary hover:bg-primary/90"
             disabled={!fromAmount || !isDataReady || parseFloat(fromAmount) <= 0 || !swapQuote}
           >
             {!isDataReady ? "Loading..." : 
              !fromAmount ? "Enter amount" : 
-             !swapQuote ? "Invalid pair" : "Swap"}
+             !swapQuote ? "Invalid pair" : 
+             `Swap ${fromAmount} ${fromToken}`}
           </Button>
+          
+          {swapQuote && priceData && (
+            <div className="text-xs text-muted-foreground text-center">
+              Powered by CoinGecko • Updated {new Date(priceData.timestamp).toLocaleTimeString()}
+            </div>
+          )}
         </CardFooter>
       </Card>
     </div>
