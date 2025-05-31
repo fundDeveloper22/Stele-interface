@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
 import { useInvestorData } from "@/app/subgraph/Account"
 import { useTokenPrices } from "@/app/hooks/useTokenPrices"
+import { useUserTokens } from "@/app/hooks/useUserTokens"
 
 interface InvestorPortfolioProps {
   challengeId: string
@@ -13,29 +14,17 @@ interface InvestorPortfolioProps {
 }
 
 export function InvestorPortfolio({ challengeId, walletAddress }: InvestorPortfolioProps) {
-  const { data: investorData, isLoading, error } = useInvestorData(challengeId, walletAddress)
+  const { data: investorData, isLoading: isLoadingInvestor, error: investorError } = useInvestorData(challengeId, walletAddress)
   const { data: priceData } = useTokenPrices()
-
-  // Format token amount with proper decimals
-  const formatTokenAmount = (amount: string, decimals: string) => {
-    const decimalPlaces = parseInt(decimals)
-    const amountBN = BigInt(amount)
-    const divisor = BigInt(10 ** decimalPlaces)
-    const quotient = amountBN / divisor
-    const remainder = amountBN % divisor
-    
-    if (remainder === BigInt(0)) {
-      return quotient.toString()
-    }
-    
-    const fractionalPart = remainder.toString().padStart(decimalPlaces, '0')
-    return `${quotient}.${fractionalPart.replace(/0+$/, '')}`
-  }
+  const { data: userTokens = [], isLoading: isLoadingTokens, error: tokensError } = useUserTokens(challengeId, walletAddress)
 
   // Format address for display
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
+
+  const isLoading = isLoadingInvestor || isLoadingTokens
+  const error = investorError || tokensError
 
   if (isLoading) {
     return (
@@ -72,10 +61,6 @@ export function InvestorPortfolio({ challengeId, walletAddress }: InvestorPortfo
   }
 
   const investor = investorData.investor
-  const tokens = investor.tokens || []
-  const tokensAmount = investor.tokensAmount || []
-  const tokensDecimals = investor.tokensDecimals || []
-  const tokensSymbols = investor.tokensSymbols || []
 
   // Calculate portfolio summary
   const portfolioValue = parseFloat(investor.currentUSD) || 0
@@ -126,7 +111,7 @@ export function InvestorPortfolio({ challengeId, walletAddress }: InvestorPortfo
             <CardTitle className="text-sm font-medium">Holdings</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{tokens.length}</div>
+            <div className="text-2xl font-bold">{userTokens.length}</div>
             <div className="text-sm text-muted-foreground">Different tokens</div>
           </CardContent>
         </Card>
@@ -138,12 +123,12 @@ export function InvestorPortfolio({ challengeId, walletAddress }: InvestorPortfo
           <CardTitle className="flex items-center justify-between">
             Token Holdings
             <Badge variant="secondary">
-              {tokens.length} tokens
+              {userTokens.length} tokens
             </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {tokens.length === 0 ? (
+          {userTokens.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">No token holdings found</p>
             </div>
@@ -160,37 +145,34 @@ export function InvestorPortfolio({ challengeId, walletAddress }: InvestorPortfo
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tokens.map((token, index) => (
-                    <TableRow key={`${token}-${index}`}>
+                  {userTokens.map((token, index) => (
+                    <TableRow key={`${token.address}-${index}`}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
                             <span className="text-xs font-bold text-white">
-                              {tokensSymbols[index]?.slice(0, 2) || '??'}
+                              {token.symbol?.slice(0, 2) || '??'}
                             </span>
                           </div>
-                          {tokensSymbols[index] || 'Unknown'}
+                          {token.symbol || 'Unknown'}
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {tokensSymbols[index] || 'N/A'}
+                          {token.symbol || 'N/A'}
                         </Badge>
                       </TableCell>
                       <TableCell className="font-mono">
-                        {tokensAmount[index] && tokensDecimals[index] 
-                          ? formatTokenAmount(tokensAmount[index], tokensDecimals[index])
-                          : 'N/A'
-                        }
+                        {token.formattedAmount}
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">
-                          {tokensDecimals[index] || 'N/A'}
+                          {token.decimals || 'N/A'}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <code className="text-xs bg-muted px-2 py-1 rounded">
-                          {formatAddress(token)}
+                          {formatAddress(token.address)}
                         </code>
                       </TableCell>
                     </TableRow>

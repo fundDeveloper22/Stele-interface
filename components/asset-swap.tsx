@@ -4,18 +4,28 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ArrowDown, RefreshCw, TrendingUp, TrendingDown } from "lucide-react"
-import { HTMLAttributes, useState } from "react"
+import { HTMLAttributes, useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { useTokenPrices, calculateSwapQuote } from "@/app/hooks/useTokenPrices"
 import { Badge } from "@/components/ui/badge"
+import { UserTokenInfo } from "@/app/hooks/useUserTokens"
 
-interface AssetSwapProps extends HTMLAttributes<HTMLDivElement> {}
+interface AssetSwapProps extends HTMLAttributes<HTMLDivElement> {
+  userTokens?: UserTokenInfo[];
+}
 
-export function AssetSwap({ className, ...props }: AssetSwapProps) {
+export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapProps) {
   const { data: priceData, isLoading, error, refetch } = useTokenPrices();
   const [fromAmount, setFromAmount] = useState<string>("")
-  const [fromToken, setFromToken] = useState<string>("ETH")
+  const [fromToken, setFromToken] = useState<string>("")
   const [toToken, setToToken] = useState<string>("USDC")
+
+  // Initialize fromToken when userTokens are available
+  useEffect(() => {
+    if (userTokens.length > 0 && !fromToken) {
+      setFromToken(userTokens[0].symbol);
+    }
+  }, [userTokens, fromToken]);
 
   // Calculate swap quote using the CoinGecko pricing function
   const swapQuote = calculateSwapQuote(
@@ -35,8 +45,18 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
     }
   }
 
-  // Get available tokens
-  const availableTokens = priceData?.tokens ? Object.keys(priceData.tokens) : ['ETH', 'USDC', 'USDT', 'WETH', 'BTC', 'cbBTC', 'WBTC'];
+  // Get available tokens - use userTokens for 'from' selection, all tokens for 'to' selection
+  const availableFromTokens = userTokens.length > 0 ? userTokens.map(token => token.symbol) : (priceData?.tokens ? Object.keys(priceData.tokens) : ['ETH', 'USDC', 'USDT', 'WETH', 'BTC', 'cbBTC', 'WBTC']);
+  const availableToTokens = priceData?.tokens ? Object.keys(priceData.tokens) : ['ETH', 'USDC', 'USDT', 'WETH', 'BTC', 'cbBTC', 'WBTC'];
+
+  // Get balance for fromToken
+  const getFromTokenBalance = (tokenSymbol: string): string => {
+    if (userTokens.length > 0) {
+      const userToken = userTokens.find(token => token.symbol === tokenSymbol);
+      return userToken?.formattedAmount || '0';
+    }
+    return '1.245'; // Default balance if no user tokens
+  };
 
   const handleTokenSwap = () => {
     const temp = fromToken;
@@ -59,13 +79,29 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Swap Assets 
+            <Badge variant="secondary" className="text-xs">
+              {priceData?.source?.includes('CoinGecko') ? 'CoinGecko' : 'Fallback'}
+            </Badge>
           </CardTitle>
+          <CardDescription>
+            {priceData?.source || 'Live pricing from CoinGecko API'}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg border border-border bg-card p-4">
             <div className="flex justify-between mb-2">
               <span className="text-sm text-muted-foreground">From</span>
-              <span className="text-sm text-muted-foreground">Balance: 1.245 {fromToken}</span>
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-muted-foreground">Balance: {getFromTokenBalance(fromToken)} {fromToken}</span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 text-xs text-blue-500 hover:text-blue-700"
+                  onClick={() => setFromAmount(getFromTokenBalance(fromToken))}
+                >
+                  MAX
+                </Button>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Input
@@ -80,7 +116,7 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
                 onChange={(e) => setFromToken(e.target.value)}
                 className="bg-transparent border border-gray-300 rounded px-3 py-2 text-sm font-medium"
               >
-                {availableTokens.map(token => (
+                {availableFromTokens.map(token => (
                   <option key={token} value={token}>{token}</option>
                 ))}
               </select>
@@ -116,7 +152,7 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
                 onChange={(e) => setToToken(e.target.value)}
                 className="bg-transparent border border-gray-300 rounded px-3 py-2 text-sm font-medium"
               >
-                {availableTokens.map(token => (
+                {availableToTokens.map(token => (
                   <option key={token} value={token}>{token}</option>
                 ))}
               </select>
