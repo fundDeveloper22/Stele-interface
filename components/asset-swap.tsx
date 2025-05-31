@@ -59,13 +59,7 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Swap Assets 
-            <Badge variant="secondary" className="text-xs">
-              {priceData?.source?.includes('CoinGecko') ? 'CoinGecko' : 'Fallback'}
-            </Badge>
           </CardTitle>
-          <CardDescription>
-            {priceData?.source || 'Live pricing from CoinGecko API'}
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg border border-border bg-card p-4">
@@ -161,36 +155,6 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
               <span>{minimumReceived} {toToken}</span>
             </div>
 
-            <div className="flex items-center justify-between text-sm px-1">
-              <span className="text-muted-foreground">Price Impact</span>
-              <div className="flex items-center gap-1">
-                <span className={
-                  !swapQuote ? "text-muted-foreground" :
-                  swapQuote.priceImpact < 0.1 ? "text-emerald-500" : 
-                  swapQuote.priceImpact < 1 ? "text-yellow-500" : "text-red-500"
-                }>
-                  {swapQuote ? `${swapQuote.priceImpact.toFixed(3)}%` : "0.00%"}
-                </span>
-                {swapQuote && swapQuote.priceImpact > 0.1 && (
-                  <TrendingUp className="h-3 w-3 text-yellow-500" />
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-sm px-1">
-              <span className="text-muted-foreground">Protocol Fee</span>
-              <span className="text-muted-foreground">
-                {swapQuote ? `$${swapQuote.fees.protocol.toFixed(2)}` : "$0.00"}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between text-sm px-1">
-              <span className="text-muted-foreground">Network Fee</span>
-              <span className="text-muted-foreground">
-                ~${swapQuote?.fees.network.toFixed(2) || "2.50"}
-              </span>
-            </div>
-
             {/* 24h Price change indicators for both tokens */}
             {priceData?.tokens[fromToken]?.priceChange24h !== undefined && (
               <div className="flex items-center justify-between text-sm px-1">
@@ -273,7 +237,7 @@ export function AssetSwap({ className, ...props }: AssetSwapProps) {
           
           {swapQuote && priceData && (
             <div className="text-xs text-muted-foreground text-center">
-              Powered by CoinGecko • Updated {new Date(priceData.timestamp).toLocaleTimeString()}
+              Updated {new Date(priceData.timestamp).toLocaleTimeString()}
             </div>
           )}
         </CardFooter>
