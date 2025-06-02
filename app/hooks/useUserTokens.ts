@@ -16,6 +16,17 @@ const formatTokenAmount = (amount: string, decimals: string | number) => {
   if (!amount || !decimals) return '0'
   
   try {
+    // Check if the amount contains a decimal point (already formatted)
+    if (amount.includes('.')) {
+      // Amount is already in decimal format, just parse and format it
+      const parsedAmount = parseFloat(amount)
+      if (isNaN(parsedAmount) || parsedAmount === 0) return '0'
+      
+      // Format to remove unnecessary trailing zeros
+      return parsedAmount.toString()
+    }
+    
+    // Amount is in raw format (integer), convert using decimals
     const decimalPlaces = typeof decimals === 'string' ? parseInt(decimals) : decimals
     const amountBN = BigInt(amount)
     const divisor = BigInt(10 ** decimalPlaces)
