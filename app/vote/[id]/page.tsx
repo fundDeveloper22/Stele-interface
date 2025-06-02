@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from "react"
-import { useParams, useRouter, useSearchParams } from "next/navigation"
+import { useState, useEffect, use } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { 
   Card, 
@@ -28,11 +28,16 @@ import { useProposalVoteResult, useProposalDetails } from "@/app/subgraph/Propos
 import { useQueryClient } from "@tanstack/react-query"
 import { useBlockNumber } from "@/app/hooks/useBlockNumber"
 
-export default function ProposalDetailPage() {
+interface ProposalDetailPageProps {
+  params: Promise<{
+    id: string
+  }>
+}
+
+export default function ProposalDetailPage({ params }: ProposalDetailPageProps) {
   const router = useRouter()
-  const params = useParams()
   const searchParams = useSearchParams()
-  const id = params?.id as string
+  const { id } = use(params)
   
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)

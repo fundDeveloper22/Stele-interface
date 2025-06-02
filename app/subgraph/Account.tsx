@@ -14,6 +14,8 @@ export const getInvestorQuery = (investorId: string) => gql`{
     currentUSD
     tokens
     tokensAmount
+    tokensDecimals
+    tokensSymbols
     profitUSD
     profitRatio
   }
@@ -29,6 +31,8 @@ export interface InvestorData {
     currentUSD: string
     tokens: string[]
     tokensAmount: string[]
+    tokensDecimals: string[]
+    tokensSymbols: string[]
     profitUSD: string
     profitRatio: string
   }

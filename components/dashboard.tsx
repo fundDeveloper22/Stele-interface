@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ActiveChallenges } from "@/components/active-challenges"
 import { InvestableTokens } from "@/components/investable-tokens"
+import { TokenStatsOverview } from "@/components/token-stats-overview"
 import {
   dehydrate,
   HydrationBoundary,
@@ -9,8 +10,19 @@ import {
 import { gql, request } from 'graphql-request'
 import DashBoardQuery from '@/app/subgraph/DashBoard'
 import { query } from '@/app/subgraph/DashBoard'
-import { getInvestableTokensQuery } from '@/app/subgraph/WhiteListTokens'
 import { url, headers } from '@/lib/constants'
+
+// Import the new investable tokens query
+const INVESTABLE_TOKENS_QUERY = gql`{
+  investableTokens(first: 50, orderBy: symbol, orderDirection: asc, where: { isInvestable: true }, subgraphError: allow) {
+    id
+    tokenAddress
+    decimals
+    symbol
+    isInvestable
+    updatedTimestamp
+  }
+}`
 
 export function DashboardStats({ data }: { data: any }) {
   if (!data?.challenges) return null;
@@ -84,11 +96,11 @@ export async function Dashboard() {
     }
   })
   
-  // Prefetch tokens data
+  // Prefetch investable tokens data using the new query
   await queryClient.prefetchQuery({
-    queryKey: ['tokens'],
+    queryKey: ['investable-tokens'],
     async queryFn() {
-      return await request(url, getInvestableTokensQuery(), {}, headers)
+      return await request(url, INVESTABLE_TOKENS_QUERY, {}, headers)
     }
   })
   
@@ -100,7 +112,10 @@ export async function Dashboard() {
         </div>
         <DashBoardQuery />
         <ActiveChallenges />
-        <InvestableTokens />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <InvestableTokens />
+          <TokenStatsOverview />
+        </div>
       </div>
     </HydrationBoundary>
   )
