@@ -58,7 +58,7 @@ export function InvestableTokens() {
     )
   }
 
-  const tokens = tokensData?.tokens || []
+  const tokens = tokensData?.investableTokens || []
 
   return (
     <Card>

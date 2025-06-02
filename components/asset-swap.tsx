@@ -504,12 +504,6 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                 <span>1 {fromToken} = {swapQuote.exchangeRate.toFixed(6)} {toToken}</span>
               </div>
               <div className="flex justify-between">
-                <span>Price Impact</span>
-                <Badge variant={swapQuote.priceImpact < 1 ? "default" : "destructive"}>
-                  {swapQuote.priceImpact.toFixed(2)}%
-                </Badge>
-              </div>
-              <div className="flex justify-between">
                 <span>Minimum Received</span>
                 <span>{minimumReceived} {toToken}</span>
               </div>

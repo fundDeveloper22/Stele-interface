@@ -14,7 +14,7 @@ import { url, headers } from '@/lib/constants'
 
 // Import the new investable tokens query
 const INVESTABLE_TOKENS_QUERY = gql`{
-  tokens(first: 50, orderBy: symbol, orderDirection: asc, where: { isInvestable: true }, subgraphError: allow) {
+  investableTokens(first: 50, orderBy: symbol, orderDirection: asc, where: { isInvestable: true }, subgraphError: allow) {
     id
     tokenAddress
     decimals
