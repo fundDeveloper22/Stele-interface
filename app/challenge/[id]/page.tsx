@@ -1,14 +1,19 @@
 "use client"
 
-import { useParams } from "next/navigation"
+import { use } from "react"
 import { ChallengePortfolio } from "@/components/challenge-portfolio"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-export default function ChallengePage() {
-  const params = useParams()
-  const id = params?.id as string
+interface ChallengePageProps {
+  params: Promise<{
+    id: string
+  }>
+}
+
+export default function ChallengePage({ params }: ChallengePageProps) {
+  const { id } = use(params)
   
   return (
     <div className="container mx-auto py-6">

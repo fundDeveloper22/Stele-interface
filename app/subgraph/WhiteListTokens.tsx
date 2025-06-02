@@ -4,7 +4,7 @@ import { gql, request } from 'graphql-request'
 import { url, headers } from '@/lib/constants'
 
 export const getInvestableTokensQuery = () => gql`{
-  tokens(first: 30, orderBy: id, orderDirection: asc, where: { isInvestable: true }, subgraphError: allow) {
+  investableTokens(first: 30, orderBy: id, orderDirection: asc, where: { isInvestable: true }, subgraphError: allow) {
     id
     tokenAddress
     decimals
@@ -24,7 +24,7 @@ export interface TokenData {
   }
 
 export interface TokensData {
-  tokens: TokenData[]
+  investableTokens: TokenData[]
 }
 
 export function useTokensData() {
