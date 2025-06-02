@@ -228,7 +228,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">{token.formattedAmount}</p>
+                        <p className="font-medium">{token.amount}</p>
                         <p className="text-sm text-muted-foreground">{token.symbol}</p>
                       </div>
                     </div>

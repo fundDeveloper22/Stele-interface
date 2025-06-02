@@ -8,41 +8,6 @@ export interface UserTokenInfo {
   symbol: string;
   amount: string;
   decimals: string;
-  formattedAmount: string;
-}
-
-// Format token amount with proper decimals
-const formatTokenAmount = (amount: string, decimals: string | number) => {
-  if (!amount || !decimals) return '0'
-  
-  try {
-    // Check if the amount contains a decimal point (already formatted)
-    if (amount.includes('.')) {
-      // Amount is already in decimal format, just parse and format it
-      const parsedAmount = parseFloat(amount)
-      if (isNaN(parsedAmount) || parsedAmount === 0) return '0'
-      
-      // Format to remove unnecessary trailing zeros
-      return parsedAmount.toString()
-    }
-    
-    // Amount is in raw format (integer), convert using decimals
-    const decimalPlaces = typeof decimals === 'string' ? parseInt(decimals) : decimals
-    const amountBN = BigInt(amount)
-    const divisor = BigInt(10 ** decimalPlaces)
-    const quotient = amountBN / divisor
-    const remainder = amountBN % divisor
-    
-    if (remainder === BigInt(0)) {
-      return quotient.toString()
-    }
-    
-    const fractionalPart = remainder.toString().padStart(decimalPlaces, '0')
-    return `${quotient}.${fractionalPart.replace(/0+$/, '')}`
-  } catch (error) {
-    console.error('Error formatting token amount:', error)
-    return '0'
-  }
 }
 
 export function useUserTokens(challengeId: string, walletAddress: string) {
@@ -66,13 +31,12 @@ export function useUserTokens(challengeId: string, walletAddress: string) {
       const tokensSymbols = investor.tokensSymbols || [];
       const tokensDecimals = investor.tokensDecimals || [];
 
-      // Create formatted token info array
+      // Create token info array
       const userTokens: UserTokenInfo[] = tokens.map((address, index) => ({
         address,
         symbol: tokensSymbols[index] || `TOKEN_${index}`,
         amount: tokensAmount[index] || '0',
-        decimals: tokensDecimals[index] || '18',
-        formattedAmount: formatTokenAmount(tokensAmount[index] || '0', tokensDecimals[index] || '18')
+        decimals: tokensDecimals[index] || '18'
       }));
 
       return userTokens;
@@ -89,7 +53,7 @@ export function useUserTokenBalance(challengeId: string, walletAddress: string, 
   
   const token = userTokens?.find(token => token.symbol === tokenSymbol);
   return {
-    balance: token?.formattedAmount || '0',
+    balance: token?.amount || '0',
     rawAmount: token?.amount || '0',
     decimals: token?.decimals || '18',
     address: token?.address || ''

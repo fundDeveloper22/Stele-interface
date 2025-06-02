@@ -163,7 +163,7 @@ export function InvestorPortfolio({ challengeId, walletAddress }: InvestorPortfo
                         </Badge>
                       </TableCell>
                       <TableCell className="font-mono">
-                        {token.formattedAmount}
+                        {token.amount}
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">

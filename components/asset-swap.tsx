@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowDown, RefreshCw, TrendingUp, TrendingDown, Loader2 } from "lucide-react"
+import { ArrowDown, RefreshCw, TrendingUp, TrendingDown, Loader2, XCircle } from "lucide-react"
 import { HTMLAttributes, useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { useTokenPrices, calculateSwapQuote } from "@/app/hooks/useTokenPrices"
@@ -70,7 +70,25 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
     priceData
   );
 
-  const isDataReady = !isLoading && !error && priceData && !isLoadingInvestableTokens && !investableTokensError;
+  // Check if selected tokens have price data available
+  const hasFromTokenData = fromToken ? priceData?.tokens?.[fromToken] !== undefined : true;
+  const hasToTokenData = toToken ? priceData?.tokens?.[toToken] !== undefined : true;
+
+  const isDataReady = !isLoading && !error && priceData && !isLoadingInvestableTokens && !investableTokensError && hasFromTokenData && hasToTokenData;
+
+  // Get the reason why data is not ready
+  const getDisabledReason = (): string => {
+    if (isLoading) return "Loading price data...";
+    if (error) return "Failed to load price data";
+    if (!priceData) return "No price data available";
+    if (isLoadingInvestableTokens) return "Loading investable tokens...";
+    if (investableTokensError) return "Failed to load investable tokens";
+    if (fromToken && !hasFromTokenData) return `Price data not available for ${fromToken}`;
+    if (toToken && !hasToTokenData) return `Price data not available for ${toToken}`;
+    return "";
+  };
+
+  const disabledReason = getDisabledReason();
 
   const handleFromAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -90,9 +108,9 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
   const getFromTokenBalance = (tokenSymbol: string): string => {
     if (userTokens.length > 0) {
       const userToken = userTokens.find(token => token.symbol === tokenSymbol);
-      return userToken?.formattedAmount || '0';
+      return userToken?.amount || '0';
     }
-    return '1.245'; // Default balance if no user tokens
+    return '0'; // Default balance if no user tokens
   };
 
   // Get token address by symbol - enhanced with investable tokens
@@ -512,6 +530,25 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
             </div>
           </div>
 
+          {/* Data Ready Status Warning */}
+          {!isDataReady && (
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <Loader2 className="h-5 w-5 animate-spin text-yellow-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                    Swap Currently Unavailable
+                  </h4>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                    {disabledReason}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Swap Details */}
           {isDataReady && fromToken && toToken && swapQuote && (
             <div className="p-3 bg-muted rounded-lg space-y-2 text-sm">
@@ -531,13 +568,20 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
             className="w-full" 
             size="lg"
             onClick={handleSwapTransaction}
-            disabled={!fromAmount || !fromToken || !toToken || !isDataReady || isSwapping}
+            disabled={!fromAmount || parseFloat(fromAmount) <= 0 || !fromToken || !toToken || !isDataReady || isSwapping}
           >
             {isSwapping ? (
               <div className="flex items-center">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Swapping...
               </div>
+            ) : !isDataReady ? (
+              <div className="flex items-center">
+                <XCircle className="mr-2 h-4 w-4" />
+                Data Loading...
+              </div>
+            ) : !fromAmount || parseFloat(fromAmount) <= 0 || !fromToken || !toToken ? (
+              'Enter Amount to Swap'
             ) : (
               'Swap Tokens'
             )}
