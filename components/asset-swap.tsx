@@ -48,6 +48,20 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
     }
   }, [investableTokens, toToken]);
 
+  // Auto-change toToken if it becomes the same as fromToken
+  useEffect(() => {
+    if (fromToken && toToken && fromToken === toToken) {
+      // Find the first available token that's different from fromToken
+      const differentToken = investableTokens
+        .map(token => token.symbol)
+        .find(symbol => symbol !== fromToken);
+      
+      if (differentToken) {
+        setToToken(differentToken);
+      }
+    }
+  }, [fromToken, toToken, investableTokens]);
+
   // Calculate swap quote using the CoinGecko pricing function
   const swapQuote = calculateSwapQuote(
     fromToken,
@@ -68,7 +82,9 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
 
   // Get available tokens
   const availableFromTokens = userTokens.length > 0 ? userTokens.map(token => token.symbol) : (priceData?.tokens ? Object.keys(priceData.tokens) : ['ETH', 'USDC', 'USDT', 'WETH', 'BTC', 'cbBTC', 'WBTC']);
-  const availableToTokens = investableTokens.map(token => token.symbol);
+  const availableToTokens = investableTokens
+    .map(token => token.symbol)
+    .filter(symbol => symbol !== fromToken); // Filter out the selected fromToken
 
   // Get balance for fromToken
   const getFromTokenBalance = (tokenSymbol: string): string => {
