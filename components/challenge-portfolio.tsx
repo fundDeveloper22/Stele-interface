@@ -21,6 +21,7 @@ import {
 import { useEntryFee } from "@/lib/hooks/use-entry-fee"
 import SteleABI from "@/app/abis/Stele.json"
 import ERC20ABI from "@/app/abis/ERC20.json"
+import { useChallenge } from "@/app/hooks/useChallenge"
 
 interface ChallengePortfolioProps {
   challengeId: string
@@ -31,7 +32,9 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
   const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee();
+  const { data: challengeData, isLoading: isLoadingChallenge, error: challengeError } = useChallenge(challengeId);
   
   useEffect(() => {
     // Get wallet address from localStorage
@@ -39,6 +42,8 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
     if (storedAddress) {
       setWalletAddress(storedAddress);
     }
+    // Set client-side flag
+    setIsClient(true);
   }, []);
 
   // Handle navigation to account page
@@ -83,10 +88,27 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
     }
   };
 
-  // This would typically fetch data based on the challengeId
-  
-  // Display title based on challenge ID
+  // Get challenge title and info from real data
   const getChallengeTitle = () => {
+    if (challengeData?.challenge) {
+      const challengeType = challengeData.challenge.challengeType;
+      switch(challengeType) {
+        case 0:
+          return 'One Week Challenge';
+        case 1:
+          return 'One Month Challenge';
+        case 2:
+          return 'Three Month Challenge';
+        case 3:
+          return 'Six Month Challenge';
+        case 4:
+          return 'One Year Challenge';
+        default:
+          return `Challenge Type ${challengeType}`;
+      }
+    }
+    
+    // Fallback to old logic if no data
     switch(challengeId) {
       case 'one-week-challenge':
         return 'One Week Challenge';
@@ -102,6 +124,35 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         return 'One Week Challenge';
     }
   };
+
+  // Get challenge details from real data
+  const getChallengeDetails = () => {
+    if (!isClient || !challengeData?.challenge) {
+      // Return fallback values for SSR and when data is not available
+      return {
+        participants: 0,
+        prize: '$0.00',
+        entryFee: '$10.00',
+        seedMoney: '$1000.00',
+        isActive: false,
+        startTime: new Date(),
+        endTime: new Date(),
+      };
+    }
+    
+    const challenge = challengeData.challenge;
+    return {
+      participants: parseInt(challenge.investorCounter),
+      prize: `$${(parseInt(challenge.rewardAmountUSD) / 1e18).toFixed(2)}`, // Convert from wei to USD
+      entryFee: `$${(parseInt(challenge.entryFee) / 1e6).toFixed(2)}`, // USDC has 6 decimals
+      seedMoney: `$${(parseInt(challenge.seedMoney) / 1e6).toFixed(2)}`, // USDC has 6 decimals
+      isActive: challenge.isActive,
+      startTime: new Date(parseInt(challenge.startTime) * 1000),
+      endTime: new Date(parseInt(challenge.endTime) * 1000),
+    };
+  };
+
+  const challengeDetails = getChallengeDetails();
 
   // Handle Join Challenge
   const handleJoinChallenge = async () => {
@@ -394,31 +445,39 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
+            <CardTitle className="text-sm font-medium">Participants</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$1,245.67</div>
-            <div className="text-sm text-emerald-500">+$245.67 from seed money</div>
+            <div className="text-2xl font-bold">{challengeDetails.participants}</div>
+            <div className="text-sm text-muted-foreground">Total participants</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Profit Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-500">+24.57%</div>
-            <div className="text-sm text-muted-foreground">Rank: 3/42</div>
+            <div className="text-2xl font-bold">
+              {isClient ? (
+                challengeDetails.endTime > new Date() ? 
+                  `${Math.floor((challengeDetails.endTime.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days ${Math.floor(((challengeDetails.endTime.getTime() - new Date().getTime()) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))} hours remaining` :
+                  "Challenge Ended"
+              ) : "Loading..."}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {isClient ? `Ends on ${challengeDetails.endTime.toLocaleDateString()}` : "Calculating..."}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Time Remaining</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Prize</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3 days 12 hours</div>
-            <div className="text-sm text-muted-foreground">Ends on May 2, 2025</div>
+            <div className="text-2xl font-bold">{challengeDetails.prize}</div>
+            <div className="text-sm text-muted-foreground">Challenge reward</div>
           </CardContent>
         </Card>
       </div>

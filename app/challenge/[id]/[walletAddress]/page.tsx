@@ -1,7 +1,7 @@
 "use client"
 
 import { notFound } from "next/navigation"
-import { useState, useMemo, use } from "react"
+import { useState, useMemo, use, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,11 +20,14 @@ import {
   BarChart3,
   Wallet,
   Repeat,
-  Activity
+  Activity,
+  User,
+  Trophy
 } from "lucide-react"
 import { AssetSwap } from "@/components/asset-swap"
 import { useInvestorData } from "@/app/subgraph/Account"
 import { useUserTokens } from "@/app/hooks/useUserTokens"
+import { useChallenge } from "@/app/hooks/useChallenge"
 
 interface InvestorPageProps {
   params: Promise<{
@@ -39,11 +42,18 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   // Use hooks
   const { data: investorData, isLoading: isLoadingInvestor, error: investorError } = useInvestorData(challengeId, walletAddress)
   const { data: userTokens = [], isLoading: isLoadingTokens, error: tokensError } = useUserTokens(challengeId, walletAddress)
+  const { data: challengeData, isLoading: isLoadingChallenge, error: challengeError } = useChallenge(challengeId)
 
   const [activeTab, setActiveTab] = useState("portfolio")
+  const [isClient, setIsClient] = useState(false)
+
+  // Ensure client-side rendering for time calculations
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Handle loading and error states
-  if (isLoadingInvestor || isLoadingTokens) {
+  if (isLoadingInvestor || isLoadingTokens || isLoadingChallenge) {
     return (
       <div className="container mx-auto p-6">
         <div className="max-w-6xl mx-auto">
@@ -60,8 +70,8 @@ export default function InvestorPage({ params }: InvestorPageProps) {
     )
   }
 
-  if (investorError || tokensError) {
-    console.error('Page errors:', { investorError, tokensError })
+  if (investorError || tokensError || challengeError) {
+    console.error('Page errors:', { investorError, tokensError, challengeError })
     return notFound()
   }
 
@@ -79,10 +89,29 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   const isPositive = gainLoss >= 0
 
   // Simple challenge progress based on profit
-  const challengeProgress = Math.min(Math.max(gainLossPercentage, 0), 100)
+  const challengeProgress = isClient ? Math.min(Math.max(gainLossPercentage, 0), 100) : 0;
 
-  // Get challenge title
+  // Get challenge title from real data
   const getChallengeTitle = () => {
+    if (challengeData?.challenge) {
+      const challengeType = challengeData.challenge.challengeType;
+      switch(challengeType) {
+        case 0:
+          return 'One Week Challenge';
+        case 1:
+          return 'One Month Challenge';
+        case 2:
+          return 'Three Month Challenge';
+        case 3:
+          return 'Six Month Challenge';
+        case 4:
+          return 'One Year Challenge';
+        default:
+          return `Challenge Type ${challengeType}`;
+      }
+    }
+    
+    // Fallback logic using challengeId
     switch(challengeId) {
       case '1':
         return 'One Week Challenge';
@@ -99,6 +128,56 @@ export default function InvestorPage({ params }: InvestorPageProps) {
     }
   }
 
+  // Get challenge details from real data
+  const getChallengeDetails = () => {
+    if (challengeData?.challenge) {
+      const challenge = challengeData.challenge;
+      return {
+        participants: parseInt(challenge.investorCounter),
+        prize: `$${(parseInt(challenge.rewardAmountUSD) / 1e18).toFixed(2)}`, // Convert from wei to USD
+        entryFee: `$${(parseInt(challenge.entryFee) / 1e6).toFixed(2)}`, // USDC has 6 decimals
+        seedMoney: `$${(parseInt(challenge.seedMoney) / 1e6).toFixed(2)}`, // USDC has 6 decimals
+        isActive: challenge.isActive,
+        startTime: new Date(parseInt(challenge.startTime) * 1000),
+        endTime: new Date(parseInt(challenge.endTime) * 1000),
+      };
+    }
+    
+    return null;
+  };
+
+  const challengeDetails = getChallengeDetails();
+
+  // Calculate time remaining from real challenge data
+  const getTimeRemaining = () => {
+    if (!isClient) {
+      return { text: "Loading...", subText: "Calculating time..." };
+    }
+    
+    if (challengeDetails) {
+      const now = new Date();
+      const endTime = challengeDetails.endTime;
+      const diff = endTime.getTime() - now.getTime();
+      
+      if (diff <= 0) {
+        return { text: "Challenge Ended", subText: `Ended on ${endTime.toLocaleDateString()}` };
+      }
+      
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      
+      return { 
+        text: `${days} days ${hours} hours`, 
+        subText: `Ends on ${endTime.toLocaleDateString()}` 
+      };
+    }
+    
+    // Fallback
+    return { text: "Loading...", subText: "Calculating time..." };
+  };
+
+  const timeRemaining = getTimeRemaining();
+
   return (
     <div className="container mx-auto p-6">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -111,12 +190,17 @@ export default function InvestorPage({ params }: InvestorPageProps) {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="default">
-              Active
+            <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
+              {challengeData?.challenge?.isActive ? "Active" : "Inactive"}
             </Badge>
             <Badge variant="outline">
               {getChallengeTitle()}
             </Badge>
+            {challengeDetails && (
+              <Badge variant="outline">
+                {challengeDetails.participants} participants
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -159,30 +243,38 @@ export default function InvestorPage({ params }: InvestorPageProps) {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Challenge Progress</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Participants</CardTitle>
+              <User className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{challengeProgress.toFixed(1)}%</div>
-              <div className="mt-2">
-                <Progress value={challengeProgress} className="h-2" />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Profit ratio: {parseFloat(investor.profitRatio).toFixed(2)}%
+              <div className="text-2xl font-bold">{challengeDetails?.participants || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Total participants
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Assets</CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Total Prize</CardTitle>
+              <Trophy className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{userTokens.length}</div>
+              <div className="text-2xl font-bold">{challengeDetails?.prize || '$0.00'}</div>
               <p className="text-xs text-muted-foreground">
-                Token types held
+                Challenge reward
               </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Time Remaining</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{timeRemaining.text}</div>
+              <div className="text-sm text-muted-foreground">{timeRemaining.subText}</div>
             </CardContent>
           </Card>
         </div>
@@ -346,16 +438,46 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                     <span className="font-medium">{getChallengeTitle()}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Start Date</span>
-                    <span className="font-medium">{new Date(Number(investor.createdAtTimestamp) * 1000).toLocaleDateString()}</span>
+                    <span className="text-sm text-muted-foreground">Challenge ID</span>
+                    <span className="font-medium">{challengeData?.challenge?.challengeId || challengeId}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Last Update</span>
-                    <span className="font-medium">{new Date(Number(investor.updatedAtTimestamp) * 1000).toLocaleDateString()}</span>
-                  </div>
+                  {challengeDetails && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Start Date</span>
+                        <span className="font-medium">{challengeDetails.startTime.toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">End Date</span>
+                        <span className="font-medium">{challengeDetails.endTime.toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Prize Pool</span>
+                        <span className="font-medium">{challengeDetails.prize}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Participants</span>
+                        <span className="font-medium">{challengeDetails.participants}</span>
+                      </div>
+                    </>
+                  )}
+                  {!challengeDetails && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Start Date</span>
+                        <span className="font-medium">{new Date(Number(investor.createdAtTimestamp) * 1000).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Last Update</span>
+                        <span className="font-medium">{new Date(Number(investor.updatedAtTimestamp) * 1000).toLocaleDateString()}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Status</span>
-                    <Badge variant="secondary">Active</Badge>
+                    <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
+                      {challengeData?.challenge?.isActive ? "Active" : "Inactive"}
+                    </Badge>
                   </div>
                 </CardContent>
               </Card>

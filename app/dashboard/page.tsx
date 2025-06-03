@@ -9,8 +9,8 @@ import {
 } from '@tanstack/react-query'
 import { gql, request } from 'graphql-request'
 import DashBoardQuery from '@/app/subgraph/DashBoard'
-import { query } from '@/app/subgraph/DashBoard'
 import { url, headers } from '@/lib/constants'
+import { ACTIVE_CHALLENGES_QUERY } from '@/app/hooks/useActiveChallenges'
 
 // Import the new investable tokens query
 const INVESTABLE_TOKENS_QUERY = gql`{
@@ -25,24 +25,36 @@ const INVESTABLE_TOKENS_QUERY = gql`{
 }`
 
 export function DashboardStats({ data }: { data: any }) {
-  if (!data?.challenges) return null;
+  if (!data?.activeChallenges) return null;
   
-  const challenges = data.challenges;
+  const activeChallenges = data.activeChallenges;
   
   // Calculate number of active challenges
-  const activeChallengesCount = challenges.filter((challenge: any) => 
+  const activeChallengesCount = [
+    { isCompleted: activeChallenges.one_week_isCompleted, startTime: activeChallenges.one_week_startTime },
+    { isCompleted: activeChallenges.one_month_isCompleted, startTime: activeChallenges.one_month_startTime },
+    { isCompleted: activeChallenges.three_month_isCompleted, startTime: activeChallenges.three_month_startTime },
+    { isCompleted: activeChallenges.six_month_isCompleted, startTime: activeChallenges.six_month_startTime },
+    { isCompleted: activeChallenges.one_year_isCompleted, startTime: activeChallenges.one_year_startTime }
+  ].filter(challenge => 
     !challenge.isCompleted && challenge.startTime && challenge.startTime !== "0"
   ).length;
 
   // Calculate total number of participants
-  const totalParticipants = challenges.reduce((sum: number, challenge: any) => 
-    sum + (Number(challenge.investorCounter) || 0), 0
-  );
+  const totalParticipants = 
+    Number(activeChallenges.one_week_investorCounter || 0) +
+    Number(activeChallenges.one_month_investorCounter || 0) +
+    Number(activeChallenges.three_month_investorCounter || 0) +
+    Number(activeChallenges.six_month_investorCounter || 0) +
+    Number(activeChallenges.one_year_investorCounter || 0);
 
   // Calculate total reward amount (USD)
-  const totalRewards = challenges.reduce((sum: number, challenge: any) => 
-    sum + (Number(challenge.rewardAmountUSD) || 0), 0
-  );
+  const totalRewards = 
+    Number(activeChallenges.one_week_rewardAmountUSD || 0) +
+    Number(activeChallenges.one_month_rewardAmountUSD || 0) +
+    Number(activeChallenges.three_month_rewardAmountUSD || 0) +
+    Number(activeChallenges.six_month_rewardAmountUSD || 0) +
+    Number(activeChallenges.one_year_rewardAmountUSD || 0);
 
   return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -88,18 +100,18 @@ export function DashboardStats({ data }: { data: any }) {
 export default async function Dashboard() {
   const queryClient = new QueryClient()
   
-  // Prefetch dashboard data
+  // Prefetch active challenges data using the hook's query
   await queryClient.prefetchQuery({
-    queryKey: ['data'],
-    async queryFn() {
-      return await request(url, query, {}, headers)
+    queryKey: ['activeChallenges'],
+    queryFn: async () => {
+      return await request(url, ACTIVE_CHALLENGES_QUERY, {}, headers)
     }
   })
   
   // Prefetch investable tokens data using the new query
   await queryClient.prefetchQuery({
     queryKey: ['investable-tokens'],
-    async queryFn() {
+    queryFn: async () => {
       return await request(url, INVESTABLE_TOKENS_QUERY, {}, headers)
     }
   })
@@ -111,7 +123,7 @@ export default async function Dashboard() {
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         </div>
         <DashBoardQuery />
-        <ActiveChallenges />
+        <ActiveChallenges showCreateButton={false} />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <InvestableTokens />
           <TokenStatsOverview />
