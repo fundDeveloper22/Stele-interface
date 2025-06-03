@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ethers } from 'ethers'
 import { GOVERNANCE_CONTRACT_ADDRESS } from '@/lib/constants'
 import GovernorABI from '@/app/abis/SteleGovernor.json'
@@ -12,17 +12,12 @@ interface GovernanceConfig {
 }
 
 export const useGovernanceConfig = () => {
-  const [config, setConfig] = useState<GovernanceConfig | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { data: config, isLoading, error, refetch } = useQuery<GovernanceConfig>({
+    queryKey: ['governanceConfig'],
+    queryFn: async () => {
+      // Add delay to prevent overwhelming RPC
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 1500 + 1000))
 
-  const fetchGovernanceConfig = async () => {
-    if (config || isLoading) return // Prevent multiple calls
-
-    setIsLoading(true)
-    setError(null)
-
-    try {
       const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
         ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
         : 'https://mainnet.base.org'
@@ -53,24 +48,20 @@ export const useGovernanceConfig = () => {
         quorumDenominator: Number(quorumDenominator)
       }
 
-      setConfig(governanceConfig)
-
-    } catch (err: any) {
-      console.error('Error fetching governance config:', err)
-      setError(err.message || 'Failed to fetch governance configuration')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchGovernanceConfig()
-  }, [])
+      return governanceConfig
+    },
+    staleTime: 15 * 60 * 1000, // Governance config rarely changes - keep fresh for 15 minutes
+    refetchInterval: 30 * 60 * 1000, // Refetch every 30 minutes
+    retry: 1, // Reduce retry attempts
+    retryDelay: (attemptIndex) => Math.min(3000 * 2 ** attemptIndex, 60000), // Longer delay between retries
+    refetchOnWindowFocus: false, // Disable refetch on window focus
+    refetchOnMount: false, // Only refetch if data is stale
+  })
 
   return {
     config,
     isLoading,
-    error,
-    refetch: fetchGovernanceConfig
+    error: error?.message || null,
+    refetch
   }
 } 

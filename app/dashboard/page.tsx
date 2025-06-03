@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardClientComponents } from "@/components/DashboardClientComponents"
-import { Suspense } from "react"
 import {
   dehydrate,
   HydrationBoundary,
@@ -93,22 +92,6 @@ export function DashboardStats({ data }: { data: any }) {
         </Card>
       </div>
   );
-}
-
-function LoadingSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="h-8 w-32 bg-muted animate-pulse rounded" />
-      </div>
-      <div className="h-48 bg-muted animate-pulse rounded" />
-      <div className="h-64 bg-muted animate-pulse rounded" />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="h-64 bg-muted animate-pulse rounded" />
-        <div className="h-64 bg-muted animate-pulse rounded" />
-      </div>
-    </div>
-  )
 }
 
 export default async function Dashboard() {
