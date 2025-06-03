@@ -258,40 +258,30 @@ export default function InvestorPage({ params }: InvestorPageProps) {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Participants</CardTitle>
+              <CardTitle className="text-sm font-medium">Ranking</CardTitle>
               <User className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{challengeDetails?.participants || 0}</div>
+              <div className="text-2xl font-bold">#{challengeDetails?.participants || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Total participants
+                Current estimated ranking
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Prize</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Rewards</CardTitle>
               <Trophy className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{challengeDetails?.prize || '$0.00'}</div>
               <p className="text-xs text-muted-foreground">
-                Challenge reward
+                Current estimated ranking
               </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Time Remaining</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{timeRemaining.text}</div>
-              <div className="text-sm text-muted-foreground">{timeRemaining.subText}</div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Tabbed Content */}
