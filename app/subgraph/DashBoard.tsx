@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { gql, request } from 'graphql-request'
 import { url, headers, STELE_CONTRACT_ADDRESS, BYTE_ZERO } from '@/lib/constants'
-import { DashboardStats } from '@/components/dashboard'
+import { DashboardStats } from '@/app/dashboard/page'
 
 export const query = gql`{
   activeChallenges(id: "${BYTE_ZERO}") {

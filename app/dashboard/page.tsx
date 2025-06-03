@@ -85,7 +85,7 @@ export function DashboardStats({ data }: { data: any }) {
   );
 }
 
-export async function Dashboard() {
+export default async function Dashboard() {
   const queryClient = new QueryClient()
   
   // Prefetch dashboard data
@@ -119,4 +119,4 @@ export async function Dashboard() {
       </div>
     </HydrationBoundary>
   )
-}
+} 

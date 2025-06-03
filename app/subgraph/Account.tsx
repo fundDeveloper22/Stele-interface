@@ -2,7 +2,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { gql, request } from 'graphql-request'
 import { url, headers } from '@/lib/constants'
-import { DashboardStats } from '@/components/dashboard'
 
 export const getInvestorQuery = (investorId: string) => gql`{
   investor(id: "${investorId}") {
