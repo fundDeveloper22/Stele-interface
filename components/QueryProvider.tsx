@@ -4,6 +4,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
+
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -11,11 +12,28 @@ function makeQueryClient() {
         // With SSR, we usually want to set some default staleTime
         // above 0 to avoid refetching immediately on the client
         staleTime: 60 * 1000,
+        refetchOnWindowFocus: false,
+        retry: (failureCount, error) => {
+          // Don't retry on 4xx errors
+          if (error && typeof error === 'object' && 'status' in error) {
+            const status = error.status as number
+            if (status >= 400 && status < 500) {
+              return false
+            }
+          }
+          return failureCount < 3
+        },
+        retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+      },
+      mutations: {
+        retry: false,
       },
     },
   })
 }
+
 let browserQueryClient: QueryClient | undefined = undefined
+
 function getQueryClient() {
   if (isServer) {
     // Server: always make a new query client
@@ -29,9 +47,13 @@ function getQueryClient() {
     return browserQueryClient
   }
 }
+
 export default function QueryProvider({ children }: Readonly<{children: React.ReactNode}>) {
   const queryClient = getQueryClient()
+  
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
   )
 }
