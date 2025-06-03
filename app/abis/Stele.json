@@ -468,6 +468,30 @@
           "type": "uint256"
         }
       ],
+      "name": "getRanking",
+      "outputs": [
+        {
+          "internalType": "address[10]",
+          "name": "topUsers",
+          "type": "address[10]"
+        },
+        {
+          "internalType": "uint256[10]",
+          "name": "scores",
+          "type": "uint256[10]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "challengeId",
+          "type": "uint256"
+        }
+      ],
       "name": "getRewards",
       "outputs": [],
       "stateMutability": "nonpayable",
