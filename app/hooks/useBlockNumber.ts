@@ -8,6 +8,9 @@ export function useBlockNumber() {
     queryKey: ['currentBlockNumber'],
     queryFn: async () => {
       try {
+        // Add delay to prevent overwhelming RPC
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 300))
+        
         // Try Base public RPC first to avoid rate limits
         const rpcUrl = 'https://mainnet.base.org'
         const provider = new ethers.JsonRpcProvider(rpcUrl)
@@ -41,10 +44,12 @@ export function useBlockNumber() {
         throw error
       }
     },
-    staleTime: 30000, // Consider data fresh for 30 seconds
-    refetchInterval: 60000, // Refetch every minute
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    staleTime: 2 * 60 * 1000, // Increase to 2 minutes
+    refetchInterval: 3 * 60 * 1000, // Increase to 3 minutes
+    retry: 1, // Reduce retries
+    retryDelay: (attemptIndex) => Math.min(5000 * 2 ** attemptIndex, 60000), // Longer delay
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   })
 }
 
