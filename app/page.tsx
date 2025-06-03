@@ -1,7 +1,5 @@
-import { Dashboard } from "@/components/dashboard"
+import { redirect } from 'next/navigation'
 
 export default async function Home() {
-  return (
-    <Dashboard />
-  )
+  redirect('/dashboard')
 }

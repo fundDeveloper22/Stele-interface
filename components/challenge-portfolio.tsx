@@ -21,6 +21,8 @@ import {
 import { useEntryFee } from "@/lib/hooks/use-entry-fee"
 import SteleABI from "@/app/abis/Stele.json"
 import ERC20ABI from "@/app/abis/ERC20.json"
+import { useChallenge } from "@/app/hooks/useChallenge"
+import { useTransactions } from "@/app/hooks/useTransactions"
 
 interface ChallengePortfolioProps {
   challengeId: string
@@ -31,7 +33,10 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
   const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee();
+  const { data: challengeData, isLoading: isLoadingChallenge, error: challengeError } = useChallenge(challengeId);
+  const { data: transactions = [], isLoading: isLoadingTransactions, error: transactionsError } = useTransactions(challengeId);
   
   useEffect(() => {
     // Get wallet address from localStorage
@@ -39,6 +44,8 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
     if (storedAddress) {
       setWalletAddress(storedAddress);
     }
+    // Set client-side flag
+    setIsClient(true);
   }, []);
 
   // Handle navigation to account page
@@ -83,10 +90,27 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
     }
   };
 
-  // This would typically fetch data based on the challengeId
-  
-  // Display title based on challenge ID
+  // Get challenge title and info from real data
   const getChallengeTitle = () => {
+    if (challengeData?.challenge) {
+      const challengeType = challengeData.challenge.challengeType;
+      switch(challengeType) {
+        case 0:
+          return 'One Week Challenge';
+        case 1:
+          return 'One Month Challenge';
+        case 2:
+          return 'Three Month Challenge';
+        case 3:
+          return 'Six Month Challenge';
+        case 4:
+          return 'One Year Challenge';
+        default:
+          return `Challenge Type ${challengeType}`;
+      }
+    }
+    
+    // Fallback to old logic if no data
     switch(challengeId) {
       case 'one-week-challenge':
         return 'One Week Challenge';
@@ -102,6 +126,35 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         return 'One Week Challenge';
     }
   };
+
+  // Get challenge details from real data
+  const getChallengeDetails = () => {
+    if (!isClient || !challengeData?.challenge) {
+      // Return fallback values for SSR and when data is not available
+      return {
+        participants: 0,
+        prize: '$0.00',
+        entryFee: '$10.00',
+        seedMoney: '$1000.00',
+        isActive: false,
+        startTime: new Date(),
+        endTime: new Date(),
+      };
+    }
+    
+    const challenge = challengeData.challenge;
+    return {
+      participants: parseInt(challenge.investorCounter),
+      prize: `$${(parseInt(challenge.rewardAmountUSD) / 1e18).toFixed(2)}`, // Convert from wei to USD
+      entryFee: `$${(parseInt(challenge.entryFee) / 1e6).toFixed(2)}`, // USDC has 6 decimals
+      seedMoney: `$${(parseInt(challenge.seedMoney) / 1e6).toFixed(2)}`, // USDC has 6 decimals
+      isActive: challenge.isActive,
+      startTime: new Date(parseInt(challenge.startTime) * 1000),
+      endTime: new Date(parseInt(challenge.endTime) * 1000),
+    };
+  };
+
+  const challengeDetails = getChallengeDetails();
 
   // Handle Join Challenge
   const handleJoinChallenge = async () => {
@@ -394,31 +447,39 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
+            <CardTitle className="text-sm font-medium">Participants</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$1,245.67</div>
-            <div className="text-sm text-emerald-500">+$245.67 from seed money</div>
+            <div className="text-2xl font-bold">{challengeDetails.participants}</div>
+            <div className="text-sm text-muted-foreground">Total participants</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Profit Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-500">+24.57%</div>
-            <div className="text-sm text-muted-foreground">Rank: 3/42</div>
+            <div className="text-2xl font-bold">
+              {isClient ? (
+                challengeDetails.endTime > new Date() ? 
+                  `${Math.floor((challengeDetails.endTime.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days ${Math.floor(((challengeDetails.endTime.getTime() - new Date().getTime()) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))} hours remaining` :
+                  "Challenge Ended"
+              ) : "Loading..."}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {isClient ? `Ends on ${challengeDetails.endTime.toLocaleDateString()}` : "Calculating..."}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Time Remaining</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Prize</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3 days 12 hours</div>
-            <div className="text-sm text-muted-foreground">Ends on May 2, 2025</div>
+            <div className="text-2xl font-bold">{challengeDetails.prize}</div>
+            <div className="text-sm text-muted-foreground">Challenge reward</div>
           </CardContent>
         </Card>
       </div>
@@ -430,56 +491,101 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* ETH → USDC Transaction */}
-            <div className="flex items-center justify-between py-3 border-b border-border">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                  <ArrowLeftRight className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <div className="font-medium">ETH → USDC</div>
-                  <div className="text-sm text-muted-foreground">Apr 24, 2025 • 14:32</div>
-                </div>
+            {isLoadingTransactions ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2 text-muted-foreground">Loading transactions...</span>
               </div>
-              <div className="text-right">
-                <div className="font-medium">0.15 ETH</div>
-                <div className="text-sm text-muted-foreground">$267.35</div>
+            ) : transactionsError ? (
+              <div className="text-center py-8 text-red-600">
+                <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="font-medium">Error loading transactions</p>
+                <p className="text-sm text-muted-foreground mt-2">{transactionsError.message}</p>
+                <p className="text-xs text-muted-foreground mt-1">Check console for more details</p>
               </div>
-            </div>
+            ) : transactions.length > 0 ? (
+              transactions.slice(0, 10).map((transaction) => {
+                const getTransactionIcon = (type: string) => {
+                  switch (type) {
+                    case 'create':
+                      return <Trophy className="h-4 w-4 text-white" />
+                    case 'join':
+                      return <User className="h-4 w-4 text-white" />
+                    case 'swap':
+                      return <ArrowLeftRight className="h-4 w-4 text-white" />
+                    case 'register':
+                      return <BarChart3 className="h-4 w-4 text-white" />
+                    case 'reward':
+                      return <Trophy className="h-4 w-4 text-white" />
+                    default:
+                      return <Receipt className="h-4 w-4 text-white" />
+                  }
+                }
 
-            {/* USDC → ETH Transaction */}
-            <div className="flex items-center justify-between py-3 border-b border-border">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                  <ArrowLeftRight className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <div className="font-medium">USDC → ETH</div>
-                  <div className="text-sm text-muted-foreground">Apr 22, 2025 • 09:15</div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-medium">500 USDC</div>
-                <div className="text-sm text-muted-foreground">$500.00</div>
-              </div>
-            </div>
+                const getIconColor = (type: string) => {
+                  switch (type) {
+                    case 'create':
+                      return 'bg-purple-500'
+                    case 'join':
+                      return 'bg-blue-500'
+                    case 'swap':
+                      return 'bg-green-500'
+                    case 'register':
+                      return 'bg-orange-500'
+                    case 'reward':
+                      return 'bg-yellow-500'
+                    default:
+                      return 'bg-gray-500'
+                  }
+                }
 
-            {/* Challenge Joined */}
-            <div className="flex items-center justify-between py-3">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center">
-                  <Trophy className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <div className="font-medium">Challenge Joined</div>
-                  <div className="text-sm text-muted-foreground">Apr 20, 2025 • 10:00</div>
-                </div>
+                const formatTimestamp = (timestamp: number) => {
+                  return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })
+                }
+
+                const formatUserAddress = (address?: string) => {
+                  if (!address) return ''
+                  return `${address.slice(0, 6)}...${address.slice(-4)}`
+                }
+
+                return (
+                  <div key={transaction.id} className="flex items-center justify-between py-3 border-b border-border last:border-b-0">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
+                        {getTransactionIcon(transaction.type)}
+                      </div>
+                      <div>
+                        <div className="font-medium">{transaction.details}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {formatTimestamp(transaction.timestamp)}
+                          {transaction.user && ` • ${formatUserAddress(transaction.user)}`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium">{transaction.amount || '-'}</div>
+                      <button
+                        onClick={() => window.open(`https://basescan.org/tx/${transaction.transactionHash}`, '_blank')}
+                        className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        View on BaseScan
+                      </button>
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No transactions found for this challenge</p>
               </div>
-              <div className="text-right">
-                <div className="font-medium">{getChallengeTitle()}</div>
-                <div className="text-sm text-muted-foreground">Entry</div>
-              </div>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>

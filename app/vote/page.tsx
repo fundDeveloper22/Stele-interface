@@ -83,7 +83,6 @@ export default function VotePage() {
         ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
         : 'https://mainnet.base.org'
         
-      console.log(`🌐 Fetching current block info from: ${rpcUrl}`)
       const provider = new ethers.JsonRpcProvider(rpcUrl)
       const currentBlock = await provider.getBlock('latest')
       
@@ -92,12 +91,6 @@ export default function VotePage() {
           blockNumber: currentBlock.number,
           timestamp: currentBlock.timestamp
         }
-        console.log(`📦 Current Block Info:`, {
-          blockNumber: blockInfo.blockNumber,
-          timestamp: blockInfo.timestamp,
-          currentTime: new Date(blockInfo.timestamp * 1000).toLocaleString(),
-          rpcUrl: rpcUrl.includes('infura') ? 'Infura' : 'Base RPC'
-        })
         setCurrentBlockInfo(blockInfo)
       }
     } catch (error) {
@@ -117,23 +110,6 @@ export default function VotePage() {
     // Base mainnet has ~2 second block time
     const BLOCK_TIME_SECONDS = 2
     const estimatedTimestamp = currentBlockInfo.timestamp + (blockDifference * BLOCK_TIME_SECONDS)
-    
-    // Debug logging for setToken - cbBTC proposal
-    if (targetBlockNumber === '30728178' || Math.abs(blockDifference) > 1000000) {
-      console.log(`🔍 Block Timestamp Calculation Debug:`, {
-        targetBlockNumber,
-        targetBlock,
-        currentBlockNumber: currentBlockInfo.blockNumber,
-        currentTimestamp: currentBlockInfo.timestamp,
-        currentTime: new Date(currentBlockInfo.timestamp * 1000).toLocaleString(),
-        blockDifference,
-        blockDifferenceHours: (blockDifference * BLOCK_TIME_SECONDS / 3600).toFixed(1),
-        estimatedTimestamp,
-        estimatedTime: new Date(estimatedTimestamp * 1000).toLocaleString(),
-        isReasonable: Math.abs(blockDifference) < 1000000 // Less than ~23 days worth of blocks
-      })
-    }
-    
     return estimatedTimestamp
   }
 
@@ -198,18 +174,6 @@ export default function VotePage() {
     const votesAgainst = voteResult ? parseFloat(ethers.formatUnits(voteResult.againstVotes, STELE_DECIMALS)) : 0
     const abstain = voteResult ? parseFloat(ethers.formatUnits(voteResult.abstainVotes, STELE_DECIMALS)) : 0
     
-    // Log data availability for debugging
-    console.log(`📊 Proposal ${proposalData.proposalId} data:`, {
-      hasAbstainVotes: !!voteResult?.abstainVotes,
-      hasValues: !!proposalData.values,
-      hasBlockNumber: !!proposalData.blockNumber,
-      hasTransactionHash: !!proposalData.transactionHash,
-      hasVotingPeriod: !!(proposalData.voteStart && proposalData.voteEnd),
-      note: 'blockNumber and transactionHash available in ProposalCreated type',
-      availableFields: Object.keys(proposalData),
-      voteResultFields: voteResult ? Object.keys(voteResult) : 'no voteResult'
-    })
-    
     // Calculate timestamps based on current block info
     const startTimestamp = calculateBlockTimestamp(proposalData.voteStart)
     const endTimestamp = calculateBlockTimestamp(proposalData.voteEnd)
@@ -227,27 +191,9 @@ export default function VotePage() {
       if (now < startTimestamp) {
         // Voting hasn't started yet
         status = 'pending'
-        console.log(`⏳ Proposal ${proposalData.proposalId}: Voting hasn't started yet (now: ${new Date(now * 1000).toLocaleString()}, start: ${new Date(startTimestamp * 1000).toLocaleString()})`)
       } else if (now >= startTimestamp && now <= endTimestamp) {
         // Currently in voting period
-        status = 'active'
-        console.log(`🗳️ Proposal ${proposalData.proposalId}: Currently in voting period (now: ${new Date(now * 1000).toLocaleString()}, end: ${new Date(endTimestamp * 1000).toLocaleString()})`)
-        
-        // Special debug for setToken - cbBTC proposal
-        if (proposalData.description?.includes('setToken') || proposalData.description?.includes('cbBTC')) {
-          console.log(`🔍 DEBUG setToken-cbBTC Proposal:`, {
-            proposalId: proposalData.proposalId,
-            now: new Date(now * 1000).toLocaleString(),
-            startTime: new Date(startTimestamp * 1000).toLocaleString(),
-            endTime: new Date(endTimestamp * 1000).toLocaleString(),
-            votesFor,
-            votesAgainst,
-            abstain,
-            timeRemaining: `${((endTimestamp - now) / 3600).toFixed(1)} hours`,
-            voteStartBlock: proposalData.voteStart,
-            voteEndBlock: proposalData.voteEnd
-          })
-        }
+        status = 'active'        
       } else {
         // Voting period has ended - check vote results
         const totalDecisiveVotes = votesFor + votesAgainst
@@ -255,15 +201,12 @@ export default function VotePage() {
         if (totalDecisiveVotes === 0) {
           // No votes cast - consider defeated
           status = 'defeated'
-          console.log(`❌ Proposal ${proposalData.proposalId}: No votes cast -> DEFEATED`)
         } else if (votesFor > votesAgainst) {
           // More votes for than against - passed
           status = 'pending_queue'
-          console.log(`✅ Proposal ${proposalData.proposalId}: PASSED! (${votesFor.toLocaleString()} for vs ${votesAgainst.toLocaleString()} against) -> PENDING_QUEUE`)
         } else {
           // More votes against or tied - defeated
           status = 'defeated'
-          console.log(`❌ Proposal ${proposalData.proposalId}: DEFEATED! (${votesFor.toLocaleString()} for vs ${votesAgainst.toLocaleString()} against) -> DEFEATED`)
         }
       }
     }
@@ -297,18 +240,6 @@ export default function VotePage() {
     const votesAgainst = proposalData.voteResult ? parseFloat(ethers.formatUnits(proposalData.voteResult.againstVotes, STELE_DECIMALS)) : 0
     const abstain = proposalData.voteResult?.abstainVotes ? parseFloat(ethers.formatUnits(proposalData.voteResult.abstainVotes, STELE_DECIMALS)) : 0
     
-    // Log data availability for debugging
-    console.log(`📊 Proposal ${proposalData.proposalId} data:`, {
-      hasAbstainVotes: !!proposalData.voteResult?.abstainVotes,
-      hasValues: !!proposalData.values,
-      hasBlockNumber: !!proposalData.blockNumber,
-      hasTransactionHash: !!proposalData.transactionHash,
-      hasVotingPeriod: !!(proposalData.voteStart && proposalData.voteEnd),
-      note: 'blockNumber and transactionHash not available in Proposal type',
-      availableFields: Object.keys(proposalData),
-      voteResultFields: proposalData.voteResult ? Object.keys(proposalData.voteResult) : 'no voteResult'
-    })
-    
     // Parse timestamps from the createdAt field
     const createdAt = new Date(parseInt(proposalData.createdAt) * 1000)
     const queuedAt = proposalData.queuedAt ? new Date(parseInt(proposalData.queuedAt) * 1000) : null
@@ -325,7 +256,6 @@ export default function VotePage() {
       const endTimestamp = calculateBlockTimestamp(proposalData.voteEnd)
       startTime = new Date(startTimestamp * 1000)
       endTime = new Date(endTimestamp * 1000)
-      console.log(`🎯 Proposal ${proposalData.proposalId}: Using actual voting period from blocks ${proposalData.voteStart} to ${proposalData.voteEnd}`)
     } else {
       // Fallback to estimated periods based on status and timestamps
       // Use actual governance config if available, otherwise use default estimates
@@ -364,7 +294,6 @@ export default function VotePage() {
       }
       
       const configSource = governanceConfig ? 'smart contract' : 'default estimates'
-      console.log(`⚠️ Proposal ${proposalData.proposalId}: Using estimated voting period from ${configSource} (${votingPeriodBlocks} blocks = ${(votingPeriodMs / (24 * 60 * 60 * 1000)).toFixed(1)} days)`)
     }
     
     // Validate and correct status based on current time and vote results
@@ -381,30 +310,9 @@ export default function VotePage() {
       
       if (now < startTimestamp) {
         // Voting hasn't started yet
-        console.log(`⏳ Proposal ${proposalData.proposalId}: Voting hasn't started yet (subgraph: ${subgraphStatus}) -> PENDING`)
         return 'pending'
       } else if (now >= startTimestamp && now <= endTimestamp) {
-        // Currently in voting period
-        console.log(`🗳️ Proposal ${proposalData.proposalId}: Currently in voting period (subgraph: ${subgraphStatus}) -> ACTIVE`)
-        
-        // Special debug for setToken - cbBTC proposal
-        if (proposalData.description?.includes('setToken') || proposalData.description?.includes('cbBTC')) {
-          console.log(`🔍 DEBUG setToken-cbBTC Proposal (Status-based):`, {
-            proposalId: proposalData.proposalId,
-            subgraphStatus,
-            now: new Date(now * 1000).toLocaleString(),
-            startTime: new Date(startTimestamp * 1000).toLocaleString(),
-            endTime: new Date(endTimestamp * 1000).toLocaleString(),
-            votesFor,
-            votesAgainst,
-            abstain,
-            timeRemaining: `${((endTimestamp - now) / 3600).toFixed(1)} hours`,
-            hasVoteStartEnd: !!(proposalData.voteStart && proposalData.voteEnd),
-            voteStartBlock: proposalData.voteStart,
-            voteEndBlock: proposalData.voteEnd
-          })
-        }
-        
+        // Currently in voting period        
         return 'active'
       } else {
         // Voting period has ended - check vote results
@@ -412,21 +320,17 @@ export default function VotePage() {
         
         if (totalDecisiveVotes === 0) {
           // No votes cast - consider defeated
-          console.log(`❌ Proposal ${proposalData.proposalId}: No votes cast (subgraph: ${subgraphStatus}) -> DEFEATED`)
           return 'defeated'
         } else if (votesFor > votesAgainst) {
           // More votes for than against - should be pending queue or higher
           if (subgraphStatus === 'DEFEATED') {
-            console.log(`✅ Proposal ${proposalData.proposalId}: Vote passed but subgraph shows DEFEATED, correcting to PENDING_QUEUE`)
             return 'pending_queue'
           }
           // If subgraph shows PENDING_QUEUE or higher, trust it
           const mappedStatus = mapStatus(subgraphStatus)
-          console.log(`✅ Proposal ${proposalData.proposalId}: Vote passed (${votesFor.toLocaleString()} for vs ${votesAgainst.toLocaleString()} against), subgraph: ${subgraphStatus} -> ${mappedStatus.toUpperCase()}`)
           return mappedStatus
         } else {
           // More votes against or tied - defeated
-          console.log(`❌ Proposal ${proposalData.proposalId}: Vote failed (${votesFor.toLocaleString()} for vs ${votesAgainst.toLocaleString()} against), subgraph: ${subgraphStatus} -> DEFEATED`)
           return 'defeated'
         }
       }
@@ -476,12 +380,10 @@ export default function VotePage() {
         .map((proposal: any) => processStatusBasedProposalData(proposal))
         .sort((a: any, b: any) => b.startTime.getTime() - a.startTime.getTime())
       
-      console.log('🎯 Processed all proposals with accurate statuses:', processed.length)
       return processed
     }
     
     // Fallback to original data processing (with time-based status estimation)
-    console.log('📋 Using fallback data for all proposals (time-based status)')
     if (!proposalsData?.proposalCreateds || !currentBlockInfo) return []
     
     return proposalsData.proposalCreateds
@@ -503,12 +405,10 @@ export default function VotePage() {
         })
         .sort((a: any, b: any) => b.startTime.getTime() - a.startTime.getTime())
       
-      console.log('🎯 Processed actionable proposals for Active tab:', processed.length)
       return processed
     }
     
     // Fallback to original data processing
-    console.log('📋 Using fallback data (original proposals)')
     if (!activeProposalsData?.proposalCreateds || !currentBlockInfo) return []
     
     return activeProposalsData.proposalCreateds
@@ -531,12 +431,10 @@ export default function VotePage() {
         .filter((proposal: any) => proposal.status === 'executed') // Only show executed proposals
         .sort((a: any, b: any) => b.startTime.getTime() - a.startTime.getTime())
       
-      console.log('🎯 Processed executed proposals for Completed tab:', processed.length)
       return processed
     }
     
     // No fallback - only show proposals that are actually EXECUTED in subgraph
-    console.log('📋 No executed proposals found in subgraph')
     return []
   }, [completedProposalsByStatus?.proposals, currentBlockInfo])
 
@@ -633,23 +531,6 @@ export default function VotePage() {
       }
     }
     
-    // Debug logging for setToken - cbBTC proposal
-    if (proposal.description?.includes('setToken') || proposal.description?.includes('cbBTC')) {
-      console.log(`🔍 StatusBadge Real-time Calculation:`, {
-        proposalId: proposal.id,
-        now: new Date(now).toLocaleString(),
-        startTime: new Date(startTime).toLocaleString(),
-        endTime: new Date(endTime).toLocaleString(),
-        votesFor,
-        votesAgainst,
-        storedStatus: proposal.status,
-        calculatedStatus: realTimeStatus,
-        timeUntilStart: startTime > now ? `${((startTime - now) / (1000 * 60 * 60)).toFixed(1)} hours` : 'started',
-        timeUntilEnd: endTime > now ? `${((endTime - now) / (1000 * 60 * 60)).toFixed(1)} hours` : 'ended',
-        timeSinceEnd: endTime < now ? `${((now - endTime) / (1000 * 60 * 60)).toFixed(1)} hours ago` : 'not ended'
-      })
-    }
-
     return (
       <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>
         {statusIcon} {statusText}

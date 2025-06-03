@@ -1,7 +1,7 @@
 "use client"
 
 import { notFound } from "next/navigation"
-import { useState, useMemo, use } from "react"
+import { useState, useMemo, use, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,11 +20,19 @@ import {
   BarChart3,
   Wallet,
   Repeat,
-  Activity
+  Activity,
+  User,
+  Trophy,
+  ArrowLeft,
+  Loader2,
+  Receipt
 } from "lucide-react"
 import { AssetSwap } from "@/components/asset-swap"
 import { useInvestorData } from "@/app/subgraph/Account"
 import { useUserTokens } from "@/app/hooks/useUserTokens"
+import { useChallenge } from "@/app/hooks/useChallenge"
+import { useInvestorTransactions } from "@/app/hooks/useInvestorTransactions"
+import Link from "next/link"
 
 interface InvestorPageProps {
   params: Promise<{
@@ -39,11 +47,19 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   // Use hooks
   const { data: investorData, isLoading: isLoadingInvestor, error: investorError } = useInvestorData(challengeId, walletAddress)
   const { data: userTokens = [], isLoading: isLoadingTokens, error: tokensError } = useUserTokens(challengeId, walletAddress)
+  const { data: challengeData, isLoading: isLoadingChallenge, error: challengeError } = useChallenge(challengeId)
+  const { data: investorTransactions = [], isLoading: isLoadingTransactions, error: transactionsError } = useInvestorTransactions(challengeId, walletAddress)
 
   const [activeTab, setActiveTab] = useState("portfolio")
+  const [isClient, setIsClient] = useState(false)
+
+  // Ensure client-side rendering for time calculations
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Handle loading and error states
-  if (isLoadingInvestor || isLoadingTokens) {
+  if (isLoadingInvestor || isLoadingTokens || isLoadingChallenge || isLoadingTransactions) {
     return (
       <div className="container mx-auto p-6">
         <div className="max-w-6xl mx-auto">
@@ -60,8 +76,8 @@ export default function InvestorPage({ params }: InvestorPageProps) {
     )
   }
 
-  if (investorError || tokensError) {
-    console.error('Page errors:', { investorError, tokensError })
+  if (investorError || tokensError || challengeError || transactionsError) {
+    console.error('Page errors:', { investorError, tokensError, challengeError, transactionsError })
     return notFound()
   }
 
@@ -79,10 +95,29 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   const isPositive = gainLoss >= 0
 
   // Simple challenge progress based on profit
-  const challengeProgress = Math.min(Math.max(gainLossPercentage, 0), 100)
+  const challengeProgress = isClient ? Math.min(Math.max(gainLossPercentage, 0), 100) : 0;
 
-  // Get challenge title
+  // Get challenge title from real data
   const getChallengeTitle = () => {
+    if (challengeData?.challenge) {
+      const challengeType = challengeData.challenge.challengeType;
+      switch(challengeType) {
+        case 0:
+          return 'One Week Challenge';
+        case 1:
+          return 'One Month Challenge';
+        case 2:
+          return 'Three Month Challenge';
+        case 3:
+          return 'Six Month Challenge';
+        case 4:
+          return 'One Year Challenge';
+        default:
+          return `Challenge Type ${challengeType}`;
+      }
+    }
+    
+    // Fallback logic using challengeId
     switch(challengeId) {
       case '1':
         return 'One Week Challenge';
@@ -99,24 +134,88 @@ export default function InvestorPage({ params }: InvestorPageProps) {
     }
   }
 
+  // Get challenge details from real data
+  const getChallengeDetails = () => {
+    if (challengeData?.challenge) {
+      const challenge = challengeData.challenge;
+      return {
+        participants: parseInt(challenge.investorCounter),
+        prize: `$${(parseInt(challenge.rewardAmountUSD) / 1e18).toFixed(2)}`, // Convert from wei to USD
+        entryFee: `$${(parseInt(challenge.entryFee) / 1e6).toFixed(2)}`, // USDC has 6 decimals
+        seedMoney: `$${(parseInt(challenge.seedMoney) / 1e6).toFixed(2)}`, // USDC has 6 decimals
+        isActive: challenge.isActive,
+        startTime: new Date(parseInt(challenge.startTime) * 1000),
+        endTime: new Date(parseInt(challenge.endTime) * 1000),
+      };
+    }
+    
+    return null;
+  };
+
+  const challengeDetails = getChallengeDetails();
+
+  // Calculate time remaining from real challenge data
+  const getTimeRemaining = () => {
+    if (!isClient) {
+      return { text: "Loading...", subText: "Calculating time..." };
+    }
+    
+    if (challengeDetails) {
+      const now = new Date();
+      const endTime = challengeDetails.endTime;
+      const diff = endTime.getTime() - now.getTime();
+      
+      if (diff <= 0) {
+        return { text: "Challenge Ended", subText: `Ended on ${endTime.toLocaleDateString()}` };
+      }
+      
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      
+      return { 
+        text: `${days} days ${hours} hours`, 
+        subText: `Ends on ${endTime.toLocaleDateString()}` 
+      };
+    }
+    
+    // Fallback
+    return { text: "Loading...", subText: "Calculating time..." };
+  };
+
+  const timeRemaining = getTimeRemaining();
+
   return (
     <div className="container mx-auto p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Investor Account</h1>
-            <p className="text-muted-foreground">
-              {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-            </p>
+          <div className="space-y-2">
+            <Link 
+              href={`/challenge/${challengeId}`}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Challenge
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold">Investor Account</h1>
+              <p className="text-muted-foreground">
+                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="default">
-              Active
+            <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
+              {challengeData?.challenge?.isActive ? "Active" : "Inactive"}
             </Badge>
             <Badge variant="outline">
               {getChallengeTitle()}
             </Badge>
+            {challengeDetails && (
+              <Badge variant="outline">
+                {challengeDetails.participants} participants
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -159,32 +258,30 @@ export default function InvestorPage({ params }: InvestorPageProps) {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Challenge Progress</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Ranking</CardTitle>
+              <User className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{challengeProgress.toFixed(1)}%</div>
-              <div className="mt-2">
-                <Progress value={challengeProgress} className="h-2" />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Profit ratio: {parseFloat(investor.profitRatio).toFixed(2)}%
+              <div className="text-2xl font-bold">#{challengeDetails?.participants || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Current estimated ranking
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Assets</CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Total Rewards</CardTitle>
+              <Trophy className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{userTokens.length}</div>
+              <div className="text-2xl font-bold">{challengeDetails?.prize || '$0.00'}</div>
               <p className="text-xs text-muted-foreground">
-                Token types held
+                Current estimated ranking
               </p>
             </CardContent>
           </Card>
+
         </div>
 
         {/* Tabbed Content */}
@@ -257,54 +354,89 @@ export default function InvestorPage({ params }: InvestorPageProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {/* Sample transaction data */}
-                  <div className="flex items-center justify-between p-4 rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                        <Repeat className="h-5 w-5 text-green-600 dark:text-green-400" />
-                      </div>
-                      <div>
-                        <p className="font-medium">ETH → USDC</p>
-                        <p className="text-sm text-muted-foreground">Apr 24, 2025 • 14:32</p>
-                      </div>
+                  {isLoadingTransactions ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                      <span className="ml-2 text-muted-foreground">Loading transactions...</span>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">0.15 ETH</p>
-                      <p className="text-sm text-green-600">+$267.35</p>
+                  ) : transactionsError ? (
+                    <div className="text-center py-8 text-red-600">
+                      <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="font-medium">Error loading transactions</p>
+                      <p className="text-sm text-muted-foreground mt-2">Please try again later</p>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-4 rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                        <Repeat className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <p className="font-medium">USDC → ETH</p>
-                        <p className="text-sm text-muted-foreground">Apr 22, 2025 • 09:15</p>
-                      </div>
+                  ) : investorTransactions.length > 0 ? (
+                    investorTransactions.map((transaction) => {
+                      const getTransactionIcon = (type: string) => {
+                        switch (type) {
+                          case 'join':
+                            return <User className="h-4 w-4 text-white" />
+                          case 'swap':
+                            return <Repeat className="h-4 w-4 text-white" />
+                          case 'register':
+                            return <BarChart3 className="h-4 w-4 text-white" />
+                          case 'reward':
+                            return <Trophy className="h-4 w-4 text-white" />
+                          default:
+                            return <Activity className="h-4 w-4 text-white" />
+                        }
+                      }
+
+                      const getIconColor = (type: string) => {
+                        switch (type) {
+                          case 'join':
+                            return 'bg-blue-500'
+                          case 'swap':
+                            return 'bg-green-500'
+                          case 'register':
+                            return 'bg-orange-500'
+                          case 'reward':
+                            return 'bg-yellow-500'
+                          default:
+                            return 'bg-gray-500'
+                        }
+                      }
+
+                      const formatTimestamp = (timestamp: number) => {
+                        return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      }
+
+                      return (
+                        <div key={transaction.id} className="flex items-center justify-between p-4 rounded-lg border">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-10 w-10 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
+                              {getTransactionIcon(transaction.type)}
+                            </div>
+                            <div>
+                              <p className="font-medium">{transaction.details}</p>
+                              <p className="text-sm text-muted-foreground">{formatTimestamp(transaction.timestamp)}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium">{transaction.amount || '-'}</p>
+                            <button
+                              onClick={() => window.open(`https://basescan.org/tx/${transaction.transactionHash}`, '_blank')}
+                              className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                            >
+                              View on BaseScan
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No transactions found for this investor</p>
+                      <p className="text-sm mt-2">Transaction history will appear here once you start trading</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">500 USDC</p>
-                      <p className="text-sm text-blue-600">$500.00</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-4 rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                        <CheckCircle2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Challenge Joined</p>
-                        <p className="text-sm text-muted-foreground">Apr 20, 2025 • 16:45</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">{getChallengeTitle()}</p>
-                      <p className="text-sm text-muted-foreground">Entry confirmed</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -346,16 +478,46 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                     <span className="font-medium">{getChallengeTitle()}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Start Date</span>
-                    <span className="font-medium">{new Date(Number(investor.createdAtTimestamp) * 1000).toLocaleDateString()}</span>
+                    <span className="text-sm text-muted-foreground">Challenge ID</span>
+                    <span className="font-medium">{challengeData?.challenge?.challengeId || challengeId}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Last Update</span>
-                    <span className="font-medium">{new Date(Number(investor.updatedAtTimestamp) * 1000).toLocaleDateString()}</span>
-                  </div>
+                  {challengeDetails && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Start Date</span>
+                        <span className="font-medium">{challengeDetails.startTime.toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">End Date</span>
+                        <span className="font-medium">{challengeDetails.endTime.toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Prize Pool</span>
+                        <span className="font-medium">{challengeDetails.prize}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Participants</span>
+                        <span className="font-medium">{challengeDetails.participants}</span>
+                      </div>
+                    </>
+                  )}
+                  {!challengeDetails && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Start Date</span>
+                        <span className="font-medium">{new Date(Number(investor.createdAtTimestamp) * 1000).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Last Update</span>
+                        <span className="font-medium">{new Date(Number(investor.updatedAtTimestamp) * 1000).toLocaleDateString()}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Status</span>
-                    <Badge variant="secondary">Active</Badge>
+                    <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
+                      {challengeData?.challenge?.isActive ? "Active" : "Inactive"}
+                    </Badge>
                   </div>
                 </CardContent>
               </Card>

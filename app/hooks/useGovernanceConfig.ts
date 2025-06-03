@@ -54,13 +54,6 @@ export const useGovernanceConfig = () => {
       }
 
       setConfig(governanceConfig)
-      
-      console.log('🏛️ Governance Config Loaded:', {
-        votingPeriod: `${governanceConfig.votingPeriod} blocks`,
-        votingDelay: `${governanceConfig.votingDelay} blocks`,
-        proposalThreshold: `${ethers.formatEther(governanceConfig.proposalThreshold)} ETH`,
-        quorum: `${governanceConfig.quorumNumerator}/${governanceConfig.quorumDenominator} (${(governanceConfig.quorumNumerator / governanceConfig.quorumDenominator * 100).toFixed(2)}%)`
-      })
 
     } catch (err: any) {
       console.error('Error fetching governance config:', err)
