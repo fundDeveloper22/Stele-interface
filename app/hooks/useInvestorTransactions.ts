@@ -4,31 +4,13 @@ import { useQuery } from '@tanstack/react-query'
 import { request } from 'graphql-request'
 import { SUBGRAPH_URL } from '@/lib/constants'
 
-// Simple test query to check if subgraph is working
-const TEST_QUERY = `
-  query TestSubgraph {
-    creates(first: 1) {
-      id
-    }
-  }
-`
-
-const GET_TRANSACTIONS_QUERY = `
-  query GetTransactions($challengeId: BigInt!) {
-    creates(
-      where: { challengeId: $challengeId }
-      orderBy: blockTimestamp
-      orderDirection: desc
-      first: 50
-    ) {
-      id
-      challengeId
-      challengeType
-      blockTimestamp
-      transactionHash
-    }
+const GET_INVESTOR_TRANSACTIONS_QUERY = `
+  query GetInvestorTransactions($challengeId: BigInt!, $userAddress: Bytes!) {
     joins(
-      where: { challengeId: $challengeId }
+      where: { 
+        challengeId: $challengeId,
+        user: $userAddress
+      }
       orderBy: blockTimestamp
       orderDirection: desc
       first: 50
@@ -41,7 +23,10 @@ const GET_TRANSACTIONS_QUERY = `
       transactionHash
     }
     swaps(
-      where: { challengeId: $challengeId }
+      where: { 
+        challengeId: $challengeId,
+        user: $userAddress
+      }
       orderBy: blockTimestamp
       orderDirection: desc
       first: 50
@@ -59,7 +44,10 @@ const GET_TRANSACTIONS_QUERY = `
       transactionHash
     }
     registers(
-      where: { challengeId: $challengeId }
+      where: { 
+        challengeId: $challengeId,
+        user: $userAddress
+      }
       orderBy: blockTimestamp
       orderDirection: desc
       first: 50
@@ -72,7 +60,10 @@ const GET_TRANSACTIONS_QUERY = `
       transactionHash
     }
     rewards(
-      where: { challengeId: $challengeId }
+      where: { 
+        challengeId: $challengeId,
+        user: $userAddress
+      }
       orderBy: blockTimestamp
       orderDirection: desc
       first: 50
@@ -87,80 +78,11 @@ const GET_TRANSACTIONS_QUERY = `
   }
 `
 
-const GET_ALL_TRANSACTIONS_QUERY = `
-  query GetAllTransactions {
-    creates(
-      orderBy: blockTimestamp
-      orderDirection: desc
-      first: 10
-    ) {
-      id
-      challengeId
-      challengeType
-      blockTimestamp
-      transactionHash
-    }
-    joins(
-      orderBy: blockTimestamp
-      orderDirection: desc
-      first: 10
-    ) {
-      id
-      challengeId
-      user
-      seedMoney
-      blockTimestamp
-      transactionHash
-    }
-    swaps(
-      orderBy: blockTimestamp
-      orderDirection: desc
-      first: 10
-    ) {
-      id
-      challengeId
-      user
-      fromAsset
-      toAsset
-      fromAmount
-      fromPriceUSD
-      toPriceUSD
-      toAmount
-      blockTimestamp
-      transactionHash
-    }
-    registers(
-      orderBy: blockTimestamp
-      orderDirection: desc
-      first: 10
-    ) {
-      id
-      challengeId
-      user
-      performance
-      blockTimestamp
-      transactionHash
-    }
-    rewards(
-      orderBy: blockTimestamp
-      orderDirection: desc
-      first: 10
-    ) {
-      id
-      challengeId
-      user
-      rewardAmount
-      blockTimestamp
-      transactionHash
-    }
-  }
-`
-
-export interface TransactionData {
-  type: 'create' | 'join' | 'swap' | 'register' | 'reward'
+export interface InvestorTransactionData {
+  type: 'join' | 'swap' | 'register' | 'reward'
   id: string
   challengeId: string
-  user?: string
+  user: string
   amount?: string
   details: string
   timestamp: number
@@ -168,13 +90,6 @@ export interface TransactionData {
 }
 
 interface GraphQLResponse {
-  creates?: Array<{
-    id: string
-    challengeId: string
-    challengeType: number
-    blockTimestamp: string
-    transactionHash: string
-  }>
   joins?: Array<{
     id: string
     challengeId: string
@@ -214,13 +129,14 @@ interface GraphQLResponse {
   }>
 }
 
-export function useTransactions(challengeId: string) {
+export function useInvestorTransactions(challengeId: string, walletAddress: string) {
   return useQuery({
-    queryKey: ['transactions', challengeId],
+    queryKey: ['investorTransactions', challengeId, walletAddress],
     queryFn: async () => {      
       try {
-        const data = await request<GraphQLResponse>(SUBGRAPH_URL, GET_TRANSACTIONS_QUERY, {
-          challengeId: challengeId
+        const data = await request<GraphQLResponse>(SUBGRAPH_URL, GET_INVESTOR_TRANSACTIONS_QUERY, {
+          challengeId: challengeId,
+          userAddress: walletAddress.toLowerCase() // Ensure lowercase for address matching
         })
 
         // Check if data is valid
@@ -230,21 +146,7 @@ export function useTransactions(challengeId: string) {
         }
 
         // Combine and sort all transactions by timestamp
-        const allTransactions: TransactionData[] = []
-
-        // Process creates
-        if (data.creates && Array.isArray(data.creates)) {
-          data.creates.forEach((create) => {
-            allTransactions.push({
-              type: 'create',
-              id: create.id,
-              challengeId: create.challengeId,
-              details: `Challenge Created (Type ${create.challengeType})`,
-              timestamp: parseInt(create.blockTimestamp),
-              transactionHash: create.transactionHash,
-            })
-          })
-        }
+        const allTransactions: InvestorTransactionData[] = []
 
         // Process joins
         if (data.joins && Array.isArray(data.joins)) {
@@ -321,30 +223,11 @@ export function useTransactions(challengeId: string) {
             })
           })
         }
-
-        // If no transactions found for this challengeId, let's also try to fetch some general data
-        if (allTransactions.length === 0) {          
-          try {
-            const allData = await request<GraphQLResponse>(SUBGRAPH_URL, GET_ALL_TRANSACTIONS_QUERY) 
-            if (allData) {
-              // Show what challengeIds are available
-              const availableChallengeIds = new Set()
-              allData.creates?.forEach(t => availableChallengeIds.add(t.challengeId))
-              allData.joins?.forEach(t => availableChallengeIds.add(t.challengeId))
-              allData.swaps?.forEach(t => availableChallengeIds.add(t.challengeId))
-              allData.registers?.forEach(t => availableChallengeIds.add(t.challengeId))
-              allData.rewards?.forEach(t => availableChallengeIds.add(t.challengeId))
-            }
-          } catch (debugError) {
-            console.error('🔍 Could not fetch debug data:', debugError)
-          }
-        }
-
         // Sort by timestamp (newest first)
         return allTransactions.sort((a, b) => b.timestamp - a.timestamp)
       } catch (error) {
-        console.error('❌ Error fetching transactions:', error)
-        
+        console.error('❌ Error fetching investor transactions:', error)
+ 
         // If there's a network error, try to provide more context
         if (error instanceof Error) {
           console.error('Error message:', error.message)
@@ -356,6 +239,7 @@ export function useTransactions(challengeId: string) {
       }
     },
     staleTime: 30000, // 30 seconds
-    gcTime: 300000, // 5 minutes,
+    gcTime: 300000, // 5 minutes
+    enabled: !!(challengeId && walletAddress), // Only run if both parameters are provided
   })
 } 
