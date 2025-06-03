@@ -23,12 +23,15 @@ import {
   USDC_DECIMALS
 } from "@/lib/constants"
 import { useEntryFee } from "@/lib/hooks/use-entry-fee"
+import { useWallet } from "@/app/hooks/useWallet"
 
 export function Header() {
   const pathname = usePathname()
-  const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  
+  // Use global wallet hook
+  const { address: walletAddress, isConnected, network: walletNetwork, connectWallet, disconnectWallet, switchNetwork } = useWallet()
+  
   const [isConnecting, setIsConnecting] = useState(false)
-  const [walletNetwork, setWalletNetwork] = useState<'solana' | 'ethereum' | 'base'>('solana')
   const [balance, setBalance] = useState<string>('0')
   const [isLoadingBalance, setIsLoadingBalance] = useState(false)
   
@@ -87,56 +90,10 @@ export function Header() {
     }
   };
 
-  const connectWallet = async () => {
-    if (typeof window.phantom === 'undefined') {
-      alert('Phantom wallet is not installed. Please install it from https://phantom.app/')
-      return
-    }
-
+  const handleConnectWallet = async () => {
     try {
       setIsConnecting(true)
-
-      // Try Ethereum first
-      if (window.phantom?.ethereum) {
-        const accounts = await window.phantom.ethereum.request({ 
-          method: 'eth_requestAccounts' 
-        })
-        
-        if (accounts && accounts.length > 0) {
-          const address = accounts[0]
-          setWalletAddress(address)
-          
-          // Get current chain ID
-          const chainId = await window.phantom.ethereum.request({ 
-            method: 'eth_chainId' 
-          });
-          
-          // Set wallet network based on chain ID
-          if (chainId === BASE_CHAIN_ID) {
-            setWalletNetwork('base')
-            localStorage.setItem('walletNetwork', 'base')
-          } else {
-            setWalletNetwork('ethereum')
-            localStorage.setItem('walletNetwork', 'ethereum')
-          }
-          
-          localStorage.setItem('walletAddress', address)
-          setIsConnecting(false)
-          return
-        }
-      }
-      
-      // Fallback to Solana
-      const provider = window.phantom?.solana
-      
-      if (provider?.isPhantom) {
-        const response = await provider.connect()
-        const address = response.publicKey.toString()
-        setWalletAddress(address)
-        setWalletNetwork('solana')
-        localStorage.setItem('walletAddress', address)
-        localStorage.setItem('walletNetwork', 'solana')
-      }
+      await connectWallet()
     } catch (error) {
       console.error("Wallet connection error:", error)
     } finally {
@@ -144,106 +101,16 @@ export function Header() {
     }
   }
 
-  const disconnectWallet = () => {
-    setWalletAddress(null)
+  const handleDisconnectWallet = () => {
     setBalance('0')
-    localStorage.removeItem('walletAddress')
-    localStorage.removeItem('walletNetwork')
+    disconnectWallet()
   }
-
-  // Switch to Base Chain
-  const switchToBaseChain = async () => {
-    if (!window.phantom?.ethereum) return;
-    
-    try {
-      setIsConnecting(true);
-      
-      // Try to switch to Base chain
-      try {
-        await window.phantom.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: BASE_CHAIN_ID }],
-        });
-      } catch (switchError: any) {
-        // This error code indicates that the chain has not been added to Phantom
-        if (switchError.code === 4902) {
-          // Add the Base chain
-          await window.phantom.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [BASE_CHAIN_CONFIG],
-          });
-        } else {
-          throw switchError;
-        }
-      }
-      
-      // Get accounts after switching
-      const accounts = await window.phantom.ethereum.request({ 
-        method: 'eth_requestAccounts' 
-      });
-      
-      if (accounts && accounts.length > 0) {
-        const address = accounts[0];
-        setWalletAddress(address);
-        setWalletNetwork('base');
-        localStorage.setItem('walletAddress', address);
-        localStorage.setItem('walletNetwork', 'base');
-      }
-    } catch (error) {
-      console.error("Error switching to Base chain:", error);
-    } finally {
-      setIsConnecting(false);
-    }
-  };
 
   // Switch between Networks
   const switchWalletNetwork = async (targetNetwork: 'solana' | 'ethereum' | 'base') => {
-    if (!window.phantom) return
-
     try {
-      disconnectWallet()
       setIsConnecting(true)
-      
-      if (targetNetwork === 'solana') {
-        // Switch to Solana
-        const provider = window.phantom?.solana
-        
-        if (provider?.isPhantom) {
-          const response = await provider.connect()
-          const address = response.publicKey.toString()
-          setWalletAddress(address)
-          setWalletNetwork('solana')
-          localStorage.setItem('walletAddress', address)
-          localStorage.setItem('walletNetwork', 'solana')
-        }
-      } else if (targetNetwork === 'base') {
-        // Switch to Base
-        await switchToBaseChain()
-      } else {
-        // Switch to Ethereum Mainnet
-        if (window.phantom?.ethereum) {
-          try {
-            await window.phantom.ethereum.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: '0x1' }], // Ethereum mainnet
-            });
-            
-            const accounts = await window.phantom.ethereum.request({ 
-              method: 'eth_requestAccounts' 
-            });
-            
-            if (accounts && accounts.length > 0) {
-              const address = accounts[0];
-              setWalletAddress(address);
-              setWalletNetwork('ethereum');
-              localStorage.setItem('walletAddress', address);
-              localStorage.setItem('walletNetwork', 'ethereum');
-            }
-          } catch (error) {
-            console.error("Error switching to Ethereum:", error);
-          }
-        }
-      }
+      await switchNetwork(targetNetwork)
     } catch (error) {
       console.error("Wallet switch error:", error)
     } finally {
@@ -257,19 +124,6 @@ export function Header() {
       fetchBalance();
     }
   }, [walletAddress, walletNetwork]);
-
-  // Restore saved wallet address on page load
-  useEffect(() => {
-    const savedAddress = localStorage.getItem('walletAddress')
-    const savedNetwork = localStorage.getItem('walletNetwork')
-    
-    if (savedAddress) {
-      setWalletAddress(savedAddress)
-      if (savedNetwork === 'ethereum' || savedNetwork === 'solana' || savedNetwork === 'base') {
-        setWalletNetwork(savedNetwork as 'ethereum' | 'solana' | 'base')
-      }
-    }
-  }, [])
 
   const { symbol, name } = getNetworkInfo();
 
@@ -398,7 +252,7 @@ export function Header() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={disconnectWallet}>
+                <DropdownMenuItem onClick={handleDisconnectWallet}>
                   Disconnect
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -409,7 +263,7 @@ export function Header() {
             variant="outline" 
             size="sm" 
             className="text-primary border-primary hover:bg-primary/10 hidden sm:flex"
-            onClick={connectWallet}
+            onClick={handleConnectWallet}
             disabled={isConnecting}
           >
             <Wallet className="mr-2 h-4 w-4" />

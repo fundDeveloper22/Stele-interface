@@ -7,11 +7,15 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Clock, XCircle, Plus, FileText, Vote as VoteIcon, Loader2 } from "lucide-react"
 import { useProposalsData, useActiveProposalsData, useMultipleProposalVoteResults, useProposalsByStatus } from "@/app/subgraph/Proposals"
-import { BASE_BLOCK_TIME_MS, STELE_DECIMALS } from "@/lib/constants"
+import { BASE_BLOCK_TIME_MS, STELE_DECIMALS, STELE_TOKEN_ADDRESS } from "@/lib/constants"
 import { ethers } from "ethers"
 import { useGovernanceConfig } from "@/app/hooks/useGovernanceConfig"
 import { useBlockNumber } from "@/app/hooks/useBlockNumber"
 import { useWalletTokenInfo } from "@/app/hooks/useWalletTokenInfo"
+import { useWallet } from "@/app/hooks/useWallet"
+import ERC20VotesABI from "@/app/abis/ERC20Votes.json"
+import { toast } from "@/components/ui/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 
 // Interface for proposal data
 interface Proposal {
@@ -34,8 +38,9 @@ interface Proposal {
 }
 
 export default function VotePage() {
-  const [walletAddress, setWalletAddress] = useState<string | null>(null)
-  const [isConnected, setIsConnected] = useState(false)
+  // Use global wallet hook instead of local state
+  const { address: walletAddress, isConnected } = useWallet()
+  const [isDelegating, setIsDelegating] = useState(false)
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [activeProposals, setActiveProposals] = useState<Proposal[]>([])
   const [completedProposals, setCompletedProposals] = useState<Proposal[]>([])
@@ -47,7 +52,7 @@ export default function VotePage() {
   const { data: blockInfo, isLoading: isLoadingBlockNumber } = useBlockNumber()
 
   // Get wallet token info with global caching
-  const { data: walletTokenInfo, isLoading: isLoadingWalletTokenInfo } = useWalletTokenInfo(walletAddress)
+  const { data: walletTokenInfo, isLoading: isLoadingWalletTokenInfo, refetch: refetchWalletTokenInfo } = useWalletTokenInfo(walletAddress)
 
   // Fetch all proposals from subgraph
   const { data: proposalsData, isLoading, error, refetch } = useProposalsData()
@@ -112,15 +117,6 @@ export default function VotePage() {
     const estimatedTimestamp = currentBlockInfo.timestamp + (blockDifference * BLOCK_TIME_SECONDS)
     return estimatedTimestamp
   }
-
-  // Load wallet address when page loads
-  useEffect(() => {
-    const savedAddress = localStorage.getItem('walletAddress')
-    if (savedAddress) {
-      setWalletAddress(savedAddress)
-      setIsConnected(true)
-    }
-  }, [])
 
   // Get current block info on page load (only once)
   useEffect(() => {
@@ -609,6 +605,86 @@ export default function VotePage() {
     return `/vote/${proposal.id}?${params.toString()}`
   }
 
+  // Delegate tokens to self
+  const handleDelegate = async () => {
+    if (!walletAddress) {
+      toast({
+        variant: "destructive",
+        title: "Phantom Wallet Not Connected",
+        description: "Please connect your Phantom wallet to delegate",
+      })
+      return
+    }
+
+    setIsDelegating(true)
+
+    try {
+      // Check if Phantom wallet is available
+      if (!window.phantom?.ethereum) {
+        throw new Error("Phantom wallet is not installed or Ethereum support is not enabled")
+      }
+
+      // Request wallet connection
+      await window.phantom.ethereum.request({ method: 'eth_requestAccounts' })
+      
+      // Connect to provider with signer using Phantom's ethereum provider
+      const provider = new ethers.BrowserProvider(window.phantom.ethereum)
+      const signer = await provider.getSigner()
+      const votesContract = new ethers.Contract(STELE_TOKEN_ADDRESS, ERC20VotesABI.abi, signer)
+
+      // Delegate to self
+      const tx = await votesContract.delegate(walletAddress)
+
+      toast({
+        title: "Transaction Submitted",
+        description: "Your delegation is being processed...",
+      })
+
+      // Wait for transaction confirmation
+      const receipt = await tx.wait()
+
+      toast({
+        title: "Delegation Successful",
+        description: "You have successfully delegated your tokens to yourself. Your voting power should now be available.",
+        action: (
+          <ToastAction 
+            altText="View on BaseScan"
+            onClick={() => window.open(`https://basescan.org/tx/${receipt.hash}`, '_blank')}
+          >
+            View on BaseScan
+          </ToastAction>
+        ),
+      })
+
+      // Refresh wallet token info after delegation
+      setTimeout(() => {
+        // This will trigger a re-fetch of wallet token info
+        refetchWalletTokenInfo()
+      }, 3000)
+
+    } catch (error: any) {
+      console.error("Delegation error:", error)
+      
+      let errorMessage = "There was an error delegating your tokens. Please try again."
+      
+      if (error.code === 4001) {
+        errorMessage = "Transaction was rejected by user"
+      } else if (error.message?.includes("insufficient funds")) {
+        errorMessage = "Insufficient funds for gas fees"
+      } else if (error.message?.includes("Phantom wallet is not installed")) {
+        errorMessage = "Phantom wallet is not installed or Ethereum support is not enabled"
+      }
+
+      toast({
+        variant: "destructive",
+        title: "Delegation Failed",
+        description: errorMessage,
+      })
+    } finally {
+      setIsDelegating(false)
+    }
+  }
+
   if (isLoading || isLoadingActive || isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus || isLoadingVoteResults || isLoadingBlockNumber || isLoadingGovernanceConfig || isLoadingWalletTokenInfo) {
     return (
       <div className="container mx-auto py-6 flex flex-col items-center justify-center min-h-[50vh]">
@@ -670,6 +746,39 @@ export default function VotePage() {
       {/* Wallet Token Info Card */}
       {isConnected && (
         <Card className="mb-6">
+          {/* Delegate Button - Show prominently when user has tokens but is not delegated */}
+          {!isLoadingWalletTokenInfo && walletTokenInfo && 
+           Number(walletTokenInfo.formattedBalance) > 0 && 
+           walletTokenInfo.delegatedTo === "0x0000000000000000000000000000000000000000" && (
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-medium text-orange-600">⚠️ Delegate Required to Vote</h3>
+                  <p className="text-xs text-muted-foreground">You need to delegate your tokens to participate in governance</p>
+                </div>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDelegate}
+                  disabled={isDelegating}
+                  className="border-orange-200 text-orange-600 hover:bg-orange-50"
+                >
+                  {isDelegating ? (
+                    <div className="flex items-center">
+                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                      Delegating...
+                    </div>
+                  ) : (
+                    <>
+                      <VoteIcon className="mr-2 h-3 w-3" />
+                      Delegate to Self
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardHeader>
+          )}
+          
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
