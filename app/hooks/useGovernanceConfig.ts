@@ -28,9 +28,28 @@ export const useGovernanceConfig = () => {
         : 'https://mainnet.base.org'
         
       const provider = new ethers.JsonRpcProvider(rpcUrl)
+      
+      // First check if the governance contract exists
+      const contractCode = await provider.getCode(GOVERNANCE_CONTRACT_ADDRESS)
+      if (contractCode === '0x') {
+        console.warn(`No contract found at governance address: ${GOVERNANCE_CONTRACT_ADDRESS}`)
+        // Set default governance config
+        const defaultConfig: GovernanceConfig = {
+          votingPeriod: 17280, // ~2 days on Base (2 second blocks)
+          votingDelay: 7200,   // ~4 hours on Base
+          proposalThreshold: ethers.parseEther("1000").toString(), // 1000 tokens
+          quorumNumerator: 4,  // 4%
+          quorumDenominator: 100
+        }
+        setConfig(defaultConfig)
+        setError('Governance contract not found, using default configuration')
+        return
+      }
+      
       const governanceContract = new ethers.Contract(GOVERNANCE_CONTRACT_ADDRESS, GovernorABI.abi, provider)
 
-      // Fetch all governance parameters in parallel
+      // Fetch all governance parameters in parallel with timeout
+      const timeout = 15000 // 15 second timeout
       const [
         votingPeriod,
         votingDelay,
@@ -38,11 +57,26 @@ export const useGovernanceConfig = () => {
         quorumNumerator,
         quorumDenominator
       ] = await Promise.all([
-        governanceContract.votingPeriod(),
-        governanceContract.votingDelay(),
-        governanceContract.proposalThreshold(),
-        governanceContract.quorumNumerator(),
-        governanceContract.quorumDenominator()
+        Promise.race([
+          governanceContract.votingPeriod(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('votingPeriod call timeout')), timeout))
+        ]),
+        Promise.race([
+          governanceContract.votingDelay(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('votingDelay call timeout')), timeout))
+        ]),
+        Promise.race([
+          governanceContract.proposalThreshold(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('proposalThreshold call timeout')), timeout))
+        ]),
+        Promise.race([
+          governanceContract.quorumNumerator(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('quorumNumerator call timeout')), timeout))
+        ]),
+        Promise.race([
+          governanceContract.quorumDenominator(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('quorumDenominator call timeout')), timeout))
+        ])
       ])
 
       const governanceConfig: GovernanceConfig = {
@@ -58,6 +92,16 @@ export const useGovernanceConfig = () => {
     } catch (err: any) {
       console.error('Error fetching governance config:', err)
       setError(err.message || 'Failed to fetch governance configuration')
+      
+      // Set default config on error
+      const defaultConfig: GovernanceConfig = {
+        votingPeriod: 17280, // ~2 days on Base (2 second blocks)
+        votingDelay: 7200,   // ~4 hours on Base
+        proposalThreshold: ethers.parseEther("1000").toString(), // 1000 tokens
+        quorumNumerator: 4,  // 4%
+        quorumDenominator: 100
+      }
+      setConfig(defaultConfig)
     } finally {
       setIsLoading(false)
     }

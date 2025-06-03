@@ -23,14 +23,31 @@ export function useWalletTokenInfo(walletAddress: string | null) {
         const rpcUrl = 'https://mainnet.base.org'
         const provider = new ethers.JsonRpcProvider(rpcUrl)
         
+        // First check if the contract exists at the given address
+        const contractCode = await provider.getCode(STELE_TOKEN_ADDRESS)
+        if (contractCode === '0x') {
+          console.warn(`No contract found at token address: ${STELE_TOKEN_ADDRESS}`)
+          return {
+            tokenBalance: "0",
+            delegatedTo: "0x0000000000000000000000000000000000000000",
+            formattedBalance: "0"
+          }
+        }
+        
         // Create contracts
         const tokenContract = new ethers.Contract(STELE_TOKEN_ADDRESS, ERC20ABI.abi, provider)
         const votesContract = new ethers.Contract(STELE_TOKEN_ADDRESS, ERC20VotesABI.abi, provider)
 
-        // Batch both requests together
+        // Batch both requests together with timeout
         const [tokenBalanceResult, delegateAddressResult] = await Promise.allSettled([
-          tokenContract.balanceOf(walletAddress),
-          votesContract.delegates(walletAddress)
+          Promise.race([
+            tokenContract.balanceOf(walletAddress),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Token balance call timeout')), 10000))
+          ]),
+          Promise.race([
+            votesContract.delegates(walletAddress),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Delegate call timeout')), 10000))
+          ])
         ])
 
         // Process token balance
@@ -44,7 +61,7 @@ export function useWalletTokenInfo(walletAddress: string | null) {
         }
 
         // Process delegate address
-        let delegatedTo = ""
+        let delegatedTo = "0x0000000000000000000000000000000000000000"
         if (delegateAddressResult.status === 'fulfilled') {
           delegatedTo = delegateAddressResult.value
         } else {
@@ -58,13 +75,18 @@ export function useWalletTokenInfo(walletAddress: string | null) {
         }
       } catch (error) {
         console.error('Error fetching wallet token info:', error)
-        throw error
+        // Return default values instead of throwing
+        return {
+          tokenBalance: "0",
+          delegatedTo: "0x0000000000000000000000000000000000000000",
+          formattedBalance: "0"
+        }
       }
     },
     enabled: !!walletAddress, // Only run if wallet address is provided
     staleTime: 60000, // Consider data fresh for 1 minute
     refetchInterval: 300000, // Refetch every 5 minutes (token balance doesn't change frequently)
-    retry: 2,
+    retry: false, // Disable retry to prevent spam
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   })
 }

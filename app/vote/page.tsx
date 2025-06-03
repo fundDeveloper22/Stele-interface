@@ -627,17 +627,51 @@ export default function VotePage() {
     return (
       <div className="container mx-auto py-6">
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-          <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error?.message || 'Failed to load data'}</p>
+          <p className="font-medium">🚨 Blockchain Connection Issue</p>
+          <p className="text-sm mt-2">
+            {governanceConfigError?.includes('not found') ? (
+              <>
+                <strong>Contract not deployed:</strong> The governance or token contracts are not found at the configured addresses on Base network.
+                <br />
+                This could mean:
+                <br />
+                • The contracts are not yet deployed
+                <br />
+                • Wrong network (ensure you're on Base Mainnet)
+                <br />
+                • Contract addresses need to be updated
+              </>
+            ) : (
+              <>
+                <strong>Network Error:</strong> {error?.message || governanceConfigError || 'Failed to load blockchain data'}
+                <br />
+                Please check your internet connection and Base network status.
+              </>
+            )}
+          </p>
         </div>
-        <div className="mt-4">
+        <div className="mt-4 space-x-2">
           <Button variant="outline" onClick={() => {
             refetch()
             refetchActive()
             refetchActionable()
             refetchCompletedByStatus()
             refetchAllByStatus()
-          }}>Retry</Button>
+          }}>
+            🔄 Retry
+          </Button>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            🔃 Refresh Page
+          </Button>
+        </div>
+        
+        {/* Show demo data notice */}
+        <div className="mt-6 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-md">
+          <p className="font-medium">ℹ️ Demo Mode</p>
+          <p className="text-sm">
+            Since the contracts are not available, you can still explore the interface.
+            All data shown will be for demonstration purposes only.
+          </p>
         </div>
       </div>
     )
@@ -738,13 +772,28 @@ export default function VotePage() {
 
       {(error || errorActive || errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError) && (
         <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-md mb-6">
-          <p>Warning: {(() => {
-            const displayError = error || errorActive || errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError
-            return typeof displayError === 'string' ? displayError : displayError?.message || 'Failed to load data'
-          })()}</p>
-          <p className="text-sm">
-            {governanceConfigError ? 'Using default governance parameters. ' : ''}
-            Showing cached or example data.
+          <p className="font-medium">⚠️ Connection Warning</p>
+          <p className="text-sm mt-1">
+            {governanceConfigError?.includes('not found') ? (
+              <>
+                Smart contracts not found on Base network. Using default settings for demo purposes.
+                <br />
+                <span className="text-xs text-amber-600">
+                  Token balance and voting features may not work correctly.
+                </span>
+              </>
+            ) : (
+              <>
+                Some blockchain data may be outdated or incomplete.
+                <br />
+                <span className="text-xs text-amber-600">
+                  Error: {(() => {
+                    const displayError = error || errorActive || errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError
+                    return typeof displayError === 'string' ? displayError : displayError?.message || 'Network connectivity issue'
+                  })()}
+                </span>
+              </>
+            )}
           </p>
         </div>
       )}
