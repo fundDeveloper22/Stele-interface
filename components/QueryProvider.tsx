@@ -9,10 +9,13 @@ function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        // With SSR, we usually want to set some default staleTime
-        // above 0 to avoid refetching immediately on the client
-        staleTime: 60 * 1000,
+        // Longer stale time to reduce unnecessary refetches
+        staleTime: 5 * 60 * 1000, // 5 minutes (increased from 1 minute)
         refetchOnWindowFocus: false,
+        refetchOnMount: false, // Only refetch if data is stale
+        refetchOnReconnect: false, // Don't refetch on network reconnect
+        
+        // More conservative retry logic to prevent RPC spam
         retry: (failureCount, error) => {
           // Don't retry on 4xx errors
           if (error && typeof error === 'object' && 'status' in error) {
@@ -21,9 +24,28 @@ function makeQueryClient() {
               return false
             }
           }
-          return failureCount < 3
+          
+          // Check for RPC-specific errors
+          if (error && typeof error === 'object' && 'message' in error) {
+            const message = (error.message as string).toLowerCase()
+            // Don't retry on rate limit or missing revert data errors
+            if (message.includes('rate limit') || 
+                message.includes('missing revert data') ||
+                message.includes('too many requests') ||
+                message.includes('call_exception')) {
+              return false
+            }
+          }
+          
+          // Reduce max retry attempts from 3 to 1
+          return failureCount < 1
         },
-        retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+        
+        // Longer delays between retries with more aggressive backoff
+        retryDelay: attemptIndex => Math.min(3000 * 2 ** attemptIndex, 60000), // Start at 3s, max 60s
+        
+        // Disable automatic refetch intervals globally (individual hooks can override)
+        refetchInterval: false,
       },
       mutations: {
         retry: false,

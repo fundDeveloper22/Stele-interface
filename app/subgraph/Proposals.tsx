@@ -221,8 +221,13 @@ export function useProposalsData() {
   return useQuery<ProposalsData>({
     queryKey: ['proposals'],
     queryFn: async () => {
+      // Add small delay to prevent overwhelming requests
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200))
       return await request(SUBGRAPH_URL, getProposalsQuery(), {}, headers)
-    }
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: false, // Disable automatic refetch
+    retry: 1,
   })
 }
 
@@ -246,6 +251,9 @@ export function useActiveProposalsData(currentBlockNumber?: number) {
           const fetchedBlockNumber = await provider.getBlockNumber()
           blockNumberToUse = fetchedBlockNumber.toString()
         }
+        
+        // Add delay to prevent overwhelming requests
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500))
               
         return await request(SUBGRAPH_URL, getActiveProposalsQuery(blockNumberToUse), {}, headers)
       } catch (error) {
@@ -256,8 +264,8 @@ export function useActiveProposalsData(currentBlockNumber?: number) {
       }
     },
     enabled: !!currentBlockNumber, // Only run when we have block number
-    refetchInterval: 120000, // Reduced frequency since block number is cached
-    staleTime: 60000, // Data is considered fresh for 1 minute
+    refetchInterval: 5 * 60 * 1000, // Increase to 5 minutes
+    staleTime: 3 * 60 * 1000, // 3 minutes
     retry: 1, // Reduce retry attempts
   })
 }
@@ -266,11 +274,15 @@ export function useProposalVoteResult(proposalId: string) {
   return useQuery<ProposalVoteResultResponse>({
     queryKey: ['proposalVoteResult', proposalId],
     queryFn: async () => {
+      // Add delay to prevent overwhelming requests
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 800 + 300))
       const result = await request(SUBGRAPH_URL, getProposalVoteResultQuery(proposalId), {}, headers) as ProposalVoteResultResponse
       return result
     },
     enabled: !!proposalId, // Only run query if proposalId is provided
-    refetchInterval: 30000, // Refetch every 30 seconds to keep vote counts updated
+    refetchInterval: 2 * 60 * 1000, // Increase to 2 minutes
+    staleTime: 60 * 1000, // 1 minute
+    retry: 1,
   })
 }
 
@@ -281,11 +293,15 @@ export function useMultipleProposalVoteResults(proposalIds: string[]) {
       if (proposalIds.length === 0) {
         return { proposalVoteResults: [] }
       }
+      // Add delay to prevent overwhelming requests
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 1200 + 600))
       const result = await request(SUBGRAPH_URL, getMultipleProposalVoteResultsQuery(proposalIds), {}, headers) as MultipleProposalVoteResultsResponse
       return result
     },
     enabled: proposalIds.length > 0, // Only run query if there are proposal IDs
-    refetchInterval: 60000, // Refetch every minute to keep vote counts updated
+    refetchInterval: 3 * 60 * 1000, // Increase to 3 minutes
+    staleTime: 90 * 1000, // 1.5 minutes
+    retry: 1,
   })
 }
 
@@ -300,6 +316,9 @@ export function useProposalsByStatus(
         statuses
       }
       
+      // Add delay to prevent overwhelming requests
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 400))
+      
       const result = await request(
         SUBGRAPH_URL, 
         getProposalsByStatusQuery(),
@@ -309,7 +328,9 @@ export function useProposalsByStatus(
       
       return result
     },
-    refetchInterval: 60000, // Refetch every minute to keep data updated
+    refetchInterval: 5 * 60 * 1000, // Increase to 5 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 1,
   })
 }
 
@@ -318,9 +339,14 @@ export function useProposalDetails(proposalId: string) {
   return useQuery<ProposalDetailsResponse>({
     queryKey: ['proposalDetails', proposalId],
     queryFn: async () => {
+      // Add delay to prevent overwhelming requests
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 600 + 200))
       const result = await request(SUBGRAPH_URL, getProposalDetailsQuery(proposalId), {}, headers) as ProposalDetailsResponse
       return result
     },
     enabled: !!proposalId, // Only run query if proposalId is provided
+    staleTime: 15 * 60 * 1000, // 15 minutes (proposal details rarely change)
+    refetchInterval: false, // Disable automatic refetch
+    retry: 1,
   })
 } 

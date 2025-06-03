@@ -3,10 +3,9 @@
 import { 
   createContext, 
   useContext, 
-  useState, 
-  useEffect, 
   ReactNode 
 } from "react"
+import { useQuery } from '@tanstack/react-query'
 import { ethers } from "ethers"
 import { 
   STELE_CONTRACT_ADDRESS, 
@@ -19,20 +18,17 @@ type EntryFeeContextType = {
   entryFee: string | null
   isLoading: boolean
   error: Error | null
-  refresh: () => Promise<void>
+  refresh: () => void
 }
 
 const EntryFeeContext = createContext<EntryFeeContextType | undefined>(undefined)
 
-export function EntryFeeProvider({ children }: { children: ReactNode }) {
-  const [entryFee, setEntryFee] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
-
-  const fetchEntryFee = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
+function useEntryFeeQuery() {
+  return useQuery<string>({
+    queryKey: ['entryFee'],
+    queryFn: async () => {
+      // Add delay to prevent overwhelming RPC
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500))
       
       // Create a read-only provider for Base
       const provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
@@ -52,33 +48,27 @@ export function EntryFeeProvider({ children }: { children: ReactNode }) {
       const entryFeeInUsd = ethers.parseUnits(fee.toString(), USDC_DECIMALS) / BigInt(100);
       const formattedFee = ethers.formatUnits(entryFeeInUsd, USDC_DECIMALS);
 
-      setEntryFee(formattedFee)
-    } catch (err) {
-      console.error("Error fetching entry fee:", err)
-      setError(err instanceof Error ? err : new Error(String(err)))
-      setEntryFee(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+      return formattedFee
+    },
+    staleTime: 15 * 60 * 1000, // Entry fee rarely changes - keep fresh for 15 minutes
+    refetchInterval: 30 * 60 * 1000, // Refetch every 30 minutes
+    retry: 1, // Reduce retry attempts
+    retryDelay: (attemptIndex) => Math.min(5000 * 2 ** attemptIndex, 60000), // Longer delay between retries
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  })
+}
 
-  // Fetch entry fee on initial load
-  useEffect(() => {
-    fetchEntryFee()
-  }, [])
-
-  // Refresh function to manually trigger a reload
-  const refresh = async () => {
-    await fetchEntryFee()
-  }
+export function EntryFeeProvider({ children }: { children: ReactNode }) {
+  const { data: entryFee, isLoading, error, refetch } = useEntryFeeQuery()
 
   return (
     <EntryFeeContext.Provider
       value={{
-        entryFee,
+        entryFee: entryFee || null,
         isLoading,
-        error,
-        refresh
+        error: error instanceof Error ? error : null,
+        refresh: refetch
       }}
     >
       {children}

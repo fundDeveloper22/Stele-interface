@@ -27,6 +27,9 @@ export function useWalletTokenInfo(walletAddress: string | null) {
         const tokenContract = new ethers.Contract(STELE_TOKEN_ADDRESS, ERC20ABI.abi, provider)
         const votesContract = new ethers.Contract(STELE_TOKEN_ADDRESS, ERC20VotesABI.abi, provider)
 
+        // Add delay to prevent overwhelming RPC
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500))
+
         // Batch both requests together
         const [tokenBalanceResult, delegateAddressResult] = await Promise.allSettled([
           tokenContract.balanceOf(walletAddress),
@@ -62,10 +65,12 @@ export function useWalletTokenInfo(walletAddress: string | null) {
       }
     },
     enabled: !!walletAddress, // Only run if wallet address is provided
-    staleTime: 60000, // Consider data fresh for 1 minute
-    refetchInterval: 300000, // Refetch every 5 minutes (token balance doesn't change frequently)
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes (increased from 1 minute)
+    refetchInterval: 10 * 60 * 1000, // Refetch every 10 minutes (increased from 5 minutes)
+    retry: 1, // Reduce retry attempts from 2 to 1
+    retryDelay: (attemptIndex) => Math.min(2000 * 2 ** attemptIndex, 30000), // Longer delay between retries
+    refetchOnWindowFocus: false, // Disable refetch on window focus
+    refetchOnMount: false, // Only refetch if data is stale
   })
 }
 
