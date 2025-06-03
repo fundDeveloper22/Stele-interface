@@ -22,12 +22,14 @@ import {
   Repeat,
   Activity,
   User,
-  Trophy
+  Trophy,
+  ArrowLeft
 } from "lucide-react"
 import { AssetSwap } from "@/components/asset-swap"
 import { useInvestorData } from "@/app/subgraph/Account"
 import { useUserTokens } from "@/app/hooks/useUserTokens"
 import { useChallenge } from "@/app/hooks/useChallenge"
+import Link from "next/link"
 
 interface InvestorPageProps {
   params: Promise<{
@@ -183,11 +185,20 @@ export default function InvestorPage({ params }: InvestorPageProps) {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Investor Account</h1>
-            <p className="text-muted-foreground">
-              {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-            </p>
+          <div className="space-y-2">
+            <Link 
+              href={`/challenge/${challengeId}`}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Challenge
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold">Investor Account</h1>
+              <p className="text-muted-foreground">
+                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
