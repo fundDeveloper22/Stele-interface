@@ -1,16 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ActiveChallenges } from "@/components/active-challenges"
-import { InvestableTokens } from "@/components/investable-tokens"
-import { TokenStatsOverview } from "@/components/token-stats-overview"
+import { DashboardClientComponents } from "@/components/DashboardClientComponents"
+import { Suspense } from "react"
 import {
   dehydrate,
   HydrationBoundary,
   QueryClient,
 } from '@tanstack/react-query'
 import { gql, request } from 'graphql-request'
-import DashBoardQuery from '@/app/subgraph/DashBoard'
 import { SUBGRAPH_URL, headers } from '@/lib/constants'
-import { ACTIVE_CHALLENGES_QUERY } from '@/app/hooks/useActiveChallenges'
+import { ACTIVE_CHALLENGES_QUERY, type ActiveChallengesData } from '@/app/hooks/useActiveChallenges'
 
 // Import the new investable tokens query
 const INVESTABLE_TOKENS_QUERY = gql`{
@@ -97,24 +95,49 @@ export function DashboardStats({ data }: { data: any }) {
   );
 }
 
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="h-8 w-32 bg-muted animate-pulse rounded" />
+      </div>
+      <div className="h-48 bg-muted animate-pulse rounded" />
+      <div className="h-64 bg-muted animate-pulse rounded" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="h-64 bg-muted animate-pulse rounded" />
+        <div className="h-64 bg-muted animate-pulse rounded" />
+      </div>
+    </div>
+  )
+}
+
 export default async function Dashboard() {
   const queryClient = new QueryClient()
+  let activeChallengesData: ActiveChallengesData | null = null
   
-  // Prefetch active challenges data using the hook's query
-  await queryClient.prefetchQuery({
-    queryKey: ['activeChallenges'],
-    queryFn: async () => {
-      return await request(SUBGRAPH_URL, ACTIVE_CHALLENGES_QUERY, {}, headers)
-    }
-  })
-  
-  // Prefetch investable tokens data using the new query
-  await queryClient.prefetchQuery({
-    queryKey: ['investable-tokens'],
-    queryFn: async () => {
-      return await request(SUBGRAPH_URL, INVESTABLE_TOKENS_QUERY, {}, headers)
-    }
-  })
+  try {
+    // Prefetch active challenges data using the hook's query
+    await queryClient.prefetchQuery({
+      queryKey: ['activeChallenges'],
+      queryFn: async () => {
+        return await request(SUBGRAPH_URL, ACTIVE_CHALLENGES_QUERY, {}, headers)
+      }
+    })
+    
+    // Prefetch investable tokens data using the new query
+    await queryClient.prefetchQuery({
+      queryKey: ['investable-tokens'],
+      queryFn: async () => {
+        return await request(SUBGRAPH_URL, INVESTABLE_TOKENS_QUERY, {}, headers)
+      }
+    })
+
+    // Get the data for server-side rendering
+    activeChallengesData = await request(SUBGRAPH_URL, ACTIVE_CHALLENGES_QUERY, {}, headers) as ActiveChallengesData
+  } catch (error) {
+    console.error('Failed to prefetch data:', error)
+    // Continue rendering even if prefetch fails
+  }
   
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
@@ -122,12 +145,13 @@ export default async function Dashboard() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         </div>
-        <DashBoardQuery />
-        <ActiveChallenges showCreateButton={false} />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <InvestableTokens />
-          <TokenStatsOverview />
-        </div>
+        
+        {/* Render DashboardStats directly on the server */}
+        {activeChallengesData && activeChallengesData.activeChallenges && (
+          <DashboardStats data={activeChallengesData} />
+        )}
+        
+        <DashboardClientComponents />
       </div>
     </HydrationBoundary>
   )
