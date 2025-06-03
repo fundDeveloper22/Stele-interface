@@ -1,7 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ActiveChallenges } from "@/components/active-challenges"
-import { InvestableTokens } from "@/components/investable-tokens"
-import { TokenStatsOverview } from "@/components/token-stats-overview"
+import dynamic from 'next/dynamic'
 import { Suspense } from "react"
 import {
   dehydrate,
@@ -9,9 +7,24 @@ import {
   QueryClient,
 } from '@tanstack/react-query'
 import { gql, request } from 'graphql-request'
-import DashBoardQuery from '@/app/subgraph/DashBoard'
 import { SUBGRAPH_URL, headers } from '@/lib/constants'
-import { ACTIVE_CHALLENGES_QUERY } from '@/app/hooks/useActiveChallenges'
+import { ACTIVE_CHALLENGES_QUERY, type ActiveChallengesData } from '@/app/hooks/useActiveChallenges'
+
+// Dynamically import client components with SSR disabled
+const ActiveChallenges = dynamic(
+  () => import("@/components/active-challenges").then(mod => ({ default: mod.ActiveChallenges })),
+  { ssr: false }
+)
+
+const InvestableTokens = dynamic(
+  () => import("@/components/investable-tokens").then(mod => ({ default: mod.InvestableTokens })),
+  { ssr: false }
+)
+
+const TokenStatsOverview = dynamic(
+  () => import("@/components/token-stats-overview").then(mod => ({ default: mod.TokenStatsOverview })),
+  { ssr: false }
+)
 
 // Import the new investable tokens query
 const INVESTABLE_TOKENS_QUERY = gql`{
@@ -116,6 +129,7 @@ function LoadingSkeleton() {
 
 export default async function Dashboard() {
   const queryClient = new QueryClient()
+  let activeChallengesData: ActiveChallengesData | null = null
   
   try {
     // Prefetch active challenges data using the hook's query
@@ -133,6 +147,9 @@ export default async function Dashboard() {
         return await request(SUBGRAPH_URL, INVESTABLE_TOKENS_QUERY, {}, headers)
       }
     })
+
+    // Get the data for server-side rendering
+    activeChallengesData = await request(SUBGRAPH_URL, ACTIVE_CHALLENGES_QUERY, {}, headers) as ActiveChallengesData
   } catch (error) {
     console.error('Failed to prefetch data:', error)
     // Continue rendering even if prefetch fails
@@ -145,8 +162,12 @@ export default async function Dashboard() {
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         </div>
         
+        {/* Render DashboardStats directly on the server */}
+        {activeChallengesData && activeChallengesData.activeChallenges && (
+          <DashboardStats data={activeChallengesData} />
+        )}
+        
         <Suspense fallback={<LoadingSkeleton />}>
-          <DashBoardQuery />
           <ActiveChallenges showCreateButton={false} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <InvestableTokens />
