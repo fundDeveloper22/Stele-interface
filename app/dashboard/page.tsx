@@ -9,7 +9,7 @@ import {
 } from '@tanstack/react-query'
 import { gql, request } from 'graphql-request'
 import DashBoardQuery from '@/app/subgraph/DashBoard'
-import { url, headers } from '@/lib/constants'
+import { SUBGRAPH_URL, headers } from '@/lib/constants'
 import { ACTIVE_CHALLENGES_QUERY } from '@/app/hooks/useActiveChallenges'
 
 // Import the new investable tokens query
@@ -104,7 +104,7 @@ export default async function Dashboard() {
   await queryClient.prefetchQuery({
     queryKey: ['activeChallenges'],
     queryFn: async () => {
-      return await request(url, ACTIVE_CHALLENGES_QUERY, {}, headers)
+      return await request(SUBGRAPH_URL, ACTIVE_CHALLENGES_QUERY, {}, headers)
     }
   })
   
@@ -112,7 +112,7 @@ export default async function Dashboard() {
   await queryClient.prefetchQuery({
     queryKey: ['investable-tokens'],
     queryFn: async () => {
-      return await request(url, INVESTABLE_TOKENS_QUERY, {}, headers)
+      return await request(SUBGRAPH_URL, INVESTABLE_TOKENS_QUERY, {}, headers)
     }
   })
   

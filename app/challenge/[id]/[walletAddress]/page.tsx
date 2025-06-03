@@ -22,12 +22,17 @@ import {
   Repeat,
   Activity,
   User,
-  Trophy
+  Trophy,
+  ArrowLeft,
+  Loader2,
+  Receipt
 } from "lucide-react"
 import { AssetSwap } from "@/components/asset-swap"
 import { useInvestorData } from "@/app/subgraph/Account"
 import { useUserTokens } from "@/app/hooks/useUserTokens"
 import { useChallenge } from "@/app/hooks/useChallenge"
+import { useInvestorTransactions } from "@/app/hooks/useInvestorTransactions"
+import Link from "next/link"
 
 interface InvestorPageProps {
   params: Promise<{
@@ -43,6 +48,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   const { data: investorData, isLoading: isLoadingInvestor, error: investorError } = useInvestorData(challengeId, walletAddress)
   const { data: userTokens = [], isLoading: isLoadingTokens, error: tokensError } = useUserTokens(challengeId, walletAddress)
   const { data: challengeData, isLoading: isLoadingChallenge, error: challengeError } = useChallenge(challengeId)
+  const { data: investorTransactions = [], isLoading: isLoadingTransactions, error: transactionsError } = useInvestorTransactions(challengeId, walletAddress)
 
   const [activeTab, setActiveTab] = useState("portfolio")
   const [isClient, setIsClient] = useState(false)
@@ -53,7 +59,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   }, []);
 
   // Handle loading and error states
-  if (isLoadingInvestor || isLoadingTokens || isLoadingChallenge) {
+  if (isLoadingInvestor || isLoadingTokens || isLoadingChallenge || isLoadingTransactions) {
     return (
       <div className="container mx-auto p-6">
         <div className="max-w-6xl mx-auto">
@@ -70,8 +76,8 @@ export default function InvestorPage({ params }: InvestorPageProps) {
     )
   }
 
-  if (investorError || tokensError || challengeError) {
-    console.error('Page errors:', { investorError, tokensError, challengeError })
+  if (investorError || tokensError || challengeError || transactionsError) {
+    console.error('Page errors:', { investorError, tokensError, challengeError, transactionsError })
     return notFound()
   }
 
@@ -183,11 +189,20 @@ export default function InvestorPage({ params }: InvestorPageProps) {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Investor Account</h1>
-            <p className="text-muted-foreground">
-              {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-            </p>
+          <div className="space-y-2">
+            <Link 
+              href={`/challenge/${challengeId}`}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Challenge
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold">Investor Account</h1>
+              <p className="text-muted-foreground">
+                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
@@ -243,40 +258,30 @@ export default function InvestorPage({ params }: InvestorPageProps) {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Participants</CardTitle>
+              <CardTitle className="text-sm font-medium">Ranking</CardTitle>
               <User className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{challengeDetails?.participants || 0}</div>
+              <div className="text-2xl font-bold">#{challengeDetails?.participants || 0}</div>
               <p className="text-xs text-muted-foreground">
-                Total participants
+                Current estimated ranking
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Prize</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Rewards</CardTitle>
               <Trophy className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{challengeDetails?.prize || '$0.00'}</div>
               <p className="text-xs text-muted-foreground">
-                Challenge reward
+                Current estimated ranking
               </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Time Remaining</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{timeRemaining.text}</div>
-              <div className="text-sm text-muted-foreground">{timeRemaining.subText}</div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Tabbed Content */}
@@ -349,54 +354,89 @@ export default function InvestorPage({ params }: InvestorPageProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {/* Sample transaction data */}
-                  <div className="flex items-center justify-between p-4 rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                        <Repeat className="h-5 w-5 text-green-600 dark:text-green-400" />
-                      </div>
-                      <div>
-                        <p className="font-medium">ETH → USDC</p>
-                        <p className="text-sm text-muted-foreground">Apr 24, 2025 • 14:32</p>
-                      </div>
+                  {isLoadingTransactions ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                      <span className="ml-2 text-muted-foreground">Loading transactions...</span>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">0.15 ETH</p>
-                      <p className="text-sm text-green-600">+$267.35</p>
+                  ) : transactionsError ? (
+                    <div className="text-center py-8 text-red-600">
+                      <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="font-medium">Error loading transactions</p>
+                      <p className="text-sm text-muted-foreground mt-2">Please try again later</p>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-4 rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                        <Repeat className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <p className="font-medium">USDC → ETH</p>
-                        <p className="text-sm text-muted-foreground">Apr 22, 2025 • 09:15</p>
-                      </div>
+                  ) : investorTransactions.length > 0 ? (
+                    investorTransactions.map((transaction) => {
+                      const getTransactionIcon = (type: string) => {
+                        switch (type) {
+                          case 'join':
+                            return <User className="h-4 w-4 text-white" />
+                          case 'swap':
+                            return <Repeat className="h-4 w-4 text-white" />
+                          case 'register':
+                            return <BarChart3 className="h-4 w-4 text-white" />
+                          case 'reward':
+                            return <Trophy className="h-4 w-4 text-white" />
+                          default:
+                            return <Activity className="h-4 w-4 text-white" />
+                        }
+                      }
+
+                      const getIconColor = (type: string) => {
+                        switch (type) {
+                          case 'join':
+                            return 'bg-blue-500'
+                          case 'swap':
+                            return 'bg-green-500'
+                          case 'register':
+                            return 'bg-orange-500'
+                          case 'reward':
+                            return 'bg-yellow-500'
+                          default:
+                            return 'bg-gray-500'
+                        }
+                      }
+
+                      const formatTimestamp = (timestamp: number) => {
+                        return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      }
+
+                      return (
+                        <div key={transaction.id} className="flex items-center justify-between p-4 rounded-lg border">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-10 w-10 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
+                              {getTransactionIcon(transaction.type)}
+                            </div>
+                            <div>
+                              <p className="font-medium">{transaction.details}</p>
+                              <p className="text-sm text-muted-foreground">{formatTimestamp(transaction.timestamp)}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium">{transaction.amount || '-'}</p>
+                            <button
+                              onClick={() => window.open(`https://basescan.org/tx/${transaction.transactionHash}`, '_blank')}
+                              className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                            >
+                              View on BaseScan
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No transactions found for this investor</p>
+                      <p className="text-sm mt-2">Transaction history will appear here once you start trading</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">500 USDC</p>
-                      <p className="text-sm text-blue-600">$500.00</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-4 rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                        <CheckCircle2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Challenge Joined</p>
-                        <p className="text-sm text-muted-foreground">Apr 20, 2025 • 16:45</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">{getChallengeTitle()}</p>
-                      <p className="text-sm text-muted-foreground">Entry confirmed</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

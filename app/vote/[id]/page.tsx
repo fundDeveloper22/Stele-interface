@@ -182,9 +182,7 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
       let currentBlock: number
       if (blockInfo && !isLoadingBlockNumber) {
         currentBlock = blockInfo.blockNumber
-        console.log('Using cached block number:', currentBlock)
       } else {
-        console.log('Fetching block number via RPC...')
         currentBlock = await provider.getBlockNumber()
       }
       
@@ -222,7 +220,6 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
         provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
         await provider.getBlockNumber() // Test connection
       } catch (primaryError) {
-        console.log('Primary RPC failed, trying Infura fallback...')
         // Fallback: Infura
         const infuraUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
           ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
@@ -248,13 +245,8 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
       
       // Convert BigInt to number to ensure proper comparison
       setProposalState(Number(state))
-      console.log('Proposal state:', Number(state), typeof Number(state))
     } catch (error) {
       console.error('Error checking proposal state:', error)
-      // Don't set state to null on error, keep previous state if any
-      if (proposalState === null) {
-        console.log('Using default governance parameters. Showing cached or example data.')
-      }
     }
   }
 
@@ -514,13 +506,6 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
       const calldatas = proposalDetails.calldatas || []
       const descriptionHash = ethers.keccak256(ethers.toUtf8Bytes(proposalDetails.description))
 
-      console.log('Queue parameters:', {
-        targets,
-        values,
-        calldatas,
-        descriptionHash
-      })
-
       // Call queue function
       const tx = await governanceContract.queue(targets, values, calldatas, descriptionHash)
       
@@ -615,14 +600,6 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
       }
       
       const numericState = Number(currentState)
-      
-      console.log('🔍 Execute Pre-check:', {
-        proposalId: id,
-        currentState: numericState,
-        expectedState: 5, // Queued
-        stateDescription: numericState === 5 ? 'Queued' : 'Not Queued'
-      })
-
       if (numericState !== 5) {
         throw new Error(`Proposal is not in queued state. Current state: ${numericState}`)
       }
@@ -632,14 +609,6 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
       const values = proposalDetails.values || []
       const calldatas = proposalDetails.calldatas || []
       const descriptionHash = ethers.keccak256(ethers.toUtf8Bytes(proposalDetails.description))
-
-      console.log('Execute parameters:', {
-        proposalId: id,
-        targets,
-        values,
-        calldatas,
-        descriptionHash
-      })
 
       // Try to estimate gas first to catch potential issues
       try {
