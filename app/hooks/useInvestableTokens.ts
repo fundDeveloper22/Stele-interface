@@ -1,8 +1,8 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { gql, request } from 'graphql-request'
-import { url, headers } from '@/lib/constants'
+import { request, gql } from 'graphql-request'
+import { SUBGRAPH_URL, headers } from '@/lib/constants'
 
 const INVESTABLE_TOKENS_QUERY = gql`{
   investableTokens(first: 50, orderBy: symbol, orderDirection: asc, where: { isInvestable: true }, subgraphError: allow) {
@@ -39,7 +39,7 @@ export function useInvestableTokens() {
   return useQuery<InvestableTokensData>({
     queryKey: ['investable-tokens'],
     queryFn: async () => {
-      return await request(url, INVESTABLE_TOKENS_QUERY, {}, headers)
+      return await request(SUBGRAPH_URL, INVESTABLE_TOKENS_QUERY, {}, headers)
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes

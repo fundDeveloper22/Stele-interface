@@ -22,6 +22,7 @@ import { useEntryFee } from "@/lib/hooks/use-entry-fee"
 import SteleABI from "@/app/abis/Stele.json"
 import ERC20ABI from "@/app/abis/ERC20.json"
 import { useChallenge } from "@/app/hooks/useChallenge"
+import { useTransactions } from "@/app/hooks/useTransactions"
 
 interface ChallengePortfolioProps {
   challengeId: string
@@ -35,6 +36,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const [isClient, setIsClient] = useState(false);
   const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee();
   const { data: challengeData, isLoading: isLoadingChallenge, error: challengeError } = useChallenge(challengeId);
+  const { data: transactions = [], isLoading: isLoadingTransactions, error: transactionsError } = useTransactions(challengeId);
   
   useEffect(() => {
     // Get wallet address from localStorage
@@ -489,56 +491,101 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* ETH → USDC Transaction */}
-            <div className="flex items-center justify-between py-3 border-b border-border">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                  <ArrowLeftRight className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <div className="font-medium">ETH → USDC</div>
-                  <div className="text-sm text-muted-foreground">Apr 24, 2025 • 14:32</div>
-                </div>
+            {isLoadingTransactions ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2 text-muted-foreground">Loading transactions...</span>
               </div>
-              <div className="text-right">
-                <div className="font-medium">0.15 ETH</div>
-                <div className="text-sm text-muted-foreground">$267.35</div>
+            ) : transactionsError ? (
+              <div className="text-center py-8 text-red-600">
+                <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="font-medium">Error loading transactions</p>
+                <p className="text-sm text-muted-foreground mt-2">{transactionsError.message}</p>
+                <p className="text-xs text-muted-foreground mt-1">Check console for more details</p>
               </div>
-            </div>
+            ) : transactions.length > 0 ? (
+              transactions.slice(0, 10).map((transaction) => {
+                const getTransactionIcon = (type: string) => {
+                  switch (type) {
+                    case 'create':
+                      return <Trophy className="h-4 w-4 text-white" />
+                    case 'join':
+                      return <User className="h-4 w-4 text-white" />
+                    case 'swap':
+                      return <ArrowLeftRight className="h-4 w-4 text-white" />
+                    case 'register':
+                      return <BarChart3 className="h-4 w-4 text-white" />
+                    case 'reward':
+                      return <Trophy className="h-4 w-4 text-white" />
+                    default:
+                      return <Receipt className="h-4 w-4 text-white" />
+                  }
+                }
 
-            {/* USDC → ETH Transaction */}
-            <div className="flex items-center justify-between py-3 border-b border-border">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                  <ArrowLeftRight className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <div className="font-medium">USDC → ETH</div>
-                  <div className="text-sm text-muted-foreground">Apr 22, 2025 • 09:15</div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-medium">500 USDC</div>
-                <div className="text-sm text-muted-foreground">$500.00</div>
-              </div>
-            </div>
+                const getIconColor = (type: string) => {
+                  switch (type) {
+                    case 'create':
+                      return 'bg-purple-500'
+                    case 'join':
+                      return 'bg-blue-500'
+                    case 'swap':
+                      return 'bg-green-500'
+                    case 'register':
+                      return 'bg-orange-500'
+                    case 'reward':
+                      return 'bg-yellow-500'
+                    default:
+                      return 'bg-gray-500'
+                  }
+                }
 
-            {/* Challenge Joined */}
-            <div className="flex items-center justify-between py-3">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center">
-                  <Trophy className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <div className="font-medium">Challenge Joined</div>
-                  <div className="text-sm text-muted-foreground">Apr 20, 2025 • 10:00</div>
-                </div>
+                const formatTimestamp = (timestamp: number) => {
+                  return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })
+                }
+
+                const formatUserAddress = (address?: string) => {
+                  if (!address) return ''
+                  return `${address.slice(0, 6)}...${address.slice(-4)}`
+                }
+
+                return (
+                  <div key={transaction.id} className="flex items-center justify-between py-3 border-b border-border last:border-b-0">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
+                        {getTransactionIcon(transaction.type)}
+                      </div>
+                      <div>
+                        <div className="font-medium">{transaction.details}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {formatTimestamp(transaction.timestamp)}
+                          {transaction.user && ` • ${formatUserAddress(transaction.user)}`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium">{transaction.amount || '-'}</div>
+                      <button
+                        onClick={() => window.open(`https://basescan.org/tx/${transaction.transactionHash}`, '_blank')}
+                        className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        View on BaseScan
+                      </button>
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No transactions found for this challenge</p>
               </div>
-              <div className="text-right">
-                <div className="font-medium">{getChallengeTitle()}</div>
-                <div className="text-sm text-muted-foreground">Entry</div>
-              </div>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -1,7 +1,7 @@
 'use client'
 import { useQuery } from '@tanstack/react-query'
 import { gql, request } from 'graphql-request'
-import { url, headers } from '@/lib/constants'
+import { SUBGRAPH_URL, headers } from '@/lib/constants'
 
 export const getInvestorQuery = (investorId: string) => gql`{
   investor(id: "${investorId}") {
@@ -42,7 +42,7 @@ export function useInvestorData(challengeId: string, walletAddress: string) {
   return useQuery<InvestorData>({
     queryKey: ['investor', investorId],
     queryFn: async () => {
-      return await request(url, getInvestorQuery(investorId), {}, headers)
+      return await request(SUBGRAPH_URL, getInvestorQuery(investorId), {}, headers)
     }
   })
 }

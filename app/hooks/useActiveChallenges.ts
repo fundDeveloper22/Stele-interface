@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { gql, request } from 'graphql-request'
-import { url, headers, BYTE_ZERO } from '@/lib/constants'
+import { SUBGRAPH_URL, headers, BYTE_ZERO } from '@/lib/constants'
 
 // GraphQL query for active challenges
 export const ACTIVE_CHALLENGES_QUERY = gql`{
@@ -69,7 +69,7 @@ export function useActiveChallenges() {
   return useQuery<ActiveChallengesData>({
     queryKey: ['activeChallenges'],
     queryFn: async () => {
-      return await request(url, ACTIVE_CHALLENGES_QUERY, {}, headers)
+      return await request(SUBGRAPH_URL, ACTIVE_CHALLENGES_QUERY, {}, headers)
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)

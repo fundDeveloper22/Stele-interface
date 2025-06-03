@@ -1,7 +1,7 @@
 'use client'
 import { useQuery } from '@tanstack/react-query'
 import { gql, request } from 'graphql-request'
-import { url, headers, BASE_CHAIN_CONFIG } from '@/lib/constants'
+import { SUBGRAPH_URL, headers, BASE_CHAIN_CONFIG } from '@/lib/constants'
 import { ethers } from 'ethers'
 
 // New query structure by status with voteResult and voting period info
@@ -221,7 +221,7 @@ export function useProposalsData() {
   return useQuery<ProposalsData>({
     queryKey: ['proposals'],
     queryFn: async () => {
-      return await request(url, getProposalsQuery(), {}, headers)
+      return await request(SUBGRAPH_URL, getProposalsQuery(), {}, headers)
     }
   })
 }
@@ -249,12 +249,12 @@ export function useActiveProposalsData(currentBlockNumber?: number) {
           blockNumberToUse = fetchedBlockNumber.toString()
         }
               
-        return await request(url, getActiveProposalsQuery(blockNumberToUse), {}, headers)
+        return await request(SUBGRAPH_URL, getActiveProposalsQuery(blockNumberToUse), {}, headers)
       } catch (error) {
         console.error('Error fetching active proposals:', error)
         // Fallback: use a very high block number to ensure we get all potentially active proposals
         const fallbackBlockNumber = "999999999"
-        return await request(url, getActiveProposalsQuery(fallbackBlockNumber), {}, headers)
+        return await request(SUBGRAPH_URL, getActiveProposalsQuery(fallbackBlockNumber), {}, headers)
       }
     },
     enabled: !!currentBlockNumber, // Only run when we have block number
@@ -268,7 +268,7 @@ export function useProposalVoteResult(proposalId: string) {
   return useQuery<ProposalVoteResultResponse>({
     queryKey: ['proposalVoteResult', proposalId],
     queryFn: async () => {
-      const result = await request(url, getProposalVoteResultQuery(proposalId), {}, headers) as ProposalVoteResultResponse
+      const result = await request(SUBGRAPH_URL, getProposalVoteResultQuery(proposalId), {}, headers) as ProposalVoteResultResponse
       return result
     },
     enabled: !!proposalId, // Only run query if proposalId is provided
@@ -283,7 +283,7 @@ export function useMultipleProposalVoteResults(proposalIds: string[]) {
       if (proposalIds.length === 0) {
         return { proposalVoteResults: [] }
       }
-      const result = await request(url, getMultipleProposalVoteResultsQuery(proposalIds), {}, headers) as MultipleProposalVoteResultsResponse
+      const result = await request(SUBGRAPH_URL, getMultipleProposalVoteResultsQuery(proposalIds), {}, headers) as MultipleProposalVoteResultsResponse
       return result
     },
     enabled: proposalIds.length > 0, // Only run query if there are proposal IDs
@@ -303,7 +303,7 @@ export function useProposalsByStatus(
       }
       
       const result = await request(
-        url, 
+        SUBGRAPH_URL, 
         getProposalsByStatusQuery(),
         variables,
         headers
@@ -320,7 +320,7 @@ export function useProposalDetails(proposalId: string) {
   return useQuery<ProposalDetailsResponse>({
     queryKey: ['proposalDetails', proposalId],
     queryFn: async () => {
-      const result = await request(url, getProposalDetailsQuery(proposalId), {}, headers) as ProposalDetailsResponse
+      const result = await request(SUBGRAPH_URL, getProposalDetailsQuery(proposalId), {}, headers) as ProposalDetailsResponse
       return result
     },
     enabled: !!proposalId, // Only run query if proposalId is provided
