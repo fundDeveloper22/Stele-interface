@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import dynamic from 'next/dynamic'
+import { DashboardClientComponents } from "@/components/DashboardClientComponents"
 import { Suspense } from "react"
 import {
   dehydrate,
@@ -9,22 +9,6 @@ import {
 import { gql, request } from 'graphql-request'
 import { SUBGRAPH_URL, headers } from '@/lib/constants'
 import { ACTIVE_CHALLENGES_QUERY, type ActiveChallengesData } from '@/app/hooks/useActiveChallenges'
-
-// Dynamically import client components with SSR disabled
-const ActiveChallenges = dynamic(
-  () => import("@/components/active-challenges").then(mod => ({ default: mod.ActiveChallenges })),
-  { ssr: false }
-)
-
-const InvestableTokens = dynamic(
-  () => import("@/components/investable-tokens").then(mod => ({ default: mod.InvestableTokens })),
-  { ssr: false }
-)
-
-const TokenStatsOverview = dynamic(
-  () => import("@/components/token-stats-overview").then(mod => ({ default: mod.TokenStatsOverview })),
-  { ssr: false }
-)
 
 // Import the new investable tokens query
 const INVESTABLE_TOKENS_QUERY = gql`{
@@ -167,13 +151,7 @@ export default async function Dashboard() {
           <DashboardStats data={activeChallengesData} />
         )}
         
-        <Suspense fallback={<LoadingSkeleton />}>
-          <ActiveChallenges showCreateButton={false} />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <InvestableTokens />
-            <TokenStatsOverview />
-          </div>
-        </Suspense>
+        <DashboardClientComponents />
       </div>
     </HydrationBoundary>
   )
