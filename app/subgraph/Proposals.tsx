@@ -236,10 +236,8 @@ export function useActiveProposalsData(currentBlockNumber?: number) {
         if (currentBlockNumber) {
           // Use provided block number from global hook
           blockNumberToUse = currentBlockNumber.toString()
-          console.log('Using cached block number for active proposals:', blockNumberToUse)
         } else {
           // Fallback: fetch block number
-          console.log('Fetching block number for active proposals...')
           const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
             ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
             : BASE_CHAIN_CONFIG.rpcUrls[0]
