@@ -52,11 +52,23 @@ export default function InvestorPage({ params }: InvestorPageProps) {
 
   const [activeTab, setActiveTab] = useState("portfolio")
   const [isClient, setIsClient] = useState(false)
+  const [currentTime, setCurrentTime] = useState(new Date())
 
   // Ensure client-side rendering for time calculations
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Update time every second for accurate countdown
+  useEffect(() => {
+    if (!isClient) return;
+
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isClient]);
 
   // Handle loading and error states
   if (isLoadingInvestor || isLoadingTokens || isLoadingChallenge || isLoadingTransactions) {
@@ -161,9 +173,8 @@ export default function InvestorPage({ params }: InvestorPageProps) {
     }
     
     if (challengeDetails) {
-      const now = new Date();
       const endTime = challengeDetails.endTime;
-      const diff = endTime.getTime() - now.getTime();
+      const diff = endTime.getTime() - currentTime.getTime();
       
       if (diff <= 0) {
         return { text: "Challenge Ended", subText: `Ended on ${endTime.toLocaleDateString()}` };
@@ -171,9 +182,22 @@ export default function InvestorPage({ params }: InvestorPageProps) {
       
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      let timeText: string;
+      if (days > 0) {
+        timeText = `${days} days ${hours} hours`;
+      } else if (hours > 0) {
+        timeText = `${hours} hours ${minutes} minutes`;
+      } else if (minutes > 0) {
+        timeText = `${minutes} minutes ${seconds} seconds`;
+      } else {
+        timeText = `${seconds} seconds`;
+      }
       
       return { 
-        text: `${days} days ${hours} hours`, 
+        text: timeText, 
         subText: `Ends on ${endTime.toLocaleDateString()}` 
       };
     }

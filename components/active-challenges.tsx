@@ -27,10 +27,10 @@ interface ChallengeCardProps {
   challengeId: string
 }
 
-function calculateTimeLeft(startTime: string, endTime: string): string {
+function calculateTimeLeft(startTime: string, endTime: string, currentTime: Date = new Date()): string {
   const start = new Date(Number(startTime) * 1000)
   const end = new Date(Number(endTime) * 1000)
-  const now = new Date()
+  const now = currentTime
   
   // If challenge hasn't started yet
   if (now < start) {
@@ -70,12 +70,12 @@ function calculateTimeLeft(startTime: string, endTime: string): string {
   return `${seconds} seconds`
 }
 
-function calculateProgress(startTime: string, endTime: string, isCompleted: boolean): number {
+function calculateProgress(startTime: string, endTime: string, isCompleted: boolean, currentTime: Date = new Date()): number {
   if (isCompleted) return 100
   
   const start = new Date(Number(startTime) * 1000)
   const end = new Date(Number(endTime) * 1000)
-  const now = new Date()
+  const now = currentTime
   
   // If challenge hasn't started yet
   if (now < start) {
@@ -102,6 +102,7 @@ interface ActiveChallengesProps {
 export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const { data } = useActiveChallenges()
 
@@ -109,6 +110,17 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Update time every second for accurate countdown
+  useEffect(() => {
+    if (!isClient) return;
+
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isClient]);
 
   // Handle Create Challenge with selected type
   const handleCreateChallenge = async (challengeType: number) => {
@@ -288,9 +300,9 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       title: "1 week challenge",
       type: "1 week challenge",
       participants: Number(data.activeChallenges.one_week_investorCounter) || 0,
-      timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.one_week_startTime, data.activeChallenges.one_week_endTime) : "Loading...",
+      timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.one_week_startTime, data.activeChallenges.one_week_endTime, currentTime) : "Loading...",
       prize: `$${Number(data.activeChallenges.one_week_rewardAmountUSD).toFixed(2)}`,
-      progress: isClient ? calculateProgress(data.activeChallenges.one_week_startTime, data.activeChallenges.one_week_endTime, data.activeChallenges.one_week_isCompleted) : 0,
+      progress: isClient ? calculateProgress(data.activeChallenges.one_week_startTime, data.activeChallenges.one_week_endTime, data.activeChallenges.one_week_isCompleted, currentTime) : 0,
       status: data.activeChallenges.one_week_isCompleted ? "completed" : 
               (!data.activeChallenges.one_week_startTime || data.activeChallenges.one_week_startTime === "0") ? "pending" : "active",
       startTime: data.activeChallenges.one_week_startTime,
@@ -301,9 +313,9 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       title: "1 month challenge",
       type: "1 month challenge",
       participants: Number(data.activeChallenges.one_month_investorCounter) || 0,
-      timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.one_month_startTime, data.activeChallenges.one_month_endTime) : "Loading...",
+      timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.one_month_startTime, data.activeChallenges.one_month_endTime, currentTime) : "Loading...",
       prize: `$${Number(data.activeChallenges.one_month_rewardAmountUSD).toFixed(2)}`,
-      progress: isClient ? calculateProgress(data.activeChallenges.one_month_startTime, data.activeChallenges.one_month_endTime, data.activeChallenges.one_month_isCompleted) : 0,
+      progress: isClient ? calculateProgress(data.activeChallenges.one_month_startTime, data.activeChallenges.one_month_endTime, data.activeChallenges.one_month_isCompleted, currentTime) : 0,
       status: data.activeChallenges.one_month_isCompleted ? "completed" : 
               (!data.activeChallenges.one_month_startTime || data.activeChallenges.one_month_startTime === "0") ? "pending" : "active",
       startTime: data.activeChallenges.one_month_startTime,
@@ -314,9 +326,9 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       title: "3 months challenge",
       type: "3 months challenge",
       participants: Number(data.activeChallenges.three_month_investorCounter) || 0,
-      timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.three_month_startTime, data.activeChallenges.three_month_endTime) : "Loading...",
+      timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.three_month_startTime, data.activeChallenges.three_month_endTime, currentTime) : "Loading...",
       prize: `$${Number(data.activeChallenges.three_month_rewardAmountUSD).toFixed(2)}`,
-      progress: isClient ? calculateProgress(data.activeChallenges.three_month_startTime, data.activeChallenges.three_month_endTime, data.activeChallenges.three_month_isCompleted) : 0,
+      progress: isClient ? calculateProgress(data.activeChallenges.three_month_startTime, data.activeChallenges.three_month_endTime, data.activeChallenges.three_month_isCompleted, currentTime) : 0,
       status: data.activeChallenges.three_month_isCompleted ? "completed" : 
               (!data.activeChallenges.three_month_startTime || data.activeChallenges.three_month_startTime === "0") ? "pending" : "active",
       startTime: data.activeChallenges.three_month_startTime,
@@ -327,9 +339,9 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       title: "6 months challenge",
       type: "6 months challenge",
       participants: Number(data.activeChallenges.six_month_investorCounter) || 0,
-      timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.six_month_startTime, data.activeChallenges.six_month_endTime) : "Loading...",
+      timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.six_month_startTime, data.activeChallenges.six_month_endTime, currentTime) : "Loading...",
       prize: `$${Number(data.activeChallenges.six_month_rewardAmountUSD).toFixed(2)}`,
-      progress: isClient ? calculateProgress(data.activeChallenges.six_month_startTime, data.activeChallenges.six_month_endTime, data.activeChallenges.six_month_isCompleted) : 0,
+      progress: isClient ? calculateProgress(data.activeChallenges.six_month_startTime, data.activeChallenges.six_month_endTime, data.activeChallenges.six_month_isCompleted, currentTime) : 0,
       status: data.activeChallenges.six_month_isCompleted ? "completed" : 
               (!data.activeChallenges.six_month_startTime || data.activeChallenges.six_month_startTime === "0") ? "pending" : "active",
       startTime: data.activeChallenges.six_month_startTime,
@@ -340,9 +352,9 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       title: "1 year challenge",
       type: "1 year challenge",
       participants: Number(data.activeChallenges.one_year_investorCounter) || 0,
-      timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.one_year_startTime, data.activeChallenges.one_year_endTime) : "Loading...",
+      timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.one_year_startTime, data.activeChallenges.one_year_endTime, currentTime) : "Loading...",
       prize: `$${Number(data.activeChallenges.one_year_rewardAmountUSD).toFixed(2)}`,
-      progress: isClient ? calculateProgress(data.activeChallenges.one_year_startTime, data.activeChallenges.one_year_endTime, data.activeChallenges.one_year_isCompleted) : 0,
+      progress: isClient ? calculateProgress(data.activeChallenges.one_year_startTime, data.activeChallenges.one_year_endTime, data.activeChallenges.one_year_isCompleted, currentTime) : 0,
       status: data.activeChallenges.one_year_isCompleted ? "completed" : 
               (!data.activeChallenges.one_year_startTime || data.activeChallenges.one_year_startTime === "0") ? "pending" : "active",
       startTime: data.activeChallenges.one_year_startTime,

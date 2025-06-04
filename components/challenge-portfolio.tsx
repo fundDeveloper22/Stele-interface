@@ -34,6 +34,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const [isJoining, setIsJoining] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee();
   const { data: challengeData, isLoading: isLoadingChallenge, error: challengeError } = useChallenge(challengeId);
   const { data: transactions = [], isLoading: isLoadingTransactions, error: transactionsError } = useTransactions(challengeId);
@@ -47,6 +48,17 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
     // Set client-side flag
     setIsClient(true);
   }, []);
+
+  // Update time every second for accurate countdown
+  useEffect(() => {
+    if (!isClient) return;
+
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isClient]);
 
   // Handle navigation to account page
   const handleNavigateToAccount = async () => {
@@ -413,12 +425,12 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">{getChallengeTitle()}</h2>
         <div className="flex items-center gap-2">
-          <ChallengeTypeModal 
-            onCreateChallenge={handleCreateChallenge}
-            isCreating={isCreating}
-          />
-          
-          <Button variant="outline" size="sm" onClick={handleNavigateToAccount}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleNavigateToAccount}
+            className="bg-white text-black border-gray-200 hover:bg-gray-50"
+          >
             <User className="mr-2 h-4 w-4" />
             My Account
           </Button>
@@ -462,8 +474,24 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
           <CardContent>
             <div className="text-2xl font-bold">
               {isClient ? (
-                challengeDetails.endTime > new Date() ? 
-                  `${Math.floor((challengeDetails.endTime.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days ${Math.floor(((challengeDetails.endTime.getTime() - new Date().getTime()) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))} hours remaining` :
+                challengeDetails.endTime > currentTime ? 
+                  (() => {
+                    const diff = challengeDetails.endTime.getTime() - currentTime.getTime()
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+                    
+                    if (days > 0) {
+                      return `${days} days ${hours} hours remaining`
+                    } else if (hours > 0) {
+                      return `${hours} hours ${minutes} minutes remaining`
+                    } else if (minutes > 0) {
+                      return `${minutes} minutes ${seconds} seconds remaining`
+                    } else {
+                      return `${seconds} seconds remaining`
+                    }
+                  })() :
                   "Challenge Ended"
               ) : "Loading..."}
             </div>
