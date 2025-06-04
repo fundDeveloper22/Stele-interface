@@ -81,7 +81,9 @@ export function useActiveChallenges() {
     queryFn: async () => {
       return await request(SUBGRAPH_URL, ACTIVE_CHALLENGES_QUERY, {}, headers)
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    staleTime: 60000, // 1 minute - reduce frequency of refetches
+    gcTime: 300000, // 5 minutes - keep data in cache longer
+    retry: 3, // Retry failed requests
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   })
 } 
