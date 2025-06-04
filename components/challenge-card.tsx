@@ -224,7 +224,7 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
           <Link href={`/challenge/${challengeId}`} className="w-full">
             <Button className="w-full">
               <Trophy className="mr-2 h-4 w-4" />
-              Join Challenge
+              View Challenge
             </Button>
           </Link>
         ) : (
