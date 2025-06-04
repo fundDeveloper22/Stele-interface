@@ -23,6 +23,7 @@ import SteleABI from "@/app/abis/Stele.json"
 import ERC20ABI from "@/app/abis/ERC20.json"
 import { useChallenge } from "@/app/hooks/useChallenge"
 import { useTransactions } from "@/app/hooks/useTransactions"
+import { useInvestorData } from "@/app/subgraph/Account"
 
 interface ChallengePortfolioProps {
   challengeId: string
@@ -39,6 +40,15 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const { data: challengeData, isLoading: isLoadingChallenge, error: challengeError } = useChallenge(challengeId);
   const { data: transactions = [], isLoading: isLoadingTransactions, error: transactionsError } = useTransactions(challengeId);
   
+  // Check if current user has joined this challenge
+  const { data: investorData, isLoading: isLoadingInvestor } = useInvestorData(
+    challengeId, 
+    walletAddress || ""
+  );
+
+  // Check if user has joined the challenge
+  const hasJoinedChallenge = investorData?.investor !== undefined && investorData?.investor !== null;
+
   useEffect(() => {
     // Get wallet address from localStorage
     const storedAddress = localStorage.getItem('walletAddress');
@@ -435,24 +445,30 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
             My Account
           </Button>
           
-          <Button variant="outline" size="sm" onClick={handleJoinChallenge} disabled={isJoining || isLoadingEntryFee}>
-            {isJoining ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Joining...
-              </>
-            ) : isLoadingEntryFee ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              <>
-          <LineChart className="mr-2 h-4 w-4" />
-                Join Challenge ({entryFee} USDC)
-              </>
-            )}
-        </Button>
+          {hasJoinedChallenge ? (
+            <Button variant="outline" size="sm" disabled>
+              Joined
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={handleJoinChallenge} disabled={isJoining || isLoadingEntryFee}>
+              {isJoining ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Joining...
+                </>
+              ) : isLoadingEntryFee ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <LineChart className="mr-2 h-4 w-4" />
+                  Join Challenge ({entryFee} USDC)
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 
