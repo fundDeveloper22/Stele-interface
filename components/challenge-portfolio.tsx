@@ -496,6 +496,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
               size="sm" 
               onClick={handleNavigateToAccount}
               className="bg-white text-black border-gray-200 hover:bg-gray-50"
+            >
               <User className="mr-2 h-4 w-4" />
               My Account
             </Button>
