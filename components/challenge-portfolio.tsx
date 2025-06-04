@@ -490,19 +490,14 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">{getChallengeTitle()}</h2>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleNavigateToAccount}
-            className="bg-white text-black border-gray-200 hover:bg-gray-50"
-          >
-            <User className="mr-2 h-4 w-4" />
-            My Account
-          </Button>
-          
           {hasJoinedChallenge ? (
-            <Button variant="outline" size="sm" disabled>
-              Joined
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleNavigateToAccount}
+              className="bg-white text-black border-gray-200 hover:bg-gray-50"
+              <User className="mr-2 h-4 w-4" />
+              My Account
             </Button>
           ) : (
             <Button variant="outline" size="sm" onClick={handleJoinChallenge} disabled={isJoining || isLoadingEntryFee}>
