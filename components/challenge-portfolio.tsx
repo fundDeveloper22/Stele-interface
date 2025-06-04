@@ -182,7 +182,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const handleJoinChallenge = async () => {
     setIsJoining(true);
     
-    try {
+    try {      
       // Check if Phantom wallet is installed
       if (typeof window.phantom === 'undefined') {
         throw new Error("Phantom wallet is not installed. Please install it from https://phantom.app/");
@@ -201,6 +201,8 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       if (!accounts || accounts.length === 0) {
         throw new Error("No accounts found. Please connect to Phantom wallet first.");
       }
+
+      const userAddress = accounts[0];
 
       // Check if we are on Base network
       const chainId = await window.phantom.ethereum.request({
@@ -249,68 +251,121 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         ERC20ABI.abi,
         signer
       );
-
       // Convert entryFee from string to the proper format for the contract
       const discountedEntryFeeAmount = ethers.parseUnits(entryFee, USDC_DECIMALS);
 
-      // First approve the Stele contract to spend USDC
-      const approveTx = await usdcContract.approve(STELE_CONTRACT_ADDRESS, discountedEntryFeeAmount);
-      
-      // Show toast notification for approve transaction submitted
-      toast({
-        title: "Approval Submitted",
-        description: "Your USDC approval transaction has been sent to the network.",
-        action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${approveTx.hash}`, '_blank')}>
-            View on BaseScan
-          </ToastAction>
-        ),
-      });
-      
-      // Wait for approve transaction to be mined
-      await approveTx.wait();
-      
-      // Show toast notification for approve transaction confirmed
-      toast({
-        title: "Approval Confirmed",
-        description: `You have successfully approved ${entryFee} USDC for Stele contract.`,
-        action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${approveTx.hash}`, '_blank')}>
-            View on BaseScan
-          </ToastAction>
-        ),
-      });
+      // Check current USDC balance
+      try {
+        const usdcBalance = await usdcContract.balanceOf(userAddress);        
+        if (usdcBalance < discountedEntryFeeAmount) {
+          const balanceFormatted = ethers.formatUnits(usdcBalance, USDC_DECIMALS);
+          throw new Error(`❌ Insufficient USDC balance. You have ${balanceFormatted} USDC but need ${entryFee} USDC.`);
+        }
+      } catch (balanceError: any) {
+        console.error("❌ Error checking USDC balance:", balanceError);
+        throw balanceError;
+      }
 
-      // Now call joinChallenge with challenge ID 1
-      const tx = await steleContract.joinChallenge("1");
-      
-      // Show toast notification for transaction submitted
-      toast({
-        title: "Transaction Submitted",
-        description: "Your join challenge transaction has been sent to the network.",
-        action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-            View on BaseScan
-          </ToastAction>
-        ),
-      });
-      
-      // Wait for transaction to be mined
-      await tx.wait();
-      
-      // Show toast notification for transaction confirmed
-      toast({
-        title: "Challenge Joined",
-        description: "You have successfully joined the challenge!",
-        action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-            View on BaseScan
-          </ToastAction>
-        ),
-      });
+      // Check current allowance
+      try {
+        const currentAllowance = await usdcContract.allowance(userAddress, STELE_CONTRACT_ADDRESS);
+        if (currentAllowance < discountedEntryFeeAmount) {
+          
+          // Estimate gas for approval
+          try {
+            const approveGasEstimate = await usdcContract.approve.estimateGas(STELE_CONTRACT_ADDRESS, discountedEntryFeeAmount);
+            const approveTx = await usdcContract.approve(STELE_CONTRACT_ADDRESS, discountedEntryFeeAmount, {
+              gasLimit: approveGasEstimate + BigInt(10000) // Add 10k gas buffer
+            });
+                        
+            // Show toast notification for approve transaction submitted
+            toast({
+              title: "Approval Submitted",
+              description: "Your USDC approval transaction has been sent to the network.",
+              action: (
+                <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${approveTx.hash}`, '_blank')}>
+                  View on BaseScan
+                </ToastAction>
+              ),
+            });
+            
+            // Wait for approve transaction to be mined
+            await approveTx.wait();
+            
+            // Show toast notification for approve transaction confirmed
+            toast({
+              title: "Approval Confirmed",
+              description: `You have successfully approved ${entryFee} USDC for Stele contract.`,
+              action: (
+                <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${approveTx.hash}`, '_blank')}>
+                  View on BaseScan
+                </ToastAction>
+              ),
+            });
+          } catch (approveError: any) {
+            console.error("❌ Approval failed:", approveError);
+            throw new Error(`Failed to approve USDC: ${approveError.message}`);
+          }
+        } else {
+          console.log("✅ Sufficient allowance already exists");
+        }
+      } catch (allowanceError: any) {
+        console.error("❌ Error checking allowance:", allowanceError);
+        throw allowanceError;
+      }
+
+      // Now try to join the challenge
+      try {
+        // Estimate gas for joinChallenge
+        const joinGasEstimate = await steleContract.joinChallenge.estimateGas(challengeId);
+
+        const tx = await steleContract.joinChallenge(challengeId, {
+          gasLimit: joinGasEstimate + BigInt(20000) // Add 20k gas buffer
+        });
+                
+        // Show toast notification for transaction submitted
+        toast({
+          title: "Transaction Submitted",
+          description: "Your join challenge transaction has been sent to the network.",
+          action: (
+            <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
+              View on BaseScan
+            </ToastAction>
+          ),
+        });
+        
+        // Wait for transaction to be mined
+        await tx.wait();
+        
+        // Show toast notification for transaction confirmed
+        toast({
+          title: "Challenge Joined",
+          description: "You have successfully joined the challenge!",
+          action: (
+            <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
+              View on BaseScan
+            </ToastAction>
+          ),
+        });
+      } catch (joinError: any) {
+        console.error("❌ Join challenge failed:", joinError);
+        
+        // More specific error handling for join challenge
+        if (joinError.message.includes("insufficient funds")) {
+          throw new Error("Insufficient ETH for gas fees. Please add ETH to your wallet.");
+        } else if (joinError.message.includes("user rejected")) {
+          throw new Error("Transaction was rejected by user.");
+        } else if (joinError.message.includes("already joined") || joinError.message.includes("AlreadyJoined")) {
+          throw new Error("You have already joined this challenge.");
+        } else if (joinError.message.includes("missing revert data")) {
+          throw new Error(`Contract execution failed. This might be due to:\n- Insufficient USDC balance\n- Challenge not active\n- Already joined\n- Invalid challenge ID\n\nPlease check the console for detailed logs.`);
+        } else {
+          throw new Error(`Failed to join challenge: ${joinError.message}`);
+        }
+      }
       
     } catch (error: any) {
-      console.error("Error joining challenge:", error);
+      console.error("❌ Error joining challenge:", error);
       
       // Show toast notification for error
       toast({
