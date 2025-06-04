@@ -4,7 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/header"
-import { BlockNumberDisplay } from "@/app/components/BlockNumberDisplay"
+import { BlockNumberDisplay } from "@/components/BlockNumberDisplay"
 import { EntryFeeProvider } from "@/lib/hooks/use-entry-fee"
 import QueryProvider from "../components/QueryProvider"
 
