@@ -207,7 +207,9 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
         <div className="space-y-3">
           <div className="flex justify-between text-sm">
             <span>Progress</span>
-            <span className="font-medium">{timeLeft} remaining</span>
+            <span className="font-medium">
+              {timeLeft.toLowerCase() === "completed" ? timeLeft : `${timeLeft} left`}
+            </span>
           </div>
           <Progress value={progress} className="h-2" />
         </div>
