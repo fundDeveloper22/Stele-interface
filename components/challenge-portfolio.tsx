@@ -307,7 +307,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
             throw new Error(`Failed to approve USDC: ${approveError.message}`);
           }
         } else {
-          console.log("✅ Sufficient allowance already exists");
+
         }
       } catch (allowanceError: any) {
         console.error("❌ Error checking allowance:", allowanceError);
