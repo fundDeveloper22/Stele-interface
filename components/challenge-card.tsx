@@ -25,11 +25,13 @@ interface ChallengeCardProps {
   progress: number
   status: "active" | "pending" | "completed"
   startTime: string
+  endTime: string
+  isCompleted: boolean
   walletAddress?: string
   challengeId: string
 }
 
-export function ChallengeCard({ title, type, participants, timeLeft, prize, progress, status, id, startTime, walletAddress, challengeId }: ChallengeCardProps) {
+export function ChallengeCard({ title, type, participants, timeLeft, prize, progress, status, id, startTime, endTime, isCompleted, walletAddress, challengeId }: ChallengeCardProps) {
   // If no ID is provided, convert the title to kebab-case and use it as ID
   const displayId = id || title.toLowerCase().replace(/\s+/g, '-');
   
@@ -220,32 +222,80 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
         </div>
       </CardContent>
       <CardFooter>
-        {status === "active" ? (
-          <Link href={`/challenge/${challengeId}`} className="w-full">
-            <Button className="w-full">
-              <Trophy className="mr-2 h-4 w-4" />
-              Join Challenge
+        {(() => {
+          // View Challenge 버튼은 항상 보임
+          const showViewChallenge = true;
+          
+          // Create Challenge 버튼은 isCompleted가 true이거나 현재시간이 endTime을 지났을 경우 보임
+          const currentTime = new Date();
+          const endTimeDate = new Date(Number(endTime) * 1000);
+          const showCreateChallenge = isCompleted || currentTime > endTimeDate;
+
+          // 두 버튼이 모두 보이는 경우
+          if (showViewChallenge && showCreateChallenge) {
+            return (
+              <div className="flex gap-2 w-full">
+                <Link href={`/challenge/${challengeId}`} className="flex-1">
+                  <Button className="w-full">
+                    <Trophy className="mr-2 h-4 w-4" />
+                    View Challenge
+                  </Button>
+                </Link>
+                <Button 
+                  className="flex-1" 
+                  onClick={handleCreateChallenge}
+                  disabled={isCreating}
+                  variant="outline"
+                >
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Trophy className="mr-2 h-4 w-4" />
+                      Create Challenge
+                    </>
+                  )}
+                </Button>
+              </div>
+            );
+          }
+          
+          // View Challenge 버튼만 보이는 경우
+          if (showViewChallenge && !showCreateChallenge) {
+            return (
+              <Link href={`/challenge/${challengeId}`} className="w-full">
+                <Button className="w-full">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  View Challenge
+                </Button>
+              </Link>
+            );
+          }
+
+          // Create Challenge 버튼만 보이는 경우 (이 경우는 발생하지 않을 것임)
+          return (
+            <Button 
+              className="w-full" 
+              onClick={handleCreateChallenge}
+              disabled={isCreating}
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Trophy className="mr-2 h-4 w-4" />
+                  Create Challenge
+                </>
+              )}
             </Button>
-          </Link>
-        ) : (
-          <Button 
-            className="w-full" 
-            onClick={handleCreateChallenge}
-            disabled={isCreating}
-          >
-            {isCreating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <Trophy className="mr-2 h-4 w-4" />
-                Create Challenge
-              </>
-            )}
-          </Button>
-        )}
+          );
+        })()}
       </CardFooter>
     </Card>
   )
