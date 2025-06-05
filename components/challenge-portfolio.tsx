@@ -33,6 +33,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [isGettingRewards, setIsGettingRewards] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -485,11 +486,139 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
     }
   };
 
+  // Handle Get Rewards
+  const handleGetRewards = async () => {
+    setIsGettingRewards(true);
+    
+    try {
+      // Check if Phantom wallet is installed
+      if (typeof window.phantom === 'undefined') {
+        throw new Error("Phantom wallet is not installed. Please install it from https://phantom.app/");
+      }
+
+      // Check if Ethereum provider is available
+      if (!window.phantom?.ethereum) {
+        throw new Error("Ethereum provider not found in Phantom wallet");
+      }
+
+      // Request account access
+      const accounts = await window.phantom.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No accounts found. Please connect to Phantom wallet first.");
+      }
+
+      // Check if we are on Base network
+      const chainId = await window.phantom.ethereum.request({
+        method: 'eth_chainId'
+      });
+
+      if (chainId !== BASE_CHAIN_ID) {
+        // Switch to Base network
+        try {
+          await window.phantom.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: BASE_CHAIN_ID }],
+          });
+        } catch (switchError: any) {
+          // This error code indicates that the chain has not been added to the wallet
+          if (switchError.code === 4902) {
+            await window.phantom.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [BASE_CHAIN_CONFIG],
+            });
+          } else {
+            throw switchError;
+          }
+        }
+      }
+
+      // Create a Web3Provider using the Phantom ethereum provider
+      const provider = new ethers.BrowserProvider(window.phantom.ethereum);
+      
+      // Get the signer
+      const signer = await provider.getSigner();
+      
+      // Create contract instance
+      const steleContract = new ethers.Contract(
+        STELE_CONTRACT_ADDRESS,
+        SteleABI.abi,
+        signer
+      );
+
+      // Call getRewards function
+      const tx = await steleContract.getRewards(challengeId);
+      
+      // Show toast notification for transaction submitted
+      toast({
+        title: "Transaction Submitted",
+        description: "Your reward claim transaction has been sent to the network.",
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+      
+      // Wait for transaction to be mined
+      await tx.wait();
+      
+      // Show toast notification for transaction confirmed
+      toast({
+        title: "Rewards Claimed!",
+        description: "Your challenge rewards have been successfully claimed!",
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+      
+    } catch (error: any) {
+      console.error("Error claiming rewards:", error);
+      
+      // Show toast notification for error
+      toast({
+        variant: "destructive",
+        title: "Error Claiming Rewards",
+        description: error.message || "An unknown error occurred",
+      });
+      
+    } finally {
+      setIsGettingRewards(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">{getChallengeTitle()}</h2>
         <div className="flex items-center gap-2">
+          {/* Get Rewards 버튼 - Challenge가 끝났을 때만 표시 */}
+          {isClient && challengeDetails.endTime <= currentTime && (
+            <Button 
+              variant="default" 
+              size="sm" 
+              onClick={handleGetRewards}
+              disabled={isGettingRewards}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white"
+            >
+              {isGettingRewards ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Claiming...
+                </>
+              ) : (
+                <>
+                  <Trophy className="mr-2 h-4 w-4" />
+                  Get Rewards
+                </>
+              )}
+            </Button>
+          )}
+          
           {hasJoinedChallenge ? (
             <Button 
               variant="outline" 
