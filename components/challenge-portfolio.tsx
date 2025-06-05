@@ -652,14 +652,16 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Participants</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{challengeDetails.participants}</div>
-            <div className="text-sm text-muted-foreground">Total participants</div>
+            <div className="flex items-center mt-1 text-sm">
+              <span className="text-muted-foreground">Total participants</span>
+            </div>
           </CardContent>
         </Card>
 
@@ -691,8 +693,10 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
                   "Challenge Ended"
               ) : "Loading..."}
             </div>
-            <div className="text-sm text-muted-foreground">
-              {isClient ? `Ends on ${challengeDetails.endTime.toLocaleDateString()}` : "Calculating..."}
+            <div className="flex items-center mt-1 text-sm">
+              <span className="text-muted-foreground">
+                {isClient ? `Ends on ${challengeDetails.endTime.toLocaleDateString()}` : "Calculating..."}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -703,7 +707,9 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{challengeDetails.prize}</div>
-            <div className="text-sm text-muted-foreground">Challenge reward</div>
+            <div className="flex items-center mt-1 text-sm">
+              <span className="text-muted-foreground">Challenge reward</span>
+            </div>
           </CardContent>
         </Card>
       </div>
