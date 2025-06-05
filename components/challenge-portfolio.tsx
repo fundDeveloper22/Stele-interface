@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowRight, BarChart3, LineChart, PieChart, Loader2, User, Receipt, ArrowLeftRight, Trophy } from "lucide-react"
+import { ArrowRight, BarChart3, LineChart, PieChart, Loader2, User, Receipt, ArrowLeftRight, Trophy, Medal, Crown } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { ethers } from "ethers"
@@ -23,10 +23,115 @@ import SteleABI from "@/app/abis/Stele.json"
 import ERC20ABI from "@/app/abis/ERC20.json"
 import { useChallenge } from "@/app/hooks/useChallenge"
 import { useTransactions } from "@/app/hooks/useTransactions"
+import { useRanking } from "@/app/hooks/useRanking"
 import { useInvestorData } from "@/app/subgraph/Account"
 
 interface ChallengePortfolioProps {
   challengeId: string
+}
+
+// Ranking Section Component
+function RankingSection({ challengeId }: { challengeId: string }) {
+  const { data: rankingData, isLoading: isLoadingRanking, error: rankingError } = useRanking(challengeId);
+
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const formatScore = (score: string) => {
+    // Convert BigInt score to a readable format
+    const scoreValue = parseFloat(score) / 1e18; // Assuming 18 decimals
+    return scoreValue.toFixed(2);
+  };
+
+  const getRankIcon = (rank: number) => {
+    switch (rank) {
+      case 1:
+        return <Crown className="h-5 w-5 text-yellow-500" />;
+      case 2:
+        return <Medal className="h-5 w-5 text-gray-400" />;
+      case 3:
+        return <Medal className="h-5 w-5 text-amber-600" />;
+      default:
+        return <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs font-bold text-gray-600">{rank}</div>;
+    }
+  };
+
+  const getRankColor = (rank: number) => {
+    switch (rank) {
+      case 1:
+        return 'bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200';
+      case 2:
+        return 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200';
+      case 3:
+        return 'bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200';
+      default:
+        return 'bg-white border-gray-200';
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-base">Ranking</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {isLoadingRanking ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2 text-muted-foreground">Loading rankings...</span>
+            </div>
+          ) : rankingError ? (
+            <div className="text-center py-8 text-red-600">
+              <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="font-medium">Error loading rankings</p>
+              <p className="text-sm text-muted-foreground mt-2">{rankingError.message}</p>
+            </div>
+          ) : rankingData && rankingData.topUsers.length > 0 ? (
+            rankingData.topUsers.map((user, index) => {
+              const rank = index + 1;
+              const score = rankingData.scores[index];
+              
+              return (
+                <div 
+                  key={`${user}-${rank}`} 
+                  className={`flex items-center justify-between p-3 rounded-lg border ${getRankColor(rank)}`}
+                >
+                  <div className="flex items-center gap-3">
+                    {getRankIcon(rank)}
+                    <div>
+                      <div className="font-medium">{formatAddress(user)}</div>
+                      <div className="text-sm text-muted-foreground">
+                        Rank #{rank}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-lg">{formatScore(score)}</div>
+                    <div className="text-xs text-muted-foreground">Score</div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No ranking data available</p>
+              <p className="text-sm mt-1">Rankings will appear once users start trading</p>
+            </div>
+          )}
+        </div>
+        {rankingData && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="text-xs text-muted-foreground text-center">
+              Last updated: {new Date(parseInt(rankingData.updatedAtTimestamp) * 1000).toLocaleString()}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
@@ -714,111 +819,117 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         </Card>
       </div>
 
-      {/* Transactions Section */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Recent Transactions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {isLoadingTransactions ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin" />
-                <span className="ml-2 text-muted-foreground">Loading transactions...</span>
-              </div>
-            ) : transactionsError ? (
-              <div className="text-center py-8 text-red-600">
-                <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="font-medium">Error loading transactions</p>
-                <p className="text-sm text-muted-foreground mt-2">{transactionsError.message}</p>
-                <p className="text-xs text-muted-foreground mt-1">Check console for more details</p>
-              </div>
-            ) : transactions.length > 0 ? (
-              transactions.slice(0, 10).map((transaction) => {
-                const getTransactionIcon = (type: string) => {
-                  switch (type) {
-                    case 'create':
-                      return <Trophy className="h-4 w-4 text-white" />
-                    case 'join':
-                      return <User className="h-4 w-4 text-white" />
-                    case 'swap':
-                      return <ArrowLeftRight className="h-4 w-4 text-white" />
-                    case 'register':
-                      return <BarChart3 className="h-4 w-4 text-white" />
-                    case 'reward':
-                      return <Trophy className="h-4 w-4 text-white" />
-                    default:
-                      return <Receipt className="h-4 w-4 text-white" />
+      {/* Transactions and Ranking Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Transactions */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Recent Transactions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {isLoadingTransactions ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span className="ml-2 text-muted-foreground">Loading transactions...</span>
+                </div>
+              ) : transactionsError ? (
+                <div className="text-center py-8 text-red-600">
+                  <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="font-medium">Error loading transactions</p>
+                  <p className="text-sm text-muted-foreground mt-2">{transactionsError.message}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Check console for more details</p>
+                </div>
+              ) : transactions.length > 0 ? (
+                transactions.slice(0, 10).map((transaction) => {
+                  const getTransactionIcon = (type: string) => {
+                    switch (type) {
+                      case 'create':
+                        return <Trophy className="h-4 w-4 text-white" />
+                      case 'join':
+                        return <User className="h-4 w-4 text-white" />
+                      case 'swap':
+                        return <ArrowLeftRight className="h-4 w-4 text-white" />
+                      case 'register':
+                        return <BarChart3 className="h-4 w-4 text-white" />
+                      case 'reward':
+                        return <Trophy className="h-4 w-4 text-white" />
+                      default:
+                        return <Receipt className="h-4 w-4 text-white" />
+                    }
                   }
-                }
 
-                const getIconColor = (type: string) => {
-                  switch (type) {
-                    case 'create':
-                      return 'bg-purple-500'
-                    case 'join':
-                      return 'bg-blue-500'
-                    case 'swap':
-                      return 'bg-green-500'
-                    case 'register':
-                      return 'bg-orange-500'
-                    case 'reward':
-                      return 'bg-yellow-500'
-                    default:
-                      return 'bg-gray-500'
+                  const getIconColor = (type: string) => {
+                    switch (type) {
+                      case 'create':
+                        return 'bg-purple-500'
+                      case 'join':
+                        return 'bg-blue-500'
+                      case 'swap':
+                        return 'bg-green-500'
+                      case 'register':
+                        return 'bg-orange-500'
+                      case 'reward':
+                        return 'bg-yellow-500'
+                      default:
+                        return 'bg-gray-500'
+                    }
                   }
-                }
 
-                const formatTimestamp = (timestamp: number) => {
-                  return new Date(timestamp * 1000).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })
-                }
+                  const formatTimestamp = (timestamp: number) => {
+                    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })
+                  }
 
-                const formatUserAddress = (address?: string) => {
-                  if (!address) return ''
-                  return `${address.slice(0, 6)}...${address.slice(-4)}`
-                }
+                  const formatUserAddress = (address?: string) => {
+                    if (!address) return ''
+                    return `${address.slice(0, 6)}...${address.slice(-4)}`
+                  }
 
-                return (
-                  <div key={transaction.id} className="flex items-center justify-between py-3 border-b border-border last:border-b-0">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
-                        {getTransactionIcon(transaction.type)}
-                      </div>
-                      <div>
-                        <div className="font-medium">{transaction.details}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {formatTimestamp(transaction.timestamp)}
-                          {transaction.user && ` • ${formatUserAddress(transaction.user)}`}
+                  return (
+                    <div key={transaction.id} className="flex items-center justify-between py-3 border-b border-border last:border-b-0">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
+                          {getTransactionIcon(transaction.type)}
+                        </div>
+                        <div>
+                          <div className="font-medium">{transaction.details}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {formatTimestamp(transaction.timestamp)}
+                            {transaction.user && ` • ${formatUserAddress(transaction.user)}`}
+                          </div>
                         </div>
                       </div>
+                      <div className="text-right">
+                        <div className="font-medium">{transaction.amount || '-'}</div>
+                        <button
+                          onClick={() => window.open(`https://basescan.org/tx/${transaction.transactionHash}`, '_blank')}
+                          className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                        >
+                          View on BaseScan
+                        </button>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-medium">{transaction.amount || '-'}</div>
-                      <button
-                        onClick={() => window.open(`https://basescan.org/tx/${transaction.transactionHash}`, '_blank')}
-                        className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
-                      >
-                        View on BaseScan
-                      </button>
-                    </div>
-                  </div>
-                )
-              })
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No transactions found for this challenge</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                  )
+                })
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No transactions found for this challenge</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Ranking Section */}
+        <RankingSection challengeId={challengeId} />
+      </div>
 
     </div>
   )

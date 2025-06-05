@@ -14,7 +14,7 @@ export const BASE_CHAIN_CONFIG = {
 export const BASE_BLOCK_TIME_MS = 2; // 2 seconds per block
 
 // Contract Addresses
-export const STELE_CONTRACT_ADDRESS = "0x30116F4a15146534a90B56c3Fbe26155ABEec1b5";
+export const STELE_CONTRACT_ADDRESS = "0x2D14C45D63901b9e8a3ee6709bC6f44a2882CB35";
 export const STELE_TOKEN_ADDRESS = "0x6626806335C4BA670A7d25e70D21C1c007031b9F"; // Stele Token for voting
 export const USDC_TOKEN_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base Mainnet USDC
 export const GOVERNANCE_CONTRACT_ADDRESS = "0xcdb05851bB66A42DC451f3565a0397456B736acA"; // Base Mainnet Governance
