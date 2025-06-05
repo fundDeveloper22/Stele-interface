@@ -25,7 +25,8 @@ import {
   Trophy,
   ArrowLeft,
   Loader2,
-  Receipt
+  Receipt,
+  FileText
 } from "lucide-react"
 import { AssetSwap } from "@/components/asset-swap"
 import { useInvestorData } from "@/app/subgraph/Account"
@@ -33,6 +34,15 @@ import { useUserTokens } from "@/app/hooks/useUserTokens"
 import { useChallenge } from "@/app/hooks/useChallenge"
 import { useInvestorTransactions } from "@/app/hooks/useInvestorTransactions"
 import Link from "next/link"
+import { ethers } from "ethers"
+import { toast } from "@/components/ui/use-toast"
+import { ToastAction } from "@/components/ui/toast"
+import { 
+  BASE_CHAIN_ID, 
+  BASE_CHAIN_CONFIG, 
+  STELE_CONTRACT_ADDRESS
+} from "@/lib/constants"
+import SteleABI from "@/app/abis/Stele.json"
 
 interface InvestorPageProps {
   params: Promise<{
@@ -53,6 +63,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   const [activeTab, setActiveTab] = useState("portfolio")
   const [isClient, setIsClient] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [isRegistering, setIsRegistering] = useState(false)
 
   // Ensure client-side rendering for time calculations
   useEffect(() => {
@@ -208,9 +219,120 @@ export default function InvestorPage({ params }: InvestorPageProps) {
 
   const timeRemaining = getTimeRemaining();
 
+  // Handle Register function
+  const handleRegister = async () => {
+    setIsRegistering(true);
+    
+    try {
+      // Check if Phantom wallet is installed
+      if (typeof window.phantom === 'undefined') {
+        throw new Error("Phantom wallet is not installed. Please install it from https://phantom.app/");
+      }
+
+      // Check if Ethereum provider is available
+      if (!window.phantom?.ethereum) {
+        throw new Error("Ethereum provider not found in Phantom wallet");
+      }
+
+      // Request account access
+      const accounts = await window.phantom.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No accounts found. Please connect to Phantom wallet first.");
+      }
+
+      // Verify the connected wallet matches the investor address
+      const connectedAddress = accounts[0].toLowerCase();
+      if (connectedAddress !== walletAddress.toLowerCase()) {
+        throw new Error(`Please connect with the correct wallet address: ${walletAddress}`);
+      }
+
+      // Check if we are on Base network
+      const chainId = await window.phantom.ethereum.request({
+        method: 'eth_chainId'
+      });
+
+      if (chainId !== BASE_CHAIN_ID) {
+        // Switch to Base network
+        try {
+          await window.phantom.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: BASE_CHAIN_ID }],
+          });
+        } catch (switchError: any) {
+          // This error code indicates that the chain has not been added to the wallet
+          if (switchError.code === 4902) {
+            await window.phantom.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [BASE_CHAIN_CONFIG],
+            });
+          } else {
+            throw switchError;
+          }
+        }
+      }
+
+      // Create a Web3Provider using the Phantom ethereum provider
+      const provider = new ethers.BrowserProvider(window.phantom.ethereum);
+      
+      // Get the signer
+      const signer = await provider.getSigner();
+      
+      // Create contract instance
+      const steleContract = new ethers.Contract(
+        STELE_CONTRACT_ADDRESS,
+        SteleABI.abi,
+        signer
+      );
+
+      // Call register function with challengeId
+      const tx = await steleContract.register(challengeId);
+      
+      // Show toast notification for transaction submitted
+      toast({
+        title: "Registration Submitted",
+        description: "Your investor registration transaction has been sent to the network.",
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+      
+      // Wait for transaction to be mined
+      await tx.wait();
+      
+      // Show toast notification for transaction confirmed
+      toast({
+        title: "Registration Complete!",
+        description: "Your investor information has been successfully registered!",
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+      
+    } catch (error: any) {
+      console.error("Error registering investor:", error);
+      
+      // Show toast notification for error
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error.message || "An unknown error occurred",
+      });
+      
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-2">
@@ -222,24 +344,51 @@ export default function InvestorPage({ params }: InvestorPageProps) {
               Back to Challenge
             </Link>
             <div>
-              <h1 className="text-3xl font-bold">Investor Account</h1>
-              <p className="text-muted-foreground">
-                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-              </p>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold">Investor Account</h1>
+                <p className="text-muted-foreground">
+                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                </p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
-              {challengeData?.challenge?.isActive ? "Active" : "Inactive"}
-            </Badge>
-            <Badge variant="outline">
-              {getChallengeTitle()}
-            </Badge>
-            {challengeDetails && (
-              <Badge variant="outline">
-                {challengeDetails.participants} participants
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
+                {challengeData?.challenge?.isActive ? "Active" : "Inactive"}
               </Badge>
-            )}
+              <Badge variant="outline">
+                {getChallengeTitle()}
+              </Badge>
+              {challengeDetails && (
+                <Badge variant="outline">
+                  {challengeDetails.participants} participants
+                </Badge>
+              )}
+            </div>
+            
+            {/* Register Button */}
+            <div className="flex justify-end">
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={handleRegister}
+                disabled={isRegistering}
+                className="bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                {isRegistering ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Registering...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Register
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 
