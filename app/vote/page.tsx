@@ -702,7 +702,7 @@ export default function VotePage() {
   if ((error || errorActive || errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError) && proposals.length === 0 && activeProposals.length === 0 && completedProposals.length === 0) {
     return (
       <div className="container mx-auto py-6">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        <div className="bg-red-900/20 border border-red-700/50 text-red-400 px-4 py-3 rounded-md">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{error?.message || 'Failed to load data'}</p>
         </div>
@@ -713,7 +713,7 @@ export default function VotePage() {
             refetchActionable()
             refetchCompletedByStatus()
             refetchAllByStatus()
-          }}>Retry</Button>
+          }} className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">Retry</Button>
         </div>
       </div>
     )
@@ -722,7 +722,7 @@ export default function VotePage() {
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Governance</h1>
+        <h1 className="text-2xl font-bold text-gray-100">Governance</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => {
             refetch()
@@ -730,12 +730,12 @@ export default function VotePage() {
             refetchActionable()
             refetchCompletedByStatus()
             refetchAllByStatus()
-          }} disabled={isLoading || isLoadingActive || isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus}>
+          }} disabled={isLoading || isLoadingActive || isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus} className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
             <Clock className="mr-2 h-4 w-4" />
             Refresh
           </Button>
           <Link href="/vote/create">
-            <Button variant="outline">
+            <Button variant="outline" className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
               <Plus className="mr-2 h-4 w-4" />
               Create Proposal
             </Button>
@@ -745,7 +745,7 @@ export default function VotePage() {
 
       {/* Wallet Token Info Card */}
       {isConnected && (
-        <Card className="mb-6">
+        <Card className="mb-6 bg-gray-900/50 border-gray-700/50">
           {/* Delegate Button - Show prominently when user has tokens but is not delegated */}
           {!isLoadingWalletTokenInfo && walletTokenInfo && 
            Number(walletTokenInfo.formattedBalance) > 0 && 
@@ -753,15 +753,15 @@ export default function VotePage() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-orange-600">⚠️ Delegate Required to Vote</h3>
-                  <p className="text-xs text-muted-foreground">You need to delegate your tokens to participate in governance</p>
+                  <h3 className="text-sm font-medium text-orange-400">⚠️ Delegate Required to Vote</h3>
+                  <p className="text-xs text-gray-400">You need to delegate your tokens to participate in governance</p>
                 </div>
                 <Button 
                   variant="outline"
                   size="sm"
                   onClick={handleDelegate}
                   disabled={isDelegating}
-                  className="border-orange-200 text-orange-600 hover:bg-orange-50"
+                  className="border-orange-600 text-orange-400 hover:bg-orange-900/20 bg-gray-800"
                 >
                   {isDelegating ? (
                     <div className="flex items-center">
@@ -782,27 +782,27 @@ export default function VotePage() {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <h3 className="text-sm font-medium text-muted-foreground">Connected Wallet</h3>
-                <p className="text-sm font-mono">{walletAddress}</p>
+                <h3 className="text-sm font-medium text-gray-400">Connected Wallet</h3>
+                <p className="text-sm font-mono text-gray-100">{walletAddress}</p>
               </div>
               
               {isLoadingWalletTokenInfo ? (
                 <div className="flex items-center space-x-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm text-muted-foreground">Loading token info...</span>
+                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                  <span className="text-sm text-gray-400">Loading token info...</span>
                 </div>
               ) : walletTokenInfo ? (
                 <div className="text-right space-y-1">
                   <div className="text-sm">
-                    <span className="font-medium">Balance: </span>
-                    <span className="font-mono">{Number(walletTokenInfo.formattedBalance).toLocaleString()} STELE</span>
+                    <span className="font-medium text-gray-300">Balance: </span>
+                    <span className="font-mono text-gray-100">{Number(walletTokenInfo.formattedBalance).toLocaleString()} STELE</span>
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-gray-400">
                     <span>Delegated to: </span>
                     {walletTokenInfo.delegatedTo === "0x0000000000000000000000000000000000000000" ? (
-                      <span className="text-orange-600">Not delegated</span>
+                      <span className="text-orange-400">Not delegated</span>
                     ) : walletTokenInfo.delegatedTo === walletAddress ? (
-                      <span className="text-green-600">Self</span>
+                      <span className="text-green-400">Self</span>
                     ) : (
                       <span className="font-mono">{walletTokenInfo.delegatedTo.slice(0, 6)}...{walletTokenInfo.delegatedTo.slice(-4)}</span>
                     )}
@@ -810,9 +810,9 @@ export default function VotePage() {
                   {/* Voting Power Status */}
                   <div className="text-xs">
                     {walletTokenInfo.delegatedTo === "0x0000000000000000000000000000000000000000" ? (
-                      <span className="text-orange-600">⚠️ Delegate tokens to vote</span>
+                      <span className="text-orange-400">⚠️ Delegate tokens to vote</span>
                     ) : Number(walletTokenInfo.formattedBalance) > 0 ? (
-                      <span className="text-green-600">✅ Ready to vote</span>
+                      <span className="text-green-400">✅ Ready to vote</span>
                     ) : (
                       <span className="text-gray-500">No STELE tokens</span>
                     )}
@@ -820,7 +820,7 @@ export default function VotePage() {
                 </div>
               ) : (
                 <div className="text-right">
-                  <div className="text-sm text-muted-foreground">Token info unavailable</div>
+                  <div className="text-sm text-gray-400">Token info unavailable</div>
                 </div>
               )}
             </div>
@@ -830,15 +830,15 @@ export default function VotePage() {
 
       {/* Wallet Connection Prompt */}
       {!isConnected && (
-        <Card className="mb-6 border-dashed">
+        <Card className="mb-6 border-dashed bg-gray-900/50 border-gray-700/50">
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <h3 className="text-sm font-medium text-muted-foreground">Wallet Not Connected</h3>
-                <p className="text-xs text-muted-foreground">Connect your wallet to view token balance and vote on proposals</p>
+                <h3 className="text-sm font-medium text-gray-400">Wallet Not Connected</h3>
+                <p className="text-xs text-gray-400">Connect your wallet to view token balance and vote on proposals</p>
               </div>
               <div className="text-right">
-                <div className="text-sm text-orange-600">🔗 Please connect your wallet</div>
+                <div className="text-sm text-orange-400">🔗 Please connect your wallet</div>
               </div>
             </div>
           </CardContent>
@@ -846,7 +846,7 @@ export default function VotePage() {
       )}
 
       {(error || errorActive || errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError) && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-md mb-6">
+        <div className="bg-amber-900/20 border border-amber-700/50 text-amber-400 px-4 py-3 rounded-md mb-6">
           <p>Warning: {(() => {
             const displayError = error || errorActive || errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError
             return typeof displayError === 'string' ? displayError : displayError?.message || 'Failed to load data'
@@ -866,7 +866,7 @@ export default function VotePage() {
         </TabsList>
 
         <TabsContent value="active" className="mt-4">
-          <div className="mb-4 text-sm text-muted-foreground">
+          <div className="mb-4 text-sm text-gray-400">
             📋 Active and recent proposals: ⏳ PENDING • 🗳️ VOTING • ⏳ PENDING QUEUE • 🔄 QUEUED • ✨ EXECUTED • ❌ DEFEATED
             <br />
             🚫 Only canceled proposals are excluded from this view
@@ -874,13 +874,13 @@ export default function VotePage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {activeProposals.length > 0 ? (
               activeProposals.map((proposal) => (
-                <Card key={proposal.id} className="flex flex-col">
+                <Card key={proposal.id} className="flex flex-col bg-gray-900/50 border-gray-700/50">
                   <CardHeader>
                     <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg">{proposal.title}</CardTitle>
+                      <CardTitle className="text-lg text-gray-100">{proposal.title}</CardTitle>
                       <StatusBadge proposal={proposal} />
                     </div>
-                    <CardDescription className="line-clamp-2">{proposal.description}</CardDescription>
+                    <CardDescription className="line-clamp-2 text-gray-400">{proposal.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="flex-grow">
                     <ProgressBar 
@@ -888,7 +888,7 @@ export default function VotePage() {
                       votesAgainst={proposal.votesAgainst} 
                       abstain={proposal.abstain}
                     />
-                    <div className="mt-4 text-sm space-y-1">
+                    <div className="mt-4 text-sm space-y-1 text-gray-300">
                       <p>Proposer: {proposal.proposer}</p>
                       <p>Vote Start: {formatDate(proposal.startTime)}</p>
                       <p>Vote End: {formatDate(proposal.endTime)}</p>
@@ -904,7 +904,7 @@ export default function VotePage() {
                       </Link>
                     ) : (
                       <Link href={createProposalUrl(proposal)} className="w-full">
-                        <Button variant="outline" className="w-full">
+                        <Button variant="outline" className="w-full bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
                           <FileText className="mr-2 h-4 w-4" />
                           View Details
                         </Button>
@@ -914,7 +914,7 @@ export default function VotePage() {
                 </Card>
               ))
             ) : (
-              <div className="col-span-3 text-center py-12 text-muted-foreground">
+              <div className="col-span-3 text-center py-12 text-gray-400">
                 No active proposals found.
               </div>
             )}
@@ -922,7 +922,7 @@ export default function VotePage() {
         </TabsContent>
 
         <TabsContent value="completed" className="mt-4">
-          <div className="mb-4 text-sm text-muted-foreground">
+          <div className="mb-4 text-sm text-gray-400">
             ✨ Successfully executed proposals only
             <br />
             📋 These proposals have passed voting and been fully implemented
@@ -930,13 +930,13 @@ export default function VotePage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {completedProposals.length > 0 ? (
               completedProposals.map((proposal) => (
-                <Card key={proposal.id} className="flex flex-col">
+                <Card key={proposal.id} className="flex flex-col bg-gray-900/50 border-gray-700/50">
                   <CardHeader>
                     <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg">{proposal.title}</CardTitle>
+                      <CardTitle className="text-lg text-gray-100">{proposal.title}</CardTitle>
                       <StatusBadge proposal={proposal} />
                     </div>
-                    <CardDescription className="line-clamp-2">{proposal.description}</CardDescription>
+                    <CardDescription className="line-clamp-2 text-gray-400">{proposal.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="flex-grow">
                     <ProgressBar 
@@ -944,7 +944,7 @@ export default function VotePage() {
                       votesAgainst={proposal.votesAgainst} 
                       abstain={proposal.abstain}
                     />
-                    <div className="mt-4 text-sm space-y-1">
+                    <div className="mt-4 text-sm space-y-1 text-gray-300">
                       <p>Proposer: {proposal.proposer}</p>
                       <p>Vote Start: {formatDate(proposal.startTime)}</p>
                       <p>Vote End: {formatDate(proposal.endTime)}</p>
@@ -952,7 +952,7 @@ export default function VotePage() {
                   </CardContent>
                   <CardFooter>
                     <Link href={createProposalUrl(proposal)} className="w-full">
-                      <Button variant="outline" className="w-full">
+                      <Button variant="outline" className="w-full bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
                         <FileText className="mr-2 h-4 w-4" />
                         View Details
                       </Button>
@@ -961,7 +961,7 @@ export default function VotePage() {
                 </Card>
               ))
             ) : (
-              <div className="col-span-3 text-center py-12 text-muted-foreground">
+              <div className="col-span-3 text-center py-12 text-gray-400">
                 No completed proposals found.
               </div>
             )}
@@ -969,7 +969,7 @@ export default function VotePage() {
         </TabsContent>
 
         <TabsContent value="all" className="mt-4">
-          <div className="mb-4 text-sm text-muted-foreground">
+          <div className="mb-4 text-sm text-gray-400">
             📋 All proposals with accurate statuses: ⏳ PENDING • 🗳️ ACTIVE • ⏳ PENDING QUEUE • 🔄 QUEUED • ✨ EXECUTED • ❌ DEFEATED • 🚫 CANCELED
             <br />
             🎯 Status reflects actual governance state with time-based validation
@@ -977,13 +977,13 @@ export default function VotePage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {proposals.length > 0 ? (
               proposals.map((proposal) => (
-                <Card key={proposal.id} className="flex flex-col">
+                <Card key={proposal.id} className="flex flex-col bg-gray-900/50 border-gray-700/50">
                   <CardHeader>
                     <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg">{proposal.title}</CardTitle>
+                      <CardTitle className="text-lg text-gray-100">{proposal.title}</CardTitle>
                       <StatusBadge proposal={proposal} />
                     </div>
-                    <CardDescription className="line-clamp-2">{proposal.description}</CardDescription>
+                    <CardDescription className="line-clamp-2 text-gray-400">{proposal.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="flex-grow">
                     <ProgressBar 
@@ -991,7 +991,7 @@ export default function VotePage() {
                       votesAgainst={proposal.votesAgainst} 
                       abstain={proposal.abstain}
                     />
-                    <div className="mt-4 text-sm space-y-1">
+                    <div className="mt-4 text-sm space-y-1 text-gray-300">
                       <p>Proposer: {proposal.proposer}</p>
                       <p>Vote Start: {formatDate(proposal.startTime)}</p>
                       <p>Vote End: {formatDate(proposal.endTime)}</p>
@@ -1007,7 +1007,7 @@ export default function VotePage() {
                       </Link>
                     ) : (
                       <Link href={createProposalUrl(proposal)} className="w-full">
-                        <Button variant="outline" className="w-full">
+                        <Button variant="outline" className="w-full bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
                           <FileText className="mr-2 h-4 w-4" />
                           View Details
                         </Button>
@@ -1017,7 +1017,7 @@ export default function VotePage() {
                 </Card>
               ))
             ) : (
-              <div className="col-span-3 text-center py-12 text-muted-foreground">
+              <div className="col-span-3 text-center py-12 text-gray-400">
                 No proposals found.
               </div>
             )}
