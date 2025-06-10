@@ -43,10 +43,10 @@ function useEntryFeeQuery() {
       // Call entryFee view function
       const fee = await steleContract.entryFee()
       
-      //TODO : remove BigInt(100)
-      // Format with appropriate decimals
-      const entryFeeInUsd = ethers.parseUnits(fee.toString(), USDC_DECIMALS) / BigInt(100);
-      const formattedFee = ethers.formatUnits(entryFeeInUsd, USDC_DECIMALS);
+      // The contract returns a value that needs to be divided by 100 to get the actual USDC amount
+      // For example: contract returns 1000 (raw) -> should be 0.01 USDC
+      const adjustedFee = fee / BigInt(100);
+      const formattedFee = ethers.formatUnits(adjustedFee, USDC_DECIMALS);
 
       return formattedFee
     },
