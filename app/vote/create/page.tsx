@@ -265,80 +265,85 @@ export default function CreateProposalPage() {
       </div>
       
       <div className="max-w-2xl mx-auto">
-        <Card>
+        <Card className="bg-gray-900/50 border-gray-700/50">
           <CardHeader>
-            <CardTitle className="text-xl">Create New Proposal</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-xl text-gray-100">Create New Proposal</CardTitle>
+            <CardDescription className="text-gray-300">
               Submit a proposal to be voted on by the community. You need to have enough voting power to create a proposal.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Proposal Title</Label>
+              <Label htmlFor="title" className="text-gray-200">Proposal Title</Label>
               <Input 
                 id="title" 
                 placeholder="Enter a concise title for your proposal" 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 disabled={isSubmitting}
+                className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="description">Short Description</Label>
+              <Label htmlFor="description" className="text-gray-200">Short Description</Label>
               <Textarea 
                 id="description" 
                 placeholder="Provide a brief summary of what your proposal aims to achieve" 
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 disabled={isSubmitting}
+                className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="details">Detailed Description</Label>
+              <Label htmlFor="details" className="text-gray-200">Detailed Description</Label>
               <Textarea 
                 id="details" 
                 placeholder="Explain your proposal in detail, including rationale and implementation details" 
-                className="min-h-[150px]"
+                className="min-h-[150px] bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
                 disabled={isSubmitting}
               />
             </div>
             
-            <div className="space-y-4 border rounded-md p-4 bg-muted/50">
-              <h3 className="text-sm font-medium">Contract Interaction (Optional)</h3>
+            <div className="space-y-4 border border-gray-600 rounded-md p-4 bg-gray-800/30">
+              <h3 className="text-sm font-medium text-gray-200">Contract Interaction (Optional)</h3>
               <div className="space-y-2">
-                <Label htmlFor="target">Target Contract Address</Label>
+                <Label htmlFor="target" className="text-gray-200">Target Contract Address</Label>
                 <Input 
                   id="target" 
                   placeholder="0x..." 
                   value={targetAddress}
                   onChange={(e) => setTargetAddress(e.target.value)}
                   disabled={isSubmitting}
+                  className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="function">Function Signature</Label>
+                <Label htmlFor="function" className="text-gray-200">Function Signature</Label>
                 <Input 
                   id="function" 
                   placeholder="e.g. setRewardAmount(uint256)" 
                   value={functionSignature}
                   onChange={(e) => setFunctionSignature(e.target.value)}
                   disabled={isSubmitting}
+                  className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="params">Function Parameters (comma separated)</Label>
+                <Label htmlFor="params" className="text-gray-200">Function Parameters (comma separated)</Label>
                 <Input 
                   id="params" 
                   placeholder="e.g. 150000000" 
                   value={functionParams}
                   onChange={(e) => setFunctionParams(e.target.value)}
                   disabled={isSubmitting}
+                  className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
                 />
               </div>
             </div>
