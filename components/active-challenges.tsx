@@ -2,6 +2,11 @@
 
 import { ChallengeCard } from "@/components/challenge-card"
 import { ChallengeTypeModal } from "@/components/challenge-type-modal"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useState, useEffect } from "react"
 import { ethers } from "ethers"
 import { toast } from "@/components/ui/use-toast"
@@ -13,6 +18,8 @@ import {
 } from "@/lib/constants"
 import SteleABI from "@/app/abis/Stele.json"
 import { useActiveChallenges } from "@/app/hooks/useActiveChallenges"
+import { ExternalLink, Users, Clock, Trophy } from "lucide-react"
+import Link from "next/link"
 
 interface ChallengeCardProps {
   id?: string
@@ -320,7 +327,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       startTime: data.activeChallenges.one_week_startTime,
       endTime: data.activeChallenges.one_week_endTime,
       isCompleted: data.activeChallenges.one_week_isCompleted,
-      challengeId: data.activeChallenges.one_week_id || "one-week-challenge"
+      challengeId: data.activeChallenges.one_week_id || "1"
     },
     {
       id: "one-month-challenge",
@@ -335,7 +342,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       startTime: data.activeChallenges.one_month_startTime,
       endTime: data.activeChallenges.one_month_endTime,
       isCompleted: data.activeChallenges.one_month_isCompleted,
-      challengeId: data.activeChallenges.one_month_id || "one-month-challenge"
+      challengeId: data.activeChallenges.one_month_id || "2"
     },
     {
       id: "three-month-challenge",
@@ -350,7 +357,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       startTime: data.activeChallenges.three_month_startTime,
       endTime: data.activeChallenges.three_month_endTime,
       isCompleted: data.activeChallenges.three_month_isCompleted,
-      challengeId: data.activeChallenges.three_month_id || "three-month-challenge"
+      challengeId: data.activeChallenges.three_month_id || "3"
     },
     {
       id: "six-month-challenge",
@@ -365,7 +372,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       startTime: data.activeChallenges.six_month_startTime,
       endTime: data.activeChallenges.six_month_endTime,
       isCompleted: data.activeChallenges.six_month_isCompleted,
-      challengeId: data.activeChallenges.six_month_id || "six-month-challenge"
+      challengeId: data.activeChallenges.six_month_id || "4"
     },
     {
       id: "one-year-challenge",
@@ -380,9 +387,22 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       startTime: data.activeChallenges.one_year_startTime,
       endTime: data.activeChallenges.one_year_endTime,
       isCompleted: data.activeChallenges.one_year_isCompleted,
-      challengeId: data.activeChallenges.one_year_id || "one-year-challenge"
+      challengeId: data.activeChallenges.one_year_id || "5"
     }
   ] : defaultChallenges;
+
+  const getStatusBadge = (status: "active" | "pending" | "completed") => {
+    switch (status) {
+      case "active":
+        return <Badge className="bg-green-500 text-white">Active</Badge>
+      case "pending":
+        return <Badge variant="outline" className="border-gray-600 text-gray-300">Pending</Badge>
+      case "completed":
+        return <Badge className="bg-blue-500 text-white">Completed</Badge>
+      default:
+        return <Badge variant="secondary">Unknown</Badge>
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -396,14 +416,77 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {challenges.map((challenge) => (
-        <ChallengeCard
-            key={challenge.id}
-            {...challenge}
-          />
-        ))}
-      </div>
+      <Card className="bg-gray-900/50 border-gray-700/50">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-gray-700 hover:bg-gray-800/50">
+                  <TableHead className="text-gray-300">Challenge Type</TableHead>
+                  <TableHead className="text-gray-300">Participants</TableHead>
+                  <TableHead className="text-gray-300">Time Left</TableHead>
+                  <TableHead className="text-gray-300">Prize Pool</TableHead>
+                  <TableHead className="text-gray-300">Progress</TableHead>
+                  <TableHead className="text-gray-300">Status</TableHead>
+                  <TableHead className="text-gray-300">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {challenges.map((challenge) => (
+                  <TableRow key={challenge.id} className="border-b border-gray-700 hover:bg-gray-800/30">
+                    <TableCell className="font-medium text-gray-100">
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-4 w-4 text-yellow-500" />
+                        {challenge.title}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-gray-300">
+                        <Users className="h-3 w-3" />
+                        <span>{challenge.participants}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-gray-300">
+                        <Clock className="h-3 w-3" />
+                        <span className="text-sm">{challenge.timeLeft}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium text-gray-100">
+                      {challenge.prize}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Progress 
+                          value={challenge.progress} 
+                          className="w-16 h-2"
+                        />
+                        <span className="text-xs text-gray-400">{Math.round(challenge.progress)}%</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(challenge.status)}
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
+                        asChild
+                      >
+                        <Link href={`/challenge/${challenge.challengeId}`}>
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          View
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
