@@ -47,7 +47,7 @@ function RankingSection({ challengeId }: { challengeId: string }) {
   const formatProfitRatio = (profitRatio: string) => {
     // Convert profit ratio to percentage
     const ratioValue = parseFloat(profitRatio);
-    return `${ratioValue.toFixed(2)}%`;
+    return `${ratioValue.toFixed(4)}%`;
   };
 
   const getRankIcon = (rank: number) => {
@@ -97,7 +97,6 @@ function RankingSection({ challengeId }: { challengeId: string }) {
           ) : rankingData && rankingData.topUsers.length > 0 ? (
             rankingData.topUsers.map((user, index) => {
               const rank = index + 1;
-              const score = rankingData.scores[index];
               const profitRatio = rankingData.profitRatios[index];
 
               return (
