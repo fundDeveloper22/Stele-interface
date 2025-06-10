@@ -5,7 +5,7 @@ import { request } from 'graphql-request'
 import { SUBGRAPH_URL } from '@/lib/constants'
 
 const GET_TOTAL_RANKING_QUERY = `
-  query GetTotalRanking($first: Int = 100, $orderBy: TotalRanking_orderBy = score, $orderDirection: OrderDirection = desc) {
+  query GetTotalRanking($first: Int = 100, $orderBy: TotalRanking_orderBy = profitRatio, $orderDirection: OrderDirection = desc) {
     totalRankings(first: $first, orderBy: $orderBy, orderDirection: $orderDirection) {
       id
       challengeId

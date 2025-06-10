@@ -31,20 +31,7 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
 
   // Format challenge type
   const getChallengeType = (challengeId: string) => {
-    switch(challengeId) {
-      case '1':
-        return 'One Week'
-      case '2':
-        return 'One Month'
-      case '3':
-        return 'Three Month'
-      case '4':
-        return 'Six Month'
-      case '5':
-        return 'One Year'
-      default:
-        return `Challenge ${challengeId}`
-    }
+    return `Challenge ${challengeId}`
   }
 
   // Format seed money (convert from BigInt to USD)
