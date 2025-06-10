@@ -43,6 +43,9 @@ export function useInvestorData(challengeId: string, walletAddress: string) {
     queryKey: ['investor', investorId],
     queryFn: async () => {
       return await request(SUBGRAPH_URL, getInvestorQuery(investorId), {}, headers)
-    }
+    },
+    refetchInterval: 60000, // Refetch every 60 seconds (1 minute)
+    staleTime: 45000, // Consider data fresh for 45 seconds
+    gcTime: 300000, // Keep in cache for 5 minutes
   })
 }

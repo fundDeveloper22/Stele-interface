@@ -24,6 +24,8 @@ interface ChallengeCardProps {
   progress: number
   status: "active" | "pending" | "completed"
   startTime: string
+  endTime: string
+  isCompleted: boolean
   challengeId: string
 }
 
@@ -241,6 +243,8 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       progress: 0,
       status: "pending",
       startTime: "0",
+      endTime: "0",
+      isCompleted: false,
       challengeId: "one-week-challenge"
     },
     {
@@ -253,6 +257,8 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       progress: 0,
       status: "pending",
       startTime: "0",
+      endTime: "0",
+      isCompleted: false,
       challengeId: "one-month-challenge"
     },
     {
@@ -265,6 +271,8 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       progress: 0,
       status: "pending",
       startTime: "0",
+      endTime: "0",
+      isCompleted: false,
       challengeId: "three-month-challenge"
     },
     {
@@ -277,6 +285,8 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       progress: 0,
       status: "pending",
       startTime: "0",
+      endTime: "0",
+      isCompleted: false,
       challengeId: "six-month-challenge"
     },
     {
@@ -289,6 +299,8 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       progress: 0,
       status: "pending",
       startTime: "0",
+      endTime: "0",
+      isCompleted: false,
       challengeId: "one-year-challenge"
     }
   ];
@@ -306,6 +318,8 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       status: data.activeChallenges.one_week_isCompleted ? "completed" : 
               (!data.activeChallenges.one_week_startTime || data.activeChallenges.one_week_startTime === "0") ? "pending" : "active",
       startTime: data.activeChallenges.one_week_startTime,
+      endTime: data.activeChallenges.one_week_endTime,
+      isCompleted: data.activeChallenges.one_week_isCompleted,
       challengeId: data.activeChallenges.one_week_id || "one-week-challenge"
     },
     {
@@ -319,6 +333,8 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       status: data.activeChallenges.one_month_isCompleted ? "completed" : 
               (!data.activeChallenges.one_month_startTime || data.activeChallenges.one_month_startTime === "0") ? "pending" : "active",
       startTime: data.activeChallenges.one_month_startTime,
+      endTime: data.activeChallenges.one_month_endTime,
+      isCompleted: data.activeChallenges.one_month_isCompleted,
       challengeId: data.activeChallenges.one_month_id || "one-month-challenge"
     },
     {
@@ -332,6 +348,8 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       status: data.activeChallenges.three_month_isCompleted ? "completed" : 
               (!data.activeChallenges.three_month_startTime || data.activeChallenges.three_month_startTime === "0") ? "pending" : "active",
       startTime: data.activeChallenges.three_month_startTime,
+      endTime: data.activeChallenges.three_month_endTime,
+      isCompleted: data.activeChallenges.three_month_isCompleted,
       challengeId: data.activeChallenges.three_month_id || "three-month-challenge"
     },
     {
@@ -345,6 +363,8 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       status: data.activeChallenges.six_month_isCompleted ? "completed" : 
               (!data.activeChallenges.six_month_startTime || data.activeChallenges.six_month_startTime === "0") ? "pending" : "active",
       startTime: data.activeChallenges.six_month_startTime,
+      endTime: data.activeChallenges.six_month_endTime,
+      isCompleted: data.activeChallenges.six_month_isCompleted,
       challengeId: data.activeChallenges.six_month_id || "six-month-challenge"
     },
     {
@@ -358,6 +378,8 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       status: data.activeChallenges.one_year_isCompleted ? "completed" : 
               (!data.activeChallenges.one_year_startTime || data.activeChallenges.one_year_startTime === "0") ? "pending" : "active",
       startTime: data.activeChallenges.one_year_startTime,
+      endTime: data.activeChallenges.one_year_endTime,
+      isCompleted: data.activeChallenges.one_year_isCompleted,
       challengeId: data.activeChallenges.one_year_id || "one-year-challenge"
     }
   ] : defaultChallenges;
@@ -365,7 +387,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Active Challenges</h2>
+        <h2 className="text-xl font-bold text-gray-100">Active Challenges</h2>
         {showCreateButton && (
           <ChallengeTypeModal 
             onCreateChallenge={handleCreateChallenge}

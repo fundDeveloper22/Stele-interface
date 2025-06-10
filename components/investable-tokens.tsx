@@ -26,14 +26,14 @@ export function InvestableTokens() {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="bg-gray-900/50 border-gray-700/50">
         <CardHeader>
-          <CardTitle>Investable Tokens</CardTitle>
+          <CardTitle className="text-gray-100">Investable Tokens</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <span className="ml-2 text-muted-foreground">Loading tokens...</span>
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            <span className="ml-2 text-gray-400">Loading tokens...</span>
           </div>
         </CardContent>
       </Card>
@@ -42,14 +42,14 @@ export function InvestableTokens() {
 
   if (error) {
     return (
-      <Card>
+      <Card className="bg-gray-900/50 border-gray-700/50">
         <CardHeader>
-          <CardTitle>Investable Tokens</CardTitle>
+          <CardTitle className="text-gray-100">Investable Tokens</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-red-600">Error loading tokens</p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-red-400">Error loading tokens</p>
+            <p className="text-sm text-gray-500 mt-1">
               {error instanceof Error ? error.message : 'Failed to load data'}
             </p>
           </div>
@@ -61,11 +61,11 @@ export function InvestableTokens() {
   const tokens = tokensData?.investableTokens || []
 
   return (
-    <Card>
+    <Card className="bg-gray-900/50 border-gray-700/50">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex items-center justify-between text-gray-100">
           Investable Tokens
-          <Badge variant="secondary" className="ml-2">
+          <Badge variant="secondary" className="ml-2 bg-gray-700 text-gray-300">
             {tokens.length} tokens
           </Badge>
         </CardTitle>
@@ -73,43 +73,43 @@ export function InvestableTokens() {
       <CardContent>
         {tokens.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-muted-foreground">No investable tokens found</p>
+            <p className="text-gray-400">No investable tokens found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Symbol</TableHead>
-                  <TableHead>Token Address</TableHead>
-                  <TableHead>Decimals</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Updated</TableHead>
+                <TableRow className="border-b border-gray-700 hover:bg-gray-800/50">
+                  <TableHead className="text-gray-300">Symbol</TableHead>
+                  <TableHead className="text-gray-300">Token Address</TableHead>
+                  <TableHead className="text-gray-300">Decimals</TableHead>
+                  <TableHead className="text-gray-300">Status</TableHead>
+                  <TableHead className="text-gray-300">Last Updated</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tokens.map((token) => (
-                  <TableRow key={token.id}>
-                    <TableCell className="font-medium">
+                  <TableRow key={token.id} className="border-b border-gray-700 hover:bg-gray-800/30">
+                    <TableCell className="font-medium text-gray-100">
                       {token.symbol}
                     </TableCell>
                     <TableCell>
-                      <code className="text-xs bg-muted px-2 py-1 rounded">
+                      <code className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">
                         {formatAddress(token.tokenAddress)}
                       </code>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-gray-300">
                       {token.decimals}
                     </TableCell>
                     <TableCell>
                       <Badge 
                         variant={token.isInvestable ? "default" : "secondary"}
-                        className={token.isInvestable ? "bg-green-100 text-green-800" : ""}
+                        className={token.isInvestable ? "bg-green-500 text-white" : "bg-gray-700 text-gray-300"}
                       >
                         {token.isInvestable ? "✓ Investable" : "Not Investable"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-gray-400">
                       {formatDate(token.updatedTimestamp)}
                     </TableCell>
                   </TableRow>

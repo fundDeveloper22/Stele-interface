@@ -25,7 +25,8 @@ import {
   Trophy,
   ArrowLeft,
   Loader2,
-  Receipt
+  Receipt,
+  FileText
 } from "lucide-react"
 import { AssetSwap } from "@/components/asset-swap"
 import { useInvestorData } from "@/app/subgraph/Account"
@@ -33,6 +34,15 @@ import { useUserTokens } from "@/app/hooks/useUserTokens"
 import { useChallenge } from "@/app/hooks/useChallenge"
 import { useInvestorTransactions } from "@/app/hooks/useInvestorTransactions"
 import Link from "next/link"
+import { ethers } from "ethers"
+import { toast } from "@/components/ui/use-toast"
+import { ToastAction } from "@/components/ui/toast"
+import { 
+  BASE_CHAIN_ID, 
+  BASE_CHAIN_CONFIG, 
+  STELE_CONTRACT_ADDRESS
+} from "@/lib/constants"
+import SteleABI from "@/app/abis/Stele.json"
 
 interface InvestorPageProps {
   params: Promise<{
@@ -53,6 +63,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   const [activeTab, setActiveTab] = useState("portfolio")
   const [isClient, setIsClient] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [isRegistering, setIsRegistering] = useState(false)
 
   // Ensure client-side rendering for time calculations
   useEffect(() => {
@@ -76,10 +87,10 @@ export default function InvestorPage({ params }: InvestorPageProps) {
       <div className="container mx-auto p-6">
         <div className="max-w-6xl mx-auto">
           <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-8 bg-gray-700 rounded w-1/3"></div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded"></div>
+                <div key={i} className="h-32 bg-gray-700 rounded"></div>
               ))}
             </div>
           </div>
@@ -208,9 +219,120 @@ export default function InvestorPage({ params }: InvestorPageProps) {
 
   const timeRemaining = getTimeRemaining();
 
+  // Handle Register function
+  const handleRegister = async () => {
+    setIsRegistering(true);
+    
+    try {
+      // Check if Phantom wallet is installed
+      if (typeof window.phantom === 'undefined') {
+        throw new Error("Phantom wallet is not installed. Please install it from https://phantom.app/");
+      }
+
+      // Check if Ethereum provider is available
+      if (!window.phantom?.ethereum) {
+        throw new Error("Ethereum provider not found in Phantom wallet");
+      }
+
+      // Request account access
+      const accounts = await window.phantom.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No accounts found. Please connect to Phantom wallet first.");
+      }
+
+      // Verify the connected wallet matches the investor address
+      const connectedAddress = accounts[0].toLowerCase();
+      if (connectedAddress !== walletAddress.toLowerCase()) {
+        throw new Error(`Please connect with the correct wallet address: ${walletAddress}`);
+      }
+
+      // Check if we are on Base network
+      const chainId = await window.phantom.ethereum.request({
+        method: 'eth_chainId'
+      });
+
+      if (chainId !== BASE_CHAIN_ID) {
+        // Switch to Base network
+        try {
+          await window.phantom.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: BASE_CHAIN_ID }],
+          });
+        } catch (switchError: any) {
+          // This error code indicates that the chain has not been added to the wallet
+          if (switchError.code === 4902) {
+            await window.phantom.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [BASE_CHAIN_CONFIG],
+            });
+          } else {
+            throw switchError;
+          }
+        }
+      }
+
+      // Create a Web3Provider using the Phantom ethereum provider
+      const provider = new ethers.BrowserProvider(window.phantom.ethereum);
+      
+      // Get the signer
+      const signer = await provider.getSigner();
+      
+      // Create contract instance
+      const steleContract = new ethers.Contract(
+        STELE_CONTRACT_ADDRESS,
+        SteleABI.abi,
+        signer
+      );
+
+      // Call register function with challengeId
+      const tx = await steleContract.register(challengeId);
+      
+      // Show toast notification for transaction submitted
+      toast({
+        title: "Registration Submitted",
+        description: "Your investor registration transaction has been sent to the network.",
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+      
+      // Wait for transaction to be mined
+      await tx.wait();
+      
+      // Show toast notification for transaction confirmed
+      toast({
+        title: "Registration Complete!",
+        description: "Your investor information has been successfully registered!",
+        action: (
+          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
+            View on BaseScan
+          </ToastAction>
+        ),
+      });
+      
+    } catch (error: any) {
+      console.error("Error registering investor:", error);
+      
+      // Show toast notification for error
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error.message || "An unknown error occurred",
+      });
+      
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-2">
@@ -222,39 +344,66 @@ export default function InvestorPage({ params }: InvestorPageProps) {
               Back to Challenge
             </Link>
             <div>
-              <h1 className="text-3xl font-bold">Investor Account</h1>
-              <p className="text-muted-foreground">
-                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-              </p>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-gray-100">Investor Account</h1>
+                <p className="text-gray-400">
+                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                </p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
-              {challengeData?.challenge?.isActive ? "Active" : "Inactive"}
-            </Badge>
-            <Badge variant="outline">
-              {getChallengeTitle()}
-            </Badge>
-            {challengeDetails && (
-              <Badge variant="outline">
-                {challengeDetails.participants} participants
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
+                {challengeData?.challenge?.isActive ? "Active" : "Inactive"}
               </Badge>
-            )}
+              <Badge variant="outline">
+                {getChallengeTitle()}
+              </Badge>
+              {challengeDetails && (
+                <Badge variant="outline">
+                  {challengeDetails.participants} participants
+                </Badge>
+              )}
+            </div>
+            
+            {/* Register Button */}
+            <div className="flex justify-end">
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={handleRegister}
+                disabled={isRegistering}
+                className="bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                {isRegistering ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Registering...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Register
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
+          <Card className="bg-gray-900/50 border-gray-700/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Portfolio Value</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-gray-100">Portfolio Value</CardTitle>
+              <DollarSign className="h-4 w-4 text-gray-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${currentValue.toFixed(2)}</div>
+              <div className="text-2xl font-bold text-gray-100">${currentValue.toFixed(2)}</div>
               <div className={cn(
                 "text-xs flex items-center gap-1",
-                isPositive ? "text-emerald-600" : "text-red-600"
+                isPositive ? "text-emerald-400" : "text-red-400"
               )}>
                 {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                 {isPositive ? "+" : ""}{gainLossPercentage.toFixed(2)}%
@@ -262,45 +411,45 @@ export default function InvestorPage({ params }: InvestorPageProps) {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gray-900/50 border-gray-700/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Gain/Loss</CardTitle>
-              {isPositive ? <TrendingUp className="h-4 w-4 text-emerald-600" /> : <TrendingDown className="h-4 w-4 text-red-600" />}
+              <CardTitle className="text-sm font-medium text-gray-100">Gain/Loss</CardTitle>
+              {isPositive ? <TrendingUp className="h-4 w-4 text-emerald-400" /> : <TrendingDown className="h-4 w-4 text-red-400" />}
             </CardHeader>
             <CardContent>
               <div className={cn(
                 "text-2xl font-bold",
-                isPositive ? "text-emerald-600" : "text-red-600"
+                isPositive ? "text-emerald-400" : "text-red-400"
               )}>
                 {isPositive ? "+" : ""}${gainLoss.toFixed(2)}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-gray-400">
                 From ${initialValue.toFixed(2)} initial
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gray-900/50 border-gray-700/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ranking</CardTitle>
-              <User className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-gray-100">Ranking</CardTitle>
+              <User className="h-4 w-4 text-gray-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">#{challengeDetails?.participants || 0}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-2xl font-bold text-gray-100">#{challengeDetails?.participants || 0}</div>
+              <p className="text-xs text-gray-400">
                 Current estimated ranking
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gray-900/50 border-gray-700/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Rewards</CardTitle>
-              <Trophy className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-gray-100">Total Rewards</CardTitle>
+              <Trophy className="h-4 w-4 text-gray-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{challengeDetails?.prize || '$0.00'}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-2xl font-bold text-gray-100">{challengeDetails?.prize || '$0.00'}</div>
+              <p className="text-xs text-gray-400">
                 Current estimated ranking
               </p>
             </CardContent>
@@ -330,33 +479,33 @@ export default function InvestorPage({ params }: InvestorPageProps) {
           </TabsList>
 
           <TabsContent value="portfolio" className="space-y-4">
-            <Card>
+            <Card className="bg-gray-900/50 border-gray-700/50">
               <CardHeader>
-                <CardTitle>Token Holdings</CardTitle>
-                <CardDescription>Your current cryptocurrency portfolio</CardDescription>
+                <CardTitle className="text-gray-100">Token Holdings</CardTitle>
+                <CardDescription className="text-gray-400">Your current cryptocurrency portfolio</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {userTokens.map((token, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 rounded-lg border">
+                    <div key={index} className="flex items-center justify-between p-4 rounded-lg border border-gray-700">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
                           {token.symbol.slice(0, 2)}
                         </div>
                         <div>
-                          <p className="font-medium">{token.symbol}</p>
-                          <p className="text-sm text-muted-foreground">{token.address.slice(0, 8)}...{token.address.slice(-6)}</p>
+                          <p className="font-medium text-gray-100">{token.symbol}</p>
+                          <p className="text-sm text-gray-400">{token.address.slice(0, 8)}...{token.address.slice(-6)}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">{token.amount}</p>
-                        <p className="text-sm text-muted-foreground">{token.symbol}</p>
+                        <p className="font-medium text-gray-100">{token.amount}</p>
+                        <p className="text-sm text-gray-400">{token.symbol}</p>
                       </div>
                     </div>
                   ))}
                   
                   {userTokens.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-gray-400">
                       <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>No tokens found in this portfolio</p>
                     </div>
@@ -371,23 +520,23 @@ export default function InvestorPage({ params }: InvestorPageProps) {
           </TabsContent>
 
           <TabsContent value="transactions" className="space-y-4">
-            <Card>
+            <Card className="bg-gray-900/50 border-gray-700/50">
               <CardHeader>
-                <CardTitle>Recent Transactions</CardTitle>
-                <CardDescription>Your trading and activity history</CardDescription>
+                <CardTitle className="text-gray-100">Recent Transactions</CardTitle>
+                <CardDescription className="text-gray-400">Your trading and activity history</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {isLoadingTransactions ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin" />
-                      <span className="ml-2 text-muted-foreground">Loading transactions...</span>
+                      <span className="ml-2 text-gray-400">Loading transactions...</span>
                     </div>
                   ) : transactionsError ? (
-                    <div className="text-center py-8 text-red-600">
+                    <div className="text-center py-8 text-red-400">
                       <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p className="font-medium">Error loading transactions</p>
-                      <p className="text-sm text-muted-foreground mt-2">Please try again later</p>
+                      <p className="text-sm text-gray-400 mt-2">Please try again later</p>
                     </div>
                   ) : investorTransactions.length > 0 ? (
                     investorTransactions.map((transaction) => {
@@ -432,21 +581,21 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                       }
 
                       return (
-                        <div key={transaction.id} className="flex items-center justify-between p-4 rounded-lg border">
+                        <div key={transaction.id} className="flex items-center justify-between p-4 rounded-lg border border-gray-700">
                           <div className="flex items-center gap-3">
                             <div className={`h-10 w-10 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
                               {getTransactionIcon(transaction.type)}
                             </div>
                             <div>
-                              <p className="font-medium">{transaction.details}</p>
-                              <p className="text-sm text-muted-foreground">{formatTimestamp(transaction.timestamp)}</p>
+                              <p className="font-medium text-gray-100">{transaction.details}</p>
+                              <p className="text-sm text-gray-400">{formatTimestamp(transaction.timestamp)}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-medium">{transaction.amount || '-'}</p>
+                            <p className="font-medium text-gray-100">{transaction.amount || '-'}</p>
                             <button
                               onClick={() => window.open(`https://basescan.org/tx/${transaction.transactionHash}`, '_blank')}
-                              className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                              className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                             >
                               View on BaseScan
                             </button>
@@ -455,7 +604,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                       )
                     })
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-gray-400">
                       <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>No transactions found for this investor</p>
                       <p className="text-sm mt-2">Transaction history will appear here once you start trading</p>
@@ -468,77 +617,77 @@ export default function InvestorPage({ params }: InvestorPageProps) {
 
           <TabsContent value="stats" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
+              <Card className="bg-gray-900/50 border-gray-700/50">
                 <CardHeader>
-                  <CardTitle>Performance Metrics</CardTitle>
+                  <CardTitle className="text-gray-100">Performance Metrics</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Total Return</span>
-                    <span className="font-medium">{parseFloat(investor.profitRatio).toFixed(2)}%</span>
+                    <span className="text-sm text-gray-400">Total Return</span>
+                    <span className="font-medium text-gray-100">{parseFloat(investor.profitRatio).toFixed(2)}%</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Profit</span>
-                    <span className="font-medium text-green-600">${parseFloat(investor.profitUSD).toFixed(2)}</span>
+                    <span className="text-sm text-gray-400">Profit</span>
+                    <span className="font-medium text-green-400">${parseFloat(investor.profitUSD).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Initial Investment</span>
-                    <span className="font-medium">${parseFloat(investor.seedMoneyUSD).toFixed(2)}</span>
+                    <span className="text-sm text-gray-400">Initial Investment</span>
+                    <span className="font-medium text-gray-100">${parseFloat(investor.seedMoneyUSD).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Total Assets</span>
-                    <span className="font-medium">{userTokens.length}</span>
+                    <span className="text-sm text-gray-400">Total Assets</span>
+                    <span className="font-medium text-gray-100">{userTokens.length}</span>
                   </div>
                 </CardContent>
               </Card>
               
-              <Card>
+              <Card className="bg-gray-900/50 border-gray-700/50">
                 <CardHeader>
-                  <CardTitle>Challenge Stats</CardTitle>
+                  <CardTitle className="text-gray-100">Challenge Stats</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Challenge</span>
-                    <span className="font-medium">{getChallengeTitle()}</span>
+                    <span className="text-sm text-gray-400">Challenge</span>
+                    <span className="font-medium text-gray-100">{getChallengeTitle()}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Challenge ID</span>
-                    <span className="font-medium">{challengeData?.challenge?.challengeId || challengeId}</span>
+                    <span className="text-sm text-gray-400">Challenge ID</span>
+                    <span className="font-medium text-gray-100">{challengeData?.challenge?.challengeId || challengeId}</span>
                   </div>
                   {challengeDetails && (
                     <>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Start Date</span>
-                        <span className="font-medium">{challengeDetails.startTime.toLocaleDateString()}</span>
+                        <span className="text-sm text-gray-400">Start Date</span>
+                        <span className="font-medium text-gray-100">{challengeDetails.startTime.toLocaleDateString()}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">End Date</span>
-                        <span className="font-medium">{challengeDetails.endTime.toLocaleDateString()}</span>
+                        <span className="text-sm text-gray-400">End Date</span>
+                        <span className="font-medium text-gray-100">{challengeDetails.endTime.toLocaleDateString()}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Prize Pool</span>
-                        <span className="font-medium">{challengeDetails.prize}</span>
+                        <span className="text-sm text-gray-400">Prize Pool</span>
+                        <span className="font-medium text-gray-100">{challengeDetails.prize}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Participants</span>
-                        <span className="font-medium">{challengeDetails.participants}</span>
+                        <span className="text-sm text-gray-400">Participants</span>
+                        <span className="font-medium text-gray-100">{challengeDetails.participants}</span>
                       </div>
                     </>
                   )}
                   {!challengeDetails && (
                     <>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Start Date</span>
-                        <span className="font-medium">{new Date(Number(investor.createdAtTimestamp) * 1000).toLocaleDateString()}</span>
+                        <span className="text-sm text-gray-400">Start Date</span>
+                        <span className="font-medium text-gray-100">{new Date(Number(investor.createdAtTimestamp) * 1000).toLocaleDateString()}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Last Update</span>
-                        <span className="font-medium">{new Date(Number(investor.updatedAtTimestamp) * 1000).toLocaleDateString()}</span>
+                        <span className="text-sm text-gray-400">Last Update</span>
+                        <span className="font-medium text-gray-100">{new Date(Number(investor.updatedAtTimestamp) * 1000).toLocaleDateString()}</span>
                       </div>
                     </>
                   )}
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Status</span>
+                    <span className="text-sm text-gray-400">Status</span>
                     <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
                       {challengeData?.challenge?.isActive ? "Active" : "Inactive"}
                     </Badge>

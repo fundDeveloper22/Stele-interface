@@ -135,11 +135,11 @@ export function Header() {
         </Link>
         
         <div className="flex items-center">
-          <Link href={"/"} className="mr-4">
+          <Link href={"/dashboard"} className="mr-4">
             <div 
               className={cn(
                 "flex flex-row items-center font-medium text-sm transition-colors",
-                pathname === "/" 
+                pathname === "/" || pathname === "/dashboard"
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
