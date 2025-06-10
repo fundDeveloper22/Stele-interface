@@ -398,20 +398,21 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
 
   return (
     <div className={cn("max-w-md mx-auto", className)} {...props}>
-      <Card>
+      <Card className="bg-gray-900/50 border-gray-700/50">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Swap Assets</CardTitle>
+            <CardTitle className="text-gray-100">Swap Assets</CardTitle>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => refetch()}
               disabled={isLoading}
+              className="text-gray-400 hover:text-gray-100 hover:bg-gray-800"
             >
               <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
             </Button>
           </div>
-          <CardDescription>
+          <CardDescription className="text-gray-400">
             Exchange your tokens with live pricing
           </CardDescription>
         </CardHeader>
@@ -419,17 +420,17 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
           {/* From Token */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>From</span>
-              <span className="text-muted-foreground">
+              <span className="text-gray-300">From</span>
+              <span className="text-gray-400">
                 Balance: {getFromTokenBalance(fromToken)}
               </span>
             </div>
-            <div className="p-4 border rounded-lg space-y-2">
+            <div className="p-4 border border-gray-700 bg-gray-800/30 rounded-lg space-y-2">
               <div className="flex gap-2">
                 <select
                   value={fromToken}
                   onChange={(e) => setFromToken(e.target.value)}
-                  className="px-3 py-2 border rounded bg-background"
+                  className="px-3 py-2 border border-gray-600 rounded bg-gray-800 text-gray-100"
                 >
                   <option value="">Select token</option>
                   {availableFromTokens.map((token) => (
@@ -441,24 +442,25 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                     placeholder="0.0"
                     value={fromAmount}
                     onChange={handleFromAmountChange}
-                    className="text-right text-lg"
+                    className="text-right text-lg bg-gray-800 border-gray-600 text-gray-100 placeholder:text-gray-500"
                   />
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setFromAmount(getFromTokenBalance(fromToken))}
+                  className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
                 >
                   MAX
                 </Button>
               </div>
               
               {fromToken && priceData?.tokens?.[fromToken] && (
-                <div className="flex justify-between text-sm text-muted-foreground">
+                <div className="flex justify-between text-sm text-gray-400">
                   <span>Price: ${priceData.tokens[fromToken].priceUSD}</span>
                   <span className={cn(
                     "flex items-center gap-1",
-                    priceData.tokens[fromToken].priceChange24h && priceData.tokens[fromToken].priceChange24h! >= 0 ? "text-green-600" : "text-red-600"
+                    priceData.tokens[fromToken].priceChange24h && priceData.tokens[fromToken].priceChange24h! >= 0 ? "text-green-400" : "text-red-400"
                   )}>
                     {priceData.tokens[fromToken].priceChange24h && priceData.tokens[fromToken].priceChange24h! >= 0 ? 
                       <TrendingUp className="h-3 w-3" /> : 
@@ -477,7 +479,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
               variant="outline"
               size="sm"
               onClick={handleTokenSwap}
-              className="rounded-full p-2"
+              className="rounded-full p-2 bg-gray-800 border-gray-600 hover:bg-gray-700 text-gray-100"
             >
               <ArrowDown className="h-4 w-4" />
             </Button>
@@ -486,17 +488,17 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
           {/* To Token */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>To</span>
-              <span className="text-muted-foreground">
+              <span className="text-gray-300">To</span>
+              <span className="text-gray-400">
                 Estimated
               </span>
             </div>
-            <div className="p-4 border rounded-lg space-y-2">
+            <div className="p-4 border border-gray-700 bg-gray-800/30 rounded-lg space-y-2">
               <div className="flex gap-2">
                 <select
                   value={toToken}
                   onChange={(e) => setToToken(e.target.value)}
-                  className="px-3 py-2 border rounded bg-background"
+                  className="px-3 py-2 border border-gray-600 rounded bg-gray-800 text-gray-100"
                 >
                   {availableToTokens.map((token) => (
                     <option key={token} value={token}>{token}</option>
@@ -507,17 +509,17 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                     placeholder="0.0"
                     value={outputAmount}
                     readOnly
-                    className="text-right text-lg"
+                    className="text-right text-lg bg-gray-800 border-gray-600 text-gray-100 placeholder:text-gray-500"
                   />
                 </div>
               </div>
               
               {toToken && priceData?.tokens?.[toToken] && (
-                <div className="flex justify-between text-sm text-muted-foreground">
+                <div className="flex justify-between text-sm text-gray-400">
                   <span>Price: ${priceData.tokens[toToken].priceUSD}</span>
                   <span className={cn(
                     "flex items-center gap-1",
-                    priceData.tokens[toToken].priceChange24h && priceData.tokens[toToken].priceChange24h! >= 0 ? "text-green-600" : "text-red-600"
+                    priceData.tokens[toToken].priceChange24h && priceData.tokens[toToken].priceChange24h! >= 0 ? "text-green-400" : "text-red-400"
                   )}>
                     {priceData.tokens[toToken].priceChange24h && priceData.tokens[toToken].priceChange24h! >= 0 ? 
                       <TrendingUp className="h-3 w-3" /> : 
@@ -532,16 +534,16 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
 
           {/* Data Ready Status Warning */}
           {!isDataReady && (
-            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <div className="p-4 bg-amber-900/20 border border-amber-700/50 rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="flex-shrink-0">
-                  <Loader2 className="h-5 w-5 animate-spin text-yellow-600" />
+                  <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                  <h4 className="text-sm font-medium text-amber-300">
                     Swap Currently Unavailable
                   </h4>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                  <p className="text-sm text-amber-400 mt-1">
                     {disabledReason}
                   </p>
                 </div>
@@ -551,12 +553,12 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
 
           {/* Swap Details */}
           {isDataReady && fromToken && toToken && swapQuote && (
-            <div className="p-3 bg-muted rounded-lg space-y-2 text-sm">
-              <div className="flex justify-between">
+            <div className="p-3 bg-gray-800/50 border border-gray-700 rounded-lg space-y-2 text-sm">
+              <div className="flex justify-between text-gray-300">
                 <span>Exchange Rate</span>
                 <span>1 {fromToken} = {swapQuote.exchangeRate.toFixed(6)} {toToken}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-gray-300">
                 <span>Minimum Received</span>
                 <span>{minimumReceived} {toToken}</span>
               </div>
