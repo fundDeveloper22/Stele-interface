@@ -1,147 +1,182 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, Coins, Users } from "lucide-react"
-
-interface TokenStats {
-  symbol: string
-  totalInvestors: number
-  totalValue: number
-  avgHolding: number
-}
+import { Trophy, TrendingUp, TrendingDown, Loader2 } from "lucide-react"
+import { useTotalRanking } from "@/app/hooks/useTotalRanking"
+import { cn } from "@/lib/utils"
 
 interface TokenStatsOverviewProps {
   className?: string
 }
 
 export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
-  // In a real implementation, this would come from aggregated subgraph data
-  // For now, we'll use mock data that demonstrates the concept
-  const tokenStats: TokenStats[] = [
-    {
-      symbol: "ETH",
-      totalInvestors: 45,
-      totalValue: 892156.78,
-      avgHolding: 19.83
-    },
-    {
-      symbol: "USDC", 
-      totalInvestors: 38,
-      totalValue: 567234.12,
-      avgHolding: 14928.79
-    },
-    {
-      symbol: "USDT",
-      totalInvestors: 23,
-      totalValue: 234567.89,
-      avgHolding: 10198.60
-    },
-    {
-      symbol: "BTC",
-      totalInvestors: 12,
-      totalValue: 1234567.90,
-      avgHolding: 2.89
-    }
-  ]
+  const { data: rankingData, isLoading, error } = useTotalRanking()
 
-  // Sort by total value descending
-  const sortedStats = tokenStats.sort((a, b) => b.totalValue - a.totalValue)
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
+  // Format wallet address for display
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
 
-  const formatNumber = (num: number, decimals: number = 2) => {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    }).format(num)
+  // Format timestamp to readable date
+  const formatDate = (timestamp: string) => {
+    const date = new Date(parseInt(timestamp) * 1000)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
   }
 
-  const getTokenIcon = (symbol: string) => {
-    const colorMap: Record<string, string> = {
-      'ETH': 'bg-blue-500',
-      'USDC': 'bg-green-500', 
-      'USDT': 'bg-yellow-500',
-      'BTC': 'bg-orange-500'
+  // Format challenge type
+  const getChallengeType = (challengeId: string) => {
+    switch(challengeId) {
+      case '1':
+        return 'One Week'
+      case '2':
+        return 'One Month'
+      case '3':
+        return 'Three Month'
+      case '4':
+        return 'Six Month'
+      case '5':
+        return 'One Year'
+      default:
+        return `Challenge ${challengeId}`
     }
-    
+  }
+
+  // Format seed money (convert from BigInt to USD)
+  const formatSeedMoney = (seedMoney: string) => {
+    // Assuming seedMoney is in USDC (6 decimals)
+    const amount = parseFloat(seedMoney) / 1e6
+    return `$${amount.toFixed(2)}`
+  }
+
+  // Format profit ratio as percentage
+  const formatProfitRatio = (profitRatio: string) => {
+    const ratio = parseFloat(profitRatio)
+    return `${(ratio * 100).toFixed(2)}%`
+  }
+
+  // Format score
+  const formatScore = (score: string) => {
+    const scoreValue = parseFloat(score)
+    return scoreValue.toFixed(4)
+  }
+
+  if (isLoading) {
     return (
-      <div className={`w-8 h-8 rounded-full ${colorMap[symbol] || 'bg-gray-500'} flex items-center justify-center mr-3`}>
-        <span className="text-xs font-bold text-white">{symbol.slice(0, 2)}</span>
-      </div>
+      <Card className={`${className} bg-gray-900/50 border-gray-700/50`}>
+        <CardHeader>
+          <CardTitle className="text-gray-100">Total Ranking</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            <span className="ml-2 text-gray-400">Loading rankings...</span>
+          </div>
+        </CardContent>
+      </Card>
     )
   }
+
+  if (error) {
+    return (
+      <Card className={`${className} bg-gray-900/50 border-gray-700/50`}>
+        <CardHeader>
+          <CardTitle className="text-gray-100">Total Ranking</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-red-400">Error loading rankings</p>
+            <p className="text-sm text-gray-500 mt-1">
+              {error instanceof Error ? error.message : 'Failed to load data'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const rankings = rankingData || []
 
   return (
     <Card className={`${className} bg-gray-900/50 border-gray-700/50`}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-gray-100">
-          <Coins className="h-5 w-5" />
-          Token Holdings Overview
+          <Trophy className="h-5 w-5" />
+          Total Ranking
+          <Badge variant="secondary" className="ml-2 bg-gray-700 text-gray-300">
+            {rankings.length} participants
+          </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {sortedStats.map((stat, index) => (
-            <div key={stat.symbol} className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
-              <div className="flex items-center">
-                {getTokenIcon(stat.symbol)}
-                <div>
-                  <div className="font-medium flex items-center gap-2 text-gray-100">
-                    {stat.symbol}
-                    <Badge variant="secondary" className="text-xs bg-gray-700 text-gray-300">
-                      #{index + 1}
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-gray-400 flex items-center gap-4">
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      {stat.totalInvestors} investors
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <TrendingUp className="h-3 w-3" />
-                      {formatNumber(stat.avgHolding)} avg
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-semibold text-gray-100">{formatCurrency(stat.totalValue)}</div>
-                <div className="text-sm text-gray-400">Total Value</div>
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        <div className="mt-6 p-4 border border-gray-700 rounded-lg bg-gradient-to-r from-blue-900/20 to-indigo-900/20">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-blue-400">
-                {sortedStats.reduce((sum, stat) => sum + stat.totalInvestors, 0)}
-              </div>
-              <div className="text-xs text-gray-400">Total Positions</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-green-400">
-                {formatCurrency(sortedStats.reduce((sum, stat) => sum + stat.totalValue, 0))}
-              </div>
-              <div className="text-xs text-gray-400">Total Value</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-purple-400">
-                {sortedStats.length}
-              </div>
-              <div className="text-xs text-gray-400">Unique Tokens</div>
+        {rankings.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-400">No ranking data found</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Top 5 Rankings */}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-gray-700 hover:bg-gray-800/50">
+                    <TableHead className="text-gray-300">Rank</TableHead>
+                    <TableHead className="text-gray-300">User</TableHead>
+                    <TableHead className="text-gray-300">Challenge</TableHead>
+                    <TableHead className="text-gray-300">Score</TableHead>
+                    <TableHead className="text-gray-300">Profit Ratio</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rankings.slice(0, 5).map((ranking, index) => {
+                    const profitRatio = parseFloat(ranking.profitRatio)
+                    const isPositive = profitRatio >= 0
+                    
+                    return (
+                      <TableRow key={ranking.id} className="border-b border-gray-700 hover:bg-gray-800/30">
+                        <TableCell className="font-medium text-gray-100">
+                          <div className="flex items-center gap-2">
+                            {index === 0 && <Trophy className="h-4 w-4 text-yellow-500" />}
+                            {index === 1 && <Trophy className="h-4 w-4 text-gray-400" />}
+                            {index === 2 && <Trophy className="h-4 w-4 text-amber-600" />}
+                            <span>#{index + 1}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <code className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">
+                            {formatAddress(ranking.user)}
+                          </code>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-gray-800 text-gray-300 border-gray-600">
+                            {getChallengeType(ranking.challengeId)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium text-gray-100">
+                          {formatScore(ranking.score)}
+                        </TableCell>
+                        <TableCell>
+                          <div className={cn(
+                            "flex items-center gap-1 font-medium",
+                            isPositive ? "text-green-400" : "text-red-400"
+                          )}>
+                            {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                            {formatProfitRatio(ranking.profitRatio)}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
             </div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   )
