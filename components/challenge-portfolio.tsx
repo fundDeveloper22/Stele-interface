@@ -44,6 +44,12 @@ function RankingSection({ challengeId }: { challengeId: string }) {
     return scoreValue.toFixed(2);
   };
 
+  const formatProfitRatio = (profitRatio: string) => {
+    // Convert profit ratio to percentage
+    const ratioValue = parseFloat(profitRatio);
+    return `${ratioValue.toFixed(2)}%`;
+  };
+
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
@@ -60,39 +66,40 @@ function RankingSection({ challengeId }: { challengeId: string }) {
   const getRankColor = (rank: number) => {
     switch (rank) {
       case 1:
-        return 'bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200';
+        return 'bg-gradient-to-r from-yellow-900/20 to-yellow-800/20 border-yellow-700/50 text-yellow-100';
       case 2:
-        return 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200';
+        return 'bg-gradient-to-r from-gray-800/30 to-gray-700/30 border-gray-600/50 text-gray-100';
       case 3:
-        return 'bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200';
+        return 'bg-gradient-to-r from-amber-900/20 to-amber-800/20 border-amber-700/50 text-amber-100';
       default:
-        return 'bg-white border-gray-200';
+        return 'bg-gray-800/50 border-gray-700/50 text-gray-100';
     }
   };
 
   return (
-    <Card>
+    <Card className="bg-gray-900/50 border-gray-700/50">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base">Ranking</CardTitle>
+        <CardTitle className="text-base text-gray-100">Ranking</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
           {isLoadingRanking ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <span className="ml-2 text-muted-foreground">Loading rankings...</span>
+              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              <span className="ml-2 text-gray-400">Loading rankings...</span>
             </div>
           ) : rankingError ? (
-            <div className="text-center py-8 text-red-600">
+            <div className="text-center py-8 text-red-400">
               <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="font-medium">Error loading rankings</p>
-              <p className="text-sm text-muted-foreground mt-2">{rankingError.message}</p>
+              <p className="text-sm text-gray-500 mt-2">{rankingError.message}</p>
             </div>
           ) : rankingData && rankingData.topUsers.length > 0 ? (
             rankingData.topUsers.map((user, index) => {
               const rank = index + 1;
               const score = rankingData.scores[index];
-              
+              const profitRatio = rankingData.profitRatios[index];
+
               return (
                 <div 
                   key={`${user}-${rank}`} 
@@ -102,20 +109,20 @@ function RankingSection({ challengeId }: { challengeId: string }) {
                     {getRankIcon(rank)}
                     <div>
                       <div className="font-medium">{formatAddress(user)}</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-gray-400">
                         Rank #{rank}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-lg">{formatScore(score)}</div>
-                    <div className="text-xs text-muted-foreground">Score</div>
+                    <div className="font-bold text-lg">{formatProfitRatio(profitRatio)}</div>
+                    <div className="text-xs text-gray-400">Profit Ratio</div>
                   </div>
                 </div>
               );
             })
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-gray-400">
               <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No ranking data available</p>
               <p className="text-sm mt-1">Rankings will appear once users start trading</p>
@@ -123,8 +130,8 @@ function RankingSection({ challengeId }: { challengeId: string }) {
           )}
         </div>
         {rankingData && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="text-xs text-muted-foreground text-center">
+          <div className="mt-4 pt-4 border-t border-gray-700">
+            <div className="text-xs text-gray-500 text-center">
               Last updated: {new Date(parseInt(rankingData.updatedAtTimestamp) * 1000).toLocaleString()}
             </div>
           </div>
@@ -699,7 +706,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">{getChallengeTitle()}</h2>
+        <h2 className="text-xl font-bold text-gray-100">{getChallengeTitle()}</h2>
         <div className="flex items-center gap-2">
           {/* Get Rewards Button - Only shown when challenge is ended */}
           {isClient && challengeDetails.endTime <= currentTime && (
@@ -729,13 +736,19 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
               variant="outline" 
               size="sm" 
               onClick={handleNavigateToAccount}
-              className="bg-white text-black border-gray-200 hover:bg-gray-50"
+              className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
             >
               <User className="mr-2 h-4 w-4" />
               My Account
             </Button>
           ) : (
-            <Button variant="outline" size="sm" onClick={handleJoinChallenge} disabled={isJoining || isLoadingEntryFee}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleJoinChallenge} 
+              disabled={isJoining || isLoadingEntryFee}
+              className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
+            >
               {isJoining ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -758,24 +771,24 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
+        <Card className="bg-gray-900/50 border-gray-700/50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Participants</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-100">Participants</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{challengeDetails.participants}</div>
-            <div className="flex items-center mt-1 text-sm">
-              <span className="text-muted-foreground">Total participants</span>
+            <div className="text-2xl font-bold text-gray-100">{challengeDetails.participants}</div>
+            <div className="flex items-center mt-1 text-sm text-gray-400">
+              <span className="text-gray-400">Total participants</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gray-900/50 border-gray-700/50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Progress</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-100">Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-gray-100">
               {isClient ? (
                 challengeDetails.endTime > currentTime ? 
                   (() => {
@@ -798,22 +811,22 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
                   "Challenge Ended"
               ) : "Loading..."}
             </div>
-            <div className="flex items-center mt-1 text-sm">
-              <span className="text-muted-foreground">
+            <div className="flex items-center mt-1 text-sm text-gray-400">
+              <span className="text-gray-400">
                 {isClient ? `Ends on ${challengeDetails.endTime.toLocaleDateString()}` : "Calculating..."}
               </span>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gray-900/50 border-gray-700/50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Prize</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-100">Total Prize</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{challengeDetails.prize}</div>
-            <div className="flex items-center mt-1 text-sm">
-              <span className="text-muted-foreground">Challenge reward</span>
+            <div className="text-2xl font-bold text-gray-100">{challengeDetails.prize}</div>
+            <div className="flex items-center mt-1 text-sm text-gray-400">
+              <span className="text-gray-400">Challenge reward</span>
             </div>
           </CardContent>
         </Card>
@@ -822,23 +835,23 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       {/* Transactions and Ranking Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Transactions */}
-        <Card>
+        <Card className="bg-gray-900/50 border-gray-700/50">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Recent Transactions</CardTitle>
+            <CardTitle className="text-base text-gray-100">Recent Transactions</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {isLoadingTransactions ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                  <span className="ml-2 text-muted-foreground">Loading transactions...</span>
+                  <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                  <span className="ml-2 text-gray-400">Loading transactions...</span>
                 </div>
               ) : transactionsError ? (
-                <div className="text-center py-8 text-red-600">
+                <div className="text-center py-8 text-red-400">
                   <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="font-medium">Error loading transactions</p>
-                  <p className="text-sm text-muted-foreground mt-2">{transactionsError.message}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Check console for more details</p>
+                  <p className="text-sm text-gray-500 mt-2">{transactionsError.message}</p>
+                  <p className="text-xs text-gray-500 mt-1">Check console for more details</p>
                 </div>
               ) : transactions.length > 0 ? (
                 transactions.slice(0, 10).map((transaction) => {
@@ -892,24 +905,24 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
                   }
 
                   return (
-                    <div key={transaction.id} className="flex items-center justify-between py-3 border-b border-border last:border-b-0">
+                    <div key={transaction.id} className="flex items-center justify-between py-3 border-b border-gray-700 bg-gray-800/30 px-3 rounded-lg last:border-b-0 mb-2">
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
                           {getTransactionIcon(transaction.type)}
                         </div>
                         <div>
-                          <div className="font-medium">{transaction.details}</div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="font-medium text-gray-100">{transaction.details}</div>
+                          <div className="text-sm text-gray-400">
                             {formatTimestamp(transaction.timestamp)}
                             {transaction.user && ` • ${formatUserAddress(transaction.user)}`}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium">{transaction.amount || '-'}</div>
+                        <div className="font-medium text-gray-100">{transaction.amount || '-'}</div>
                         <button
                           onClick={() => window.open(`https://basescan.org/tx/${transaction.transactionHash}`, '_blank')}
-                          className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                          className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                         >
                           View on BaseScan
                         </button>
@@ -918,7 +931,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
                   )
                 })
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-gray-400">
                   <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No transactions found for this challenge</p>
                 </div>

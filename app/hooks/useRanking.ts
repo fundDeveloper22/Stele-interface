@@ -9,8 +9,10 @@ const GET_RANKING_QUERY = `
     ranking(id: $challengeId) {
       id
       challengeId
+      seedMoney
       topUsers
       scores
+      profitRatios
       updatedAtTimestamp
       updatedAtBlockNumber
       updatedAtTransactionHash
@@ -21,8 +23,10 @@ const GET_RANKING_QUERY = `
 export interface RankingData {
   id: string
   challengeId: string
+  seedMoney: string
   topUsers: string[]
   scores: string[]
+  profitRatios: string[]
   updatedAtTimestamp: string
   updatedAtBlockNumber: string
   updatedAtTransactionHash: string
