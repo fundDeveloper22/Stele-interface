@@ -282,15 +282,6 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
 
   // Delegate tokens to self
   const handleDelegate = async () => {
-    if (!walletAddress) {
-      toast({
-        variant: "destructive",
-        title: "Phantom Wallet Not Connected",
-        description: "Please connect your Phantom wallet to delegate",
-      })
-      return
-    }
-
     setIsDelegating(true)
 
     try {
@@ -299,16 +290,23 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
         throw new Error("Phantom wallet is not installed or Ethereum support is not enabled")
       }
 
-      // Request wallet connection
-      await window.phantom.ethereum.request({ method: 'eth_requestAccounts' })
+      // Request wallet connection and get current connected address
+      const accounts = await window.phantom.ethereum.request({ method: 'eth_requestAccounts' })
+      
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No accounts connected in Phantom wallet. Please connect your wallet first.")
+      }
+
+      const currentConnectedAddress = accounts[0]
+      console.log('Delegating tokens for address:', currentConnectedAddress)
       
       // Connect to provider with signer using Phantom's ethereum provider
       const provider = new ethers.BrowserProvider(window.phantom.ethereum)
       const signer = await provider.getSigner()
       const votesContract = new ethers.Contract(STELE_TOKEN_ADDRESS, ERC20VotesABI.abi, signer)
 
-      // Delegate to self
-      const tx = await votesContract.delegate(walletAddress)
+      // Delegate to self (current connected address)
+      const tx = await votesContract.delegate(currentConnectedAddress)
 
       toast({
         title: "Transaction Submitted",
@@ -320,7 +318,7 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
 
       toast({
         title: "Delegation Successful",
-        description: "You have successfully delegated your tokens to yourself. Your voting power should now be available.",
+        description: `You have successfully delegated your tokens to yourself (${currentConnectedAddress.slice(0, 6)}...${currentConnectedAddress.slice(-4)}). Your voting power should now be available.`,
         action: (
           <ToastAction 
             altText="View on BaseScan"
@@ -347,6 +345,8 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
         errorMessage = "Insufficient funds for gas fees"
       } else if (error.message?.includes("Phantom wallet is not installed")) {
         errorMessage = "Phantom wallet is not installed or Ethereum support is not enabled"
+      } else if (error.message?.includes("No accounts connected")) {
+        errorMessage = "No accounts connected in Phantom wallet. Please connect your wallet first."
       }
 
       toast({

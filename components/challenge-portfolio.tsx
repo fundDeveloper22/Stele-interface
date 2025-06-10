@@ -701,7 +701,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">{getChallengeTitle()}</h2>
         <div className="flex items-center gap-2">
-          {/* Get Rewards 버튼 - Challenge가 끝났을 때만 표시 */}
+          {/* Get Rewards Button - Only shown when challenge is ended */}
           {isClient && challengeDetails.endTime <= currentTime && (
             <Button 
               variant="default" 

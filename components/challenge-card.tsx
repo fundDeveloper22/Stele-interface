@@ -223,15 +223,15 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
       </CardContent>
       <CardFooter>
         {(() => {
-          // View Challenge 버튼은 항상 보임
+          // View Challenge button is always visible
           const showViewChallenge = true;
           
-          // Create Challenge 버튼은 isCompleted가 true이거나 현재시간이 endTime을 지났을 경우 보임
+          // Create Challenge button is shown when isCompleted is true or current time has passed endTime
           const currentTime = new Date();
           const endTimeDate = new Date(Number(endTime) * 1000);
           const showCreateChallenge = isCompleted || currentTime > endTimeDate;
 
-          // 두 버튼이 모두 보이는 경우
+          // When both buttons are visible
           if (showViewChallenge && showCreateChallenge) {
             return (
               <div className="flex gap-2 w-full">
@@ -263,7 +263,7 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
             );
           }
           
-          // View Challenge 버튼만 보이는 경우
+          // When only View Challenge button is visible
           if (showViewChallenge && !showCreateChallenge) {
             return (
               <Link href={`/challenge/${challengeId}`} className="w-full">
@@ -275,7 +275,7 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
             );
           }
 
-          // Create Challenge 버튼만 보이는 경우 (이 경우는 발생하지 않을 것임)
+          // When only Create Challenge button is visible (this case shouldn't occur)
           return (
             <Button 
               className="w-full" 
