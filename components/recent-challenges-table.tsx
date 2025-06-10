@@ -73,14 +73,14 @@ export function RecentChallengesTable() {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="bg-gray-900/50 border-gray-700/50">
         <CardHeader>
-          <CardTitle>Recent Challenges</CardTitle>
+          <CardTitle className="text-gray-100">Recent Challenges</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>
+              <div key={i} className="h-12 bg-gray-700 rounded animate-pulse"></div>
             ))}
           </div>
         </CardContent>
@@ -90,13 +90,13 @@ export function RecentChallengesTable() {
 
   if (error || !data?.challenges) {
     return (
-      <Card>
+      <Card className="bg-gray-900/50 border-gray-700/50">
         <CardHeader>
-          <CardTitle>Recent Challenges</CardTitle>
+          <CardTitle className="text-gray-100">Recent Challenges</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-muted-foreground">Error loading challenges</p>
+            <p className="text-gray-400">Error loading challenges</p>
           </div>
         </CardContent>
       </Card>
@@ -104,26 +104,26 @@ export function RecentChallengesTable() {
   }
 
   return (
-    <Card>
+    <Card className="bg-gray-900/50 border-gray-700/50">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-gray-100">
           <Trophy className="h-5 w-5" />
           Recent Challenges
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border">
+        <div className="rounded-md border border-gray-700">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Challenge ID</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Participants</TableHead>
-                <TableHead>Prize Pool</TableHead>
-                <TableHead>Start Date</TableHead>
-                <TableHead>End Date</TableHead>
-                <TableHead>Actions</TableHead>
+              <TableRow className="border-b border-gray-700 hover:bg-gray-800/50">
+                <TableHead className="text-gray-300">Challenge ID</TableHead>
+                <TableHead className="text-gray-300">Type</TableHead>
+                <TableHead className="text-gray-300">Status</TableHead>
+                <TableHead className="text-gray-300">Participants</TableHead>
+                <TableHead className="text-gray-300">Prize Pool</TableHead>
+                <TableHead className="text-gray-300">Start Date</TableHead>
+                <TableHead className="text-gray-300">End Date</TableHead>
+                <TableHead className="text-gray-300">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -131,8 +131,8 @@ export function RecentChallengesTable() {
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
-                      <Trophy className="h-8 w-8 text-muted-foreground" />
-                      <p className="text-muted-foreground">No challenges found</p>
+                      <Trophy className="h-8 w-8 text-gray-500" />
+                      <p className="text-gray-400">No challenges found</p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -140,14 +140,14 @@ export function RecentChallengesTable() {
                 data.challenges.map((challenge) => {
                   const statusInfo = getChallengeStatus(challenge)
                   return (
-                    <TableRow key={challenge.id}>
+                    <TableRow key={challenge.id} className="border-b border-gray-700 hover:bg-gray-800/30">
                       <TableCell className="font-medium">
-                        <code className="text-sm bg-muted px-2 py-1 rounded">
+                        <code className="text-sm bg-gray-800 text-gray-300 px-2 py-1 rounded">
                           {challenge.challengeId.slice(0, 8)}...
                         </code>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">
+                        <Badge variant="outline" className="border-gray-600 text-gray-300">
                           {getChallengeTypeName(challenge.challengeType)}
                         </Badge>
                       </TableCell>
@@ -160,29 +160,29 @@ export function RecentChallengesTable() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex items-center gap-1 text-gray-300">
+                          <Users className="h-4 w-4 text-gray-400" />
                           {challenge.investorCounter}
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium text-gray-100">
                         {formatUSDAmount(challenge.rewardAmountUSD)}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1 text-sm text-gray-400">
                           <Clock className="h-4 w-4" />
                           {formatDate(challenge.startTime)}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1 text-sm text-gray-400">
                           <Clock className="h-4 w-4" />
                           {formatDate(challenge.endTime)}
                         </div>
                       </TableCell>
                       <TableCell>
                         <Link href={`/challenge/${challenge.challengeId}`}>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
                             <Trophy className="mr-2 h-4 w-4" />
                             View
                           </Button>

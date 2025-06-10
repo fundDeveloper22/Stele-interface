@@ -182,20 +182,20 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
   };
   
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden bg-gray-900/50 border-gray-700/50">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{title}</CardTitle>
+          <CardTitle className="text-lg text-gray-100">{title}</CardTitle>
           <Badge
             variant={status === "active" ? "default" : status === "pending" ? "outline" : "secondary"}
-            className={status === "active" ? "bg-emerald-500" : ""}
+            className={status === "active" ? "bg-emerald-500" : status === "pending" ? "border-gray-600 text-gray-300" : ""}
           >
             {status === "active" ? "Active" : status === "pending" ? "Pending" : "Completed"}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="pb-2">
-        <div className="flex items-center text-sm text-muted-foreground mb-4">
+        <div className="flex items-center text-sm text-gray-400 mb-4">
           <div className="flex items-center mr-4">
             <Clock className="mr-1 h-4 w-4" />
             {startDate}
@@ -208,8 +208,8 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
 
         <div className="space-y-3">
           <div className="flex justify-between text-sm">
-            <span>Progress</span>
-            <span className="font-medium">
+            <span className="text-gray-400">Progress</span>
+            <span className="font-medium text-gray-100">
               {timeLeft.toLowerCase() === "completed" ? timeLeft : `${timeLeft} left`}
             </span>
           </div>
@@ -217,21 +217,21 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
         </div>
 
         <div className="mt-4">
-          <div className="text-sm text-muted-foreground">Total Prize</div>
-          <div className="text-xl font-bold mt-1">{prize}</div>
+          <div className="text-sm text-gray-400">Total Prize</div>
+          <div className="text-xl font-bold mt-1 text-gray-100">{prize}</div>
         </div>
       </CardContent>
       <CardFooter>
         {(() => {
-          // View Challenge 버튼은 항상 보임
+          // View Challenge button is always visible
           const showViewChallenge = true;
           
-          // Create Challenge 버튼은 isCompleted가 true이거나 현재시간이 endTime을 지났을 경우 보임
+          // Create Challenge button is shown when isCompleted is true or current time has passed endTime
           const currentTime = new Date();
           const endTimeDate = new Date(Number(endTime) * 1000);
           const showCreateChallenge = isCompleted || currentTime > endTimeDate;
 
-          // 두 버튼이 모두 보이는 경우
+          // When both buttons are visible
           if (showViewChallenge && showCreateChallenge) {
             return (
               <div className="flex gap-2 w-full">
@@ -242,7 +242,7 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
                   </Button>
                 </Link>
                 <Button 
-                  className="flex-1" 
+                  className="flex-1 bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700" 
                   onClick={handleCreateChallenge}
                   disabled={isCreating}
                   variant="outline"
@@ -263,7 +263,7 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
             );
           }
           
-          // View Challenge 버튼만 보이는 경우
+          // When only View Challenge button is visible
           if (showViewChallenge && !showCreateChallenge) {
             return (
               <Link href={`/challenge/${challengeId}`} className="w-full">
@@ -275,12 +275,13 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
             );
           }
 
-          // Create Challenge 버튼만 보이는 경우 (이 경우는 발생하지 않을 것임)
+          // When only Create Challenge button is visible (this case shouldn't occur)
           return (
             <Button 
-              className="w-full" 
+              className="w-full bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700" 
               onClick={handleCreateChallenge}
               disabled={isCreating}
+              variant="outline"
             >
               {isCreating ? (
                 <>

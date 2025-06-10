@@ -387,7 +387,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Active Challenges</h2>
+        <h2 className="text-xl font-bold text-gray-100">Active Challenges</h2>
         {showCreateButton && (
           <ChallengeTypeModal 
             onCreateChallenge={handleCreateChallenge}

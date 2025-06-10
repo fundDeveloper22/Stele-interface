@@ -11,13 +11,13 @@ export function DashboardStats() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[1, 2, 3].map((i) => (
-          <Card key={i}>
+          <Card key={i} className="bg-gray-900/50 border-gray-700/50">
             <CardHeader className="pb-2">
-              <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-4 bg-gray-700 rounded animate-pulse"></div>
             </CardHeader>
             <CardContent>
-              <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded animate-pulse w-2/3"></div>
+              <div className="h-8 bg-gray-700 rounded animate-pulse mb-2"></div>
+              <div className="h-3 bg-gray-700 rounded animate-pulse w-2/3"></div>
             </CardContent>
           </Card>
         ))}
@@ -28,14 +28,14 @@ export function DashboardStats() {
   if (error || !data?.activeChallenges) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card>
+        <Card className="bg-gray-900/50 border-gray-700/50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Challenges</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-100">Active Challenges</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">-</div>
+            <div className="text-2xl font-bold text-gray-100">-</div>
             <div className="flex items-center mt-1 text-sm">
-              <span className="text-muted-foreground">Error loading data</span>
+              <span className="text-gray-400">Error loading data</span>
             </div>
           </CardContent>
         </Card>
@@ -74,38 +74,38 @@ export function DashboardStats() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <Card>
+      <Card className="bg-gray-900/50 border-gray-700/50">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Active Challenges</CardTitle>
+          <CardTitle className="text-sm font-medium text-gray-100">Active Challenges</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{activeChallengesCount}</div>
+          <div className="text-2xl font-bold text-gray-100">{activeChallengesCount}</div>
           <div className="flex items-center mt-1 text-sm">
-            <span className="text-muted-foreground">Currently active</span>
+            <span className="text-gray-400">Currently active</span>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="bg-gray-900/50 border-gray-700/50">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Total Participants</CardTitle>
+          <CardTitle className="text-sm font-medium text-gray-100">Total Participants</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalParticipants}</div>
+          <div className="text-2xl font-bold text-gray-100">{totalParticipants}</div>
           <div className="flex items-center mt-1 text-sm">
-            <span className="text-muted-foreground">Across all challenges</span>
+            <span className="text-gray-400">Across all challenges</span>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="bg-gray-900/50 border-gray-700/50">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Earned Rewards</CardTitle>
+          <CardTitle className="text-sm font-medium text-gray-100">Earned Rewards</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${totalRewards.toFixed(2)}</div>
+          <div className="text-2xl font-bold text-gray-100">${totalRewards.toFixed(2)}</div>
           <div className="flex items-center mt-1 text-sm">
-            <span className="text-muted-foreground">From all challenges</span>
+            <span className="text-gray-400">From all challenges</span>
           </div>
         </CardContent>
       </Card>
@@ -117,7 +117,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-100">Dashboard</h1>
       </div>
       
       <DashboardStats />

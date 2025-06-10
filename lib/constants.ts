@@ -14,17 +14,17 @@ export const BASE_CHAIN_CONFIG = {
 export const BASE_BLOCK_TIME_MS = 2; // 2 seconds per block
 
 // Contract Addresses
-export const STELE_CONTRACT_ADDRESS = "0x30116F4a15146534a90B56c3Fbe26155ABEec1b5";
-export const STELE_TOKEN_ADDRESS = "0x6626806335C4BA670A7d25e70D21C1c007031b9F"; // Stele Token for voting
+export const STELE_CONTRACT_ADDRESS = "0x9FCe4D3110ce3eE074b4B8c15374EAb3FE1Faa0d";
+export const STELE_TOKEN_ADDRESS = "0x8B1136AeBb8e0FA452AC0d67984B658A852d030f"; // Stele Token for voting
 export const USDC_TOKEN_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base Mainnet USDC
-export const GOVERNANCE_CONTRACT_ADDRESS = "0xcdb05851bB66A42DC451f3565a0397456B736acA"; // Base Mainnet Governance
+export const GOVERNANCE_CONTRACT_ADDRESS = "0x28ff7A3B2d8C62e7E6f471638FDa6791176Ab7bD"; // Base Mainnet Governance
 
 // Token decimals
 export const USDC_DECIMALS = 6;
 export const STELE_DECIMALS = 18;
 
 //subgraph
-export const SUBGRAPH_URL = 'https://api.studio.thegraph.com/query/111352/stele-base-6/version/latest'
+export const SUBGRAPH_URL = 'https://api.studio.thegraph.com/query/111352/stele-base-8/version/latest'
 export const headers = { Authorization: `Bearer ${process.env.NEXT_PUBLIC_THE_GRAPH_API_KEY}` }
 export const BYTE_ZERO = "0x00000000"
 

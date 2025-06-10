@@ -170,7 +170,23 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
 
     setIsLoadingVotingPower(true)
     try {
-      // Connect to provider
+      // Check if Phantom wallet is available
+      if (!window.phantom?.ethereum) {
+        throw new Error("Phantom wallet is not installed or Ethereum support is not enabled")
+      }
+
+      // Get current connected address from Phantom wallet
+      const accounts = await window.phantom.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No accounts connected in Phantom wallet")
+      }
+
+      const currentConnectedAddress = accounts[0]
+      
+      // Connect to provider for read-only operations
       const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
         ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
         : 'https://mainnet.base.org'
@@ -186,16 +202,15 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
         currentBlock = await provider.getBlockNumber()
       }
       
-      // Check if user has already voted
-      const hasUserVoted = await governanceContract.hasVoted(id, walletAddress)
+      // Check if user has already voted using the current connected address
+      const hasUserVoted = await governanceContract.hasVoted(id, currentConnectedAddress)
       setHasVoted(hasUserVoted)
 
-      // Get voting power at proposal start block
-      // For simplicity, we'll use current block - 1 as timepoint
-      const timepoint = currentBlock - 1
-      const userVotingPower = await governanceContract.getVotes(walletAddress, timepoint)
-      setVotingPower(ethers.formatUnits(userVotingPower, STELE_DECIMALS))
-
+      // Get voting power at a past block to avoid "future lookup" error
+      // Use currentBlock - 1 to ensure the block is finalized
+      const timepoint = Math.max(1, currentBlock - 1)
+      const userVotingPower = await governanceContract.getVotes(currentConnectedAddress, timepoint)
+      setVotingPower(ethers.formatUnits(userVotingPower, STELE_DECIMALS))      
     } catch (error) {
       console.error('Error checking voting power and status:', error)
       toast({
@@ -267,15 +282,6 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
 
   // Delegate tokens to self
   const handleDelegate = async () => {
-    if (!walletAddress) {
-      toast({
-        variant: "destructive",
-        title: "Phantom Wallet Not Connected",
-        description: "Please connect your Phantom wallet to delegate",
-      })
-      return
-    }
-
     setIsDelegating(true)
 
     try {
@@ -284,16 +290,23 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
         throw new Error("Phantom wallet is not installed or Ethereum support is not enabled")
       }
 
-      // Request wallet connection
-      await window.phantom.ethereum.request({ method: 'eth_requestAccounts' })
+      // Request wallet connection and get current connected address
+      const accounts = await window.phantom.ethereum.request({ method: 'eth_requestAccounts' })
+      
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No accounts connected in Phantom wallet. Please connect your wallet first.")
+      }
+
+      const currentConnectedAddress = accounts[0]
+      console.log('Delegating tokens for address:', currentConnectedAddress)
       
       // Connect to provider with signer using Phantom's ethereum provider
       const provider = new ethers.BrowserProvider(window.phantom.ethereum)
       const signer = await provider.getSigner()
       const votesContract = new ethers.Contract(STELE_TOKEN_ADDRESS, ERC20VotesABI.abi, signer)
 
-      // Delegate to self
-      const tx = await votesContract.delegate(walletAddress)
+      // Delegate to self (current connected address)
+      const tx = await votesContract.delegate(currentConnectedAddress)
 
       toast({
         title: "Transaction Submitted",
@@ -305,7 +318,7 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
 
       toast({
         title: "Delegation Successful",
-        description: "You have successfully delegated your tokens to yourself. Your voting power should now be available.",
+        description: `You have successfully delegated your tokens to yourself (${currentConnectedAddress.slice(0, 6)}...${currentConnectedAddress.slice(-4)}). Your voting power should now be available.`,
         action: (
           <ToastAction 
             altText="View on BaseScan"
@@ -332,6 +345,8 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
         errorMessage = "Insufficient funds for gas fees"
       } else if (error.message?.includes("Phantom wallet is not installed")) {
         errorMessage = "Phantom wallet is not installed or Ethereum support is not enabled"
+      } else if (error.message?.includes("No accounts connected")) {
+        errorMessage = "No accounts connected in Phantom wallet. Please connect your wallet first."
       }
 
       toast({
@@ -383,8 +398,15 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
         throw new Error("Phantom wallet is not installed or Ethereum support is not enabled")
       }
 
-      // Request wallet connection
-      await window.phantom.ethereum.request({ method: 'eth_requestAccounts' })
+      // Request wallet connection and get current connected address
+      const accounts = await window.phantom.ethereum.request({ method: 'eth_requestAccounts' })
+      
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No accounts connected in Phantom wallet")
+      }
+
+      const currentConnectedAddress = accounts[0]
+      console.log('Voting with address:', currentConnectedAddress)
       
       // Connect to provider with signer using Phantom's ethereum provider
       const provider = new ethers.BrowserProvider(window.phantom.ethereum)
@@ -463,6 +485,8 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
         errorMessage = "You have already voted on this proposal"
       } else if (error.message?.includes("Phantom wallet is not installed")) {
         errorMessage = "Phantom wallet is not installed or Ethereum support is not enabled"
+      } else if (error.message?.includes("No accounts connected")) {
+        errorMessage = "No accounts connected in Phantom wallet. Please connect your wallet first."
       }
 
       toast({
@@ -491,12 +515,12 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
     setIsQueuing(true)
     try {
       // Check if Phantom wallet is available
-      if (typeof window.ethereum === 'undefined') {
-        throw new Error('Phantom wallet is not installed')
+      if (!window.phantom?.ethereum) {
+        throw new Error('Phantom wallet is not installed or Ethereum support is not enabled')
       }
 
-      // Connect to provider with signer
-      const provider = new ethers.BrowserProvider(window.ethereum)
+      // Connect to provider with signer using Phantom's ethereum provider
+      const provider = new ethers.BrowserProvider(window.phantom.ethereum)
       const signer = await provider.getSigner()
       const governanceContract = new ethers.Contract(GOVERNANCE_CONTRACT_ADDRESS, GovernorABI.abi, signer)
 
@@ -580,13 +604,13 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
     
     setIsExecuting(true)
     try {
-      // Check if wallet is available
-      if (typeof window.ethereum === 'undefined') {
-        throw new Error('Wallet is not installed')
+      // Check if Phantom wallet is available
+      if (!window.phantom?.ethereum) {
+        throw new Error('Phantom wallet is not installed or Ethereum support is not enabled')
       }
 
-      // Connect to provider with signer
-      const provider = new ethers.BrowserProvider(window.ethereum)
+      // Connect to provider with signer using Phantom's ethereum provider
+      const provider = new ethers.BrowserProvider(window.phantom.ethereum)
       const signer = await provider.getSigner()
       const governanceContract = new ethers.Contract(GOVERNANCE_CONTRACT_ADDRESS, GovernorABI.abi, signer)
 
@@ -671,6 +695,8 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
         errorMessage = "Transaction would fail. The proposal may not be ready for execution or the timelock period hasn't expired."
       } else if (error.message?.includes("Unable to verify")) {
         errorMessage = error.message
+      } else if (error.message?.includes("Phantom wallet is not installed")) {
+        errorMessage = "Phantom wallet is not installed or Ethereum support is not enabled"
       }
 
       toast({

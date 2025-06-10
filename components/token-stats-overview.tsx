@@ -80,9 +80,9 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
   }
 
   return (
-    <Card className={className}>
+    <Card className={`${className} bg-gray-900/50 border-gray-700/50`}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-gray-100">
           <Coins className="h-5 w-5" />
           Token Holdings Overview
         </CardTitle>
@@ -90,17 +90,17 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
       <CardContent>
         <div className="space-y-4">
           {sortedStats.map((stat, index) => (
-            <div key={stat.symbol} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+            <div key={stat.symbol} className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
               <div className="flex items-center">
                 {getTokenIcon(stat.symbol)}
                 <div>
-                  <div className="font-medium flex items-center gap-2">
+                  <div className="font-medium flex items-center gap-2 text-gray-100">
                     {stat.symbol}
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="text-xs bg-gray-700 text-gray-300">
                       #{index + 1}
                     </Badge>
                   </div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-4">
+                  <div className="text-sm text-gray-400 flex items-center gap-4">
                     <span className="flex items-center gap-1">
                       <Users className="h-3 w-3" />
                       {stat.totalInvestors} investors
@@ -113,32 +113,32 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
                 </div>
               </div>
               <div className="text-right">
-                <div className="font-semibold">{formatCurrency(stat.totalValue)}</div>
-                <div className="text-sm text-muted-foreground">Total Value</div>
+                <div className="font-semibold text-gray-100">{formatCurrency(stat.totalValue)}</div>
+                <div className="text-sm text-gray-400">Total Value</div>
               </div>
             </div>
           ))}
         </div>
         
-        <div className="mt-6 p-4 border rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+        <div className="mt-6 p-4 border border-gray-700 rounded-lg bg-gradient-to-r from-blue-900/20 to-indigo-900/20">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-blue-400">
                 {sortedStats.reduce((sum, stat) => sum + stat.totalInvestors, 0)}
               </div>
-              <div className="text-xs text-muted-foreground">Total Positions</div>
+              <div className="text-xs text-gray-400">Total Positions</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-green-400">
                 {formatCurrency(sortedStats.reduce((sum, stat) => sum + stat.totalValue, 0))}
               </div>
-              <div className="text-xs text-muted-foreground">Total Value</div>
+              <div className="text-xs text-gray-400">Total Value</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-2xl font-bold text-purple-400">
                 {sortedStats.length}
               </div>
-              <div className="text-xs text-muted-foreground">Unique Tokens</div>
+              <div className="text-xs text-gray-400">Unique Tokens</div>
             </div>
           </div>
         </div>
