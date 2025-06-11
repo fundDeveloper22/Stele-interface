@@ -30,13 +30,18 @@ export function RecentChallengesTable() {
   }, [])
 
   const getChallengeTypeName = (type: string): string => {
-    switch (type) {
-      case "0": return "1 week challenge"
-      case "1": return "1 month challenge"
-      case "2": return "3 months challenge"
-      case "3": return "6 months challenge"
-      case "4": return "1 year challenge"
-      default: return "Unknown"
+    // Convert to string to handle both number and string inputs
+    const typeStr = String(type)
+    
+    switch (typeStr) {
+      case "0": return "1 week"
+      case "1": return "1 month"
+      case "2": return "3 months"
+      case "3": return "6 months"
+      case "4": return "1 year"
+      default: 
+        console.log('No match found for type:', typeStr)
+        return "Unknown"
     }
   }
 
@@ -116,8 +121,8 @@ export function RecentChallengesTable() {
           <Table>
             <TableHeader>
               <TableRow className="border-b border-gray-700 hover:bg-gray-800/50">
-                <TableHead className="text-gray-300 pl-8">Challenge</TableHead>
-                <TableHead className="text-gray-300 pl-8">Type</TableHead>
+                <TableHead className="text-gray-300 pl-10">Challenge</TableHead>
+                <TableHead className="text-gray-300 pl-12">Type</TableHead>
                 <TableHead className="text-gray-300 text-center">Status</TableHead>
                 <TableHead className="text-gray-300 pl-6">Participants</TableHead>
                 <TableHead className="text-gray-300 pl-8">Prize</TableHead>
@@ -149,7 +154,7 @@ export function RecentChallengesTable() {
                           {challenge.challengeId.slice(0, 8)}
                         </code>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <Badge variant="outline" className="border-gray-600 text-gray-300">
                           {getChallengeTypeName(challenge.challengeType)}
                         </Badge>
@@ -170,6 +175,7 @@ export function RecentChallengesTable() {
                       </TableCell>
                       <TableCell className="font-medium text-gray-100 pl-8">
                         {formatUSDAmount(challenge.rewardAmountUSD)}
+                        {/* {challenge.rewardAmountUSD} */}
                       </TableCell>
                       <TableCell className="pl-10">
                         <div className="flex items-center gap-1 text-sm text-gray-400">
