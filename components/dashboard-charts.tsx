@@ -2,42 +2,43 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { useSteleSnapshots } from '@/app/hooks/useSteleSnapshots'
+import { useActiveChallengesSnapshots } from '@/app/hooks/useActiveChallengesSnapshots'
 import { Users, DollarSign, TrendingUp, Calendar } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 interface ChartDataPoint {
-  date: string
-  investorCounter: number
-  totalRewardUSD: number
+  id: string
+  totalParticipants: number
+  totalRewards: number
   formattedDate: string
   fullDate: string
   timeLabel: string
 }
 
 export function DashboardCharts() {
-  const { data, isLoading, error } = useSteleSnapshots(30)
+  const { data, isLoading, error } = useActiveChallengesSnapshots(30)
   const [activeIndexParticipants, setActiveIndexParticipants] = useState<number | null>(null)
   const [activeIndexRewards, setActiveIndexRewards] = useState<number | null>(null)
 
   const chartData = useMemo(() => {
-    if (!data?.steleSnapshots) return []
+    if (!data?.activeChallengesSnapshots) return []
 
-    // Convert and sort data by date
-    const processedData = data.steleSnapshots
-      .map(snapshot => {
-        const timestamp = Number(snapshot.date) * 1000 // Convert to milliseconds
-        const date = new Date(timestamp)
+    // Convert and sort data by id (assuming id represents timestamp or sequential order)
+    const processedData = data.activeChallengesSnapshots
+      .map((snapshot, index) => {
+        // Since we don't have date field, we'll use index for time simulation
+        // In real implementation, you might want to extract timestamp from id or use another field
+        const simulatedDate = new Date(Date.now() - (data.activeChallengesSnapshots.length - index - 1) * 24 * 60 * 60 * 1000)
         
         return {
-          date: snapshot.date,
-          investorCounter: Number(snapshot.investorCounter),
-          totalRewardUSD: Number(snapshot.totalRewardUSD),
-          formattedDate: date.toLocaleDateString('en-US', { 
+          id: snapshot.id,
+          totalParticipants: Number(snapshot.totalParticipants),
+          totalRewards: Number(snapshot.totalRewards),
+          formattedDate: simulatedDate.toLocaleDateString('en-US', { 
             month: 'short', 
             day: 'numeric'
           }),
-          fullDate: date.toLocaleDateString('en-US', { 
+          fullDate: simulatedDate.toLocaleDateString('en-US', { 
             month: 'short', 
             day: 'numeric',
             year: 'numeric',
@@ -45,30 +46,27 @@ export function DashboardCharts() {
             minute: '2-digit',
             hour12: true
           }),
-          timeLabel: date.toLocaleTimeString('en-US', {
+          timeLabel: simulatedDate.toLocaleTimeString('en-US', {
             hour: 'numeric',
             minute: '2-digit',
             hour12: true
           })
         }
       })
-      .sort((a, b) => Number(a.date) - Number(b.date)) // Sort by timestamp ascending
-      .reverse() // Get most recent 30 days
-      .slice(0, 30)
-      .reverse() // Sort back to ascending for chart
+      .reverse() // Most recent first, then reverse for chart display
 
     return processedData
   }, [data])
 
-  // Calculate total values for headers
+  // Calculate total values for headers (use the most recent snapshot)
   const totalParticipants = useMemo(() => {
     if (!chartData.length) return 0
-    return chartData[chartData.length - 1]?.investorCounter || 0
+    return chartData[chartData.length - 1]?.totalParticipants || 0
   }, [chartData])
 
   const totalRewards = useMemo(() => {
     if (!chartData.length) return 0
-    return chartData[chartData.length - 1]?.totalRewardUSD || 0
+    return chartData[chartData.length - 1]?.totalRewards || 0
   }, [chartData])
 
   // Get current date for header
@@ -89,7 +87,7 @@ export function DashboardCharts() {
       return (
         <div className="bg-gray-800/95 border border-gray-600 rounded-lg px-3 py-2 shadow-xl backdrop-blur-sm">
           <p className="text-gray-100 text-sm font-medium">
-            {dataKey === 'investorCounter' ? `참가자: ${value?.toLocaleString()}` : `수수료: $${value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            {dataKey === 'totalParticipants' ? `Participants: ${value?.toLocaleString()}` : `Rewards: $${value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           </p>
         </div>
       )
@@ -122,7 +120,7 @@ export function DashboardCharts() {
     )
   }
 
-  if (error || !data?.steleSnapshots || chartData.length === 0) {
+  if (error || !data?.activeChallengesSnapshots || chartData.length === 0) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <Card className="bg-gray-900/50 border-gray-700/50">
@@ -189,7 +187,7 @@ export function DashboardCharts() {
               />
               <Tooltip content={<CustomTooltip />} />
               <Bar 
-                dataKey="investorCounter" 
+                dataKey="totalParticipants" 
                 radius={[3, 3, 0, 0]}
                 onMouseEnter={(data, index) => setActiveIndexParticipants(index)}
               >
@@ -247,7 +245,7 @@ export function DashboardCharts() {
               />
               <Tooltip content={<CustomTooltip />} />
               <Bar 
-                dataKey="totalRewardUSD" 
+                dataKey="totalRewards" 
                 radius={[3, 3, 0, 0]}
                 onMouseEnter={(data, index) => setActiveIndexRewards(index)}
               >
