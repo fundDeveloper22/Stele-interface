@@ -561,7 +561,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
                   <TableHead className="text-gray-300 pl-6">Prize Pool</TableHead>
                   <TableHead className="text-gray-300 pl-14">Progress</TableHead>
                   <TableHead className="text-gray-300 pl-10">Status</TableHead>
-                  <TableHead className="text-gray-300 pl-24">Action</TableHead>
+                  <TableHead className="text-gray-300 pl-16">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
