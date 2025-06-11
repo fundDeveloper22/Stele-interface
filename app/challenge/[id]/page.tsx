@@ -6,6 +6,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useChallenge } from '@/app/hooks/useChallenge'
+import { useRouter } from "next/navigation"
 
 interface ChallengePageProps {
   params: Promise<{
@@ -56,16 +57,15 @@ function ChallengeContent({ challengeId }: { challengeId: string }) {
 
 export default function ChallengePage({ params }: ChallengePageProps) {
   const { id } = use(params)
+  const router = useRouter()
   
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6">
-        <Link href="/dashboard">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Button>
-        </Link>
+        <Button variant="outline" size="sm" onClick={() => router.back()}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
       </div>
       
       <ChallengeContent challengeId={id} />
