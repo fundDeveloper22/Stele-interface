@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardClientComponents } from "@/components/DashboardClientComponents"
+import { DashboardCharts } from "@/components/dashboard-charts"
 import { useActiveChallenges } from '@/app/hooks/useActiveChallenges'
 
 export function DashboardStats() {
@@ -120,6 +121,7 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold tracking-tight text-gray-100">Dashboard</h1>
       </div>
       
+      <DashboardCharts />
       <DashboardStats />
       <DashboardClientComponents />
     </div>
