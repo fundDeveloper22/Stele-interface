@@ -48,6 +48,101 @@ const initializeWalletState = () => {
   }
 }
 
+// Set up wallet event listeners
+const setupWalletEventListeners = () => {
+  if (typeof window !== 'undefined' && window.phantom?.ethereum) {
+    const phantomEthereum = window.phantom.ethereum
+    
+    // Listen for account changes
+    const handleAccountsChanged = async (accounts: string[]) => {
+      console.log('Accounts changed:', accounts)
+      
+      if (accounts.length === 0) {
+        // User disconnected their wallet
+        localStorage.removeItem('walletAddress')
+        localStorage.removeItem('walletNetwork')
+        updateGlobalState({
+          address: null,
+          isConnected: false,
+          network: null
+        })
+      } else {
+        // User switched to a different account
+        const newAddress = accounts[0]
+        
+        // Get current chain to determine network
+        try {
+          const chainId = await phantomEthereum.request({ 
+            method: 'eth_chainId' 
+          })
+          
+          let network: 'base' | 'ethereum' = 'base'
+          if (chainId === '0x2105') {
+            network = 'base'
+          } else if (chainId === '0x1') {
+            network = 'ethereum'
+          }
+          
+          // Update localStorage and global state
+          localStorage.setItem('walletAddress', newAddress)
+          localStorage.setItem('walletNetwork', network)
+          
+          updateGlobalState({
+            address: newAddress,
+            isConnected: true,
+            network
+          })
+        } catch (error) {
+          console.error('Error getting chain ID:', error)
+          // Fallback: just update address
+          localStorage.setItem('walletAddress', newAddress)
+          updateGlobalState({
+            address: newAddress,
+            isConnected: true,
+            network: globalWalletState.network || 'base'
+          })
+        }
+      }
+    }
+
+    // Listen for chain changes
+    const handleChainChanged = (chainId: string) => {
+      console.log('Chain changed:', chainId)
+      
+      if (globalWalletState.isConnected) {
+        let network: 'base' | 'ethereum' = 'base'
+        if (chainId === '0x2105') {
+          network = 'base'
+        } else if (chainId === '0x1') {
+          network = 'ethereum'
+        }
+        
+        // Update localStorage and global state
+        localStorage.setItem('walletNetwork', network)
+        updateGlobalState({
+          network
+        })
+      }
+    }
+
+    // Add event listeners with type assertions
+    if (phantomEthereum.on) {
+      phantomEthereum.on('accountsChanged', handleAccountsChanged)
+      phantomEthereum.on('chainChanged', handleChainChanged)
+    }
+
+    // Return cleanup function
+    return () => {
+      if (window.phantom?.ethereum?.removeListener) {
+        window.phantom.ethereum.removeListener('accountsChanged', handleAccountsChanged)
+        window.phantom.ethereum.removeListener('chainChanged', handleChainChanged)
+      }
+    }
+  }
+  
+  return () => {}
+}
+
 // Hook for using wallet state
 export function useWallet() {
   const [walletState, setWalletState] = useState<WalletState>(globalWalletState)
@@ -64,7 +159,13 @@ export function useWallet() {
     // Subscribe to state changes
     const unsubscribe = subscribe(setWalletState)
     
-    return unsubscribe
+    // Set up wallet event listeners
+    const cleanupEventListeners = setupWalletEventListeners()
+    
+    return () => {
+      unsubscribe()
+      cleanupEventListeners()
+    }
   }, [])
 
   // Connect wallet function
@@ -106,12 +207,15 @@ export function useWallet() {
             network
           })
           
+          // Set up event listeners after successful connection
+          setupWalletEventListeners()
+          
           return { address, network }
         }
       }
       
       // Fallback to Solana
-      const provider = window.phantom?.solana
+      const provider = (window as any).phantom?.solana
       
       if (provider?.isPhantom) {
         const response = await provider.connect()

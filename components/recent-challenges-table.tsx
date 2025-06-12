@@ -30,13 +30,18 @@ export function RecentChallengesTable() {
   }, [])
 
   const getChallengeTypeName = (type: string): string => {
-    switch (type) {
-      case "0": return "1 Week"
-      case "1": return "1 Month"
-      case "2": return "3 Months"
-      case "3": return "6 Months"
-      case "4": return "1 Year"
-      default: return "Unknown"
+    // Convert to string to handle both number and string inputs
+    const typeStr = String(type)
+    
+    switch (typeStr) {
+      case "0": return "1 week"
+      case "1": return "1 month"
+      case "2": return "3 months"
+      case "3": return "6 months"
+      case "4": return "1 year"
+      default: 
+        console.log('No match found for type:', typeStr)
+        return "Unknown"
     }
   }
 
@@ -116,20 +121,19 @@ export function RecentChallengesTable() {
           <Table>
             <TableHeader>
               <TableRow className="border-b border-gray-700 hover:bg-gray-800/50">
-                <TableHead className="text-gray-300">Challenge ID</TableHead>
-                <TableHead className="text-gray-300">Type</TableHead>
-                <TableHead className="text-gray-300">Status</TableHead>
-                <TableHead className="text-gray-300">Participants</TableHead>
-                <TableHead className="text-gray-300">Prize Pool</TableHead>
-                <TableHead className="text-gray-300">Start Date</TableHead>
-                <TableHead className="text-gray-300">End Date</TableHead>
-                <TableHead className="text-gray-300">Actions</TableHead>
+                <TableHead className="text-gray-300 pl-10">Challenge</TableHead>
+                <TableHead className="text-gray-300 pl-12">Type</TableHead>
+                <TableHead className="text-gray-300 text-center">Status</TableHead>
+                <TableHead className="text-gray-300 pl-6">Participants</TableHead>
+                <TableHead className="text-gray-300 pl-8">Prize</TableHead>
+                <TableHead className="text-gray-300 pl-20">Start Date</TableHead>
+                <TableHead className="text-gray-300 pl-16">End Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.challenges.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <Trophy className="h-8 w-8 text-gray-500" />
                       <p className="text-gray-400">No challenges found</p>
@@ -140,18 +144,22 @@ export function RecentChallengesTable() {
                 data.challenges.map((challenge) => {
                   const statusInfo = getChallengeStatus(challenge)
                   return (
-                    <TableRow key={challenge.id} className="border-b border-gray-700 hover:bg-gray-800/30">
-                      <TableCell className="font-medium">
+                    <TableRow 
+                      key={challenge.id} 
+                      className="border-b border-gray-700 hover:bg-gray-800/50 cursor-pointer transition-colors"
+                      onClick={() => window.location.href = `/challenge/${challenge.challengeId}`}
+                    >
+                      <TableCell className="font-medium pl-10">
                         <code className="text-sm bg-gray-800 text-gray-300 px-2 py-1 rounded">
-                          {challenge.challengeId.slice(0, 8)}...
+                          {challenge.challengeId.slice(0, 8)}
                         </code>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <Badge variant="outline" className="border-gray-600 text-gray-300">
                           {getChallengeTypeName(challenge.challengeType)}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <Badge 
                           variant={statusInfo.variant}
                           className={statusInfo.status === "active" ? "bg-emerald-500" : ""}
@@ -159,34 +167,27 @@ export function RecentChallengesTable() {
                           {statusInfo.label}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="pl-10">
                         <div className="flex items-center gap-1 text-gray-300">
                           <Users className="h-4 w-4 text-gray-400" />
                           {challenge.investorCounter}
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium text-gray-100">
+                      <TableCell className="font-medium text-gray-100 pl-8">
                         {formatUSDAmount(challenge.rewardAmountUSD)}
+                        {/* {challenge.rewardAmountUSD} */}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="pl-10">
                         <div className="flex items-center gap-1 text-sm text-gray-400">
                           <Clock className="h-4 w-4" />
                           {formatDate(challenge.startTime)}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="pl-4">
                         <div className="flex items-center gap-1 text-sm text-gray-400">
                           <Clock className="h-4 w-4" />
                           {formatDate(challenge.endTime)}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Link href={`/challenge/${challenge.challengeId}`}>
-                          <Button variant="outline" size="sm" className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
-                            <Trophy className="mr-2 h-4 w-4" />
-                            View
-                          </Button>
-                        </Link>
                       </TableCell>
                     </TableRow>
                   )
