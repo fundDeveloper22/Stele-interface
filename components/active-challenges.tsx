@@ -530,8 +530,18 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
     }
   };
 
-  // Check if Create button should be shown for a challenge
-  const shouldShowCreateButton = (challenge: ChallengeCardProps) => {
+  // Check if Create button should be enabled for a challenge
+  const shouldEnableCreateButton = (challenge: ChallengeCardProps) => {
+    // Don't enable button during initial loading or if data is not properly loaded
+    if (!isClient || !data?.activeChallenges) {
+      return false;
+    }
+    
+    // Don't enable button if endTime is "0" (means challenge not started/created yet)
+    if (!challenge.endTime || challenge.endTime === "0") {
+      return false;
+    }
+    
     const currentTime = new Date();
     const endTimeDate = new Date(Number(challenge.endTime) * 1000);
     return challenge.isCompleted || currentTime > endTimeDate;
@@ -561,12 +571,16 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
                   <TableHead className="text-gray-300 pl-6">Prize Pool</TableHead>
                   <TableHead className="text-gray-300 pl-14">Progress</TableHead>
                   <TableHead className="text-gray-300 pl-10">Status</TableHead>
-                  <TableHead className="text-gray-300 pl-24">Action</TableHead>
+                  <TableHead className="text-gray-300 pl-16">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {challenges.map((challenge) => (
-                  <TableRow key={challenge.id} className="border-b border-gray-700 hover:bg-gray-800/30">
+                  <TableRow 
+                    key={challenge.id} 
+                    className="border-b border-gray-700 hover:bg-gray-800/50 cursor-pointer transition-colors"
+                    onClick={() => window.location.href = `/challenge/${challenge.challengeId}`}
+                  >
                     <TableCell className="font-medium text-gray-100 pl-10">
                       <div className="flex items-center gap-2">
                         <Trophy className="h-4 w-4 text-yellow-500" />
@@ -601,38 +615,29 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
                       {getStatusBadge(challenge.status)}
                     </TableCell>
                     <TableCell className="pl-10">
-                      <div className="flex gap-1">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
-                          asChild
-                        >
-                          <Link href={`/challenge/${challenge.challengeId}`}>
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            View
-                          </Link>
-                        </Button>
-                        
-                        {shouldShowCreateButton(challenge) && (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="bg-blue-800 text-blue-100 border-blue-600 hover:bg-blue-700"
-                            onClick={() => handleCreateIndividualChallenge(challenge.type)}
-                            disabled={isCreating}
-                          >
-                            {isCreating ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <>
-                                <Trophy className="h-3 w-3 mr-1" />
-                                Create
-                              </>
-                            )}
-                          </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className={`border-blue-600 ${
+                          shouldEnableCreateButton(challenge) 
+                            ? "bg-blue-800 text-blue-100 hover:bg-blue-700" 
+                            : "bg-gray-700 text-gray-400 border-gray-600 cursor-not-allowed"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent row click when button is clicked
+                          handleCreateIndividualChallenge(challenge.type);
+                        }}
+                        disabled={!shouldEnableCreateButton(challenge) || isCreating}
+                      >
+                        {isCreating ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <>
+                            <Trophy className="h-3 w-3 mr-1" />
+                            Create
+                          </>
                         )}
-                      </div>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
