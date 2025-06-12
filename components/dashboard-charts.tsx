@@ -166,7 +166,7 @@ export function DashboardCharts() {
               margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
               barCategoryGap="20%"
               onMouseMove={(state) => {
-                if (state && state.activeTooltipIndex !== undefined) {
+                if (state && typeof state.activeTooltipIndex === 'number' && state.activeTooltipIndex >= 0) {
                   setActiveIndexParticipants(state.activeTooltipIndex)
                 }
               }}
@@ -228,7 +228,7 @@ export function DashboardCharts() {
               margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
               barCategoryGap="20%"
               onMouseMove={(state) => {
-                if (state && state.activeTooltipIndex !== undefined) {
+                if (state && typeof state.activeTooltipIndex === 'number' && state.activeTooltipIndex >= 0) {
                   setActiveIndexRewards(state.activeTooltipIndex)
                 }
               }}
