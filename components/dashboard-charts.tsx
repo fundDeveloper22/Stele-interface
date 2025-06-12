@@ -164,7 +164,8 @@ export function DashboardCharts() {
             <BarChart 
               data={chartData} 
               margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-              barCategoryGap="20%"
+              barCategoryGap="5%"
+              maxBarSize={200}
               onMouseMove={(state) => {
                 if (state && typeof state.activeTooltipIndex === 'number' && state.activeTooltipIndex >= 0) {
                   setActiveIndexParticipants(state.activeTooltipIndex)
@@ -172,7 +173,7 @@ export function DashboardCharts() {
               }}
               onMouseLeave={() => setActiveIndexParticipants(null)}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="transparent" vertical={false} />
               <XAxis 
                 dataKey="timeLabel" 
                 stroke="#9CA3AF"
@@ -190,7 +191,10 @@ export function DashboardCharts() {
                 tickLine={false}
                 tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}K` : value.toString()}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip 
+                content={<CustomTooltip />} 
+                cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }}
+              />
               <Bar 
                 dataKey="totalParticipants" 
                 radius={[3, 3, 0, 0]}
@@ -203,7 +207,7 @@ export function DashboardCharts() {
                         ? "#EC4899" // All bars pink when no hover
                         : activeIndexParticipants === index 
                         ? "#EC4899" // Hovered bar stays pink
-                        : "#4C1D4F" // Other bars become darker purple
+                        : "#3A1A3BA0" // Other bars become dark maroon purple with less transparency
                     } 
                   />
                 ))}
@@ -226,7 +230,8 @@ export function DashboardCharts() {
             <BarChart 
               data={chartData} 
               margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-              barCategoryGap="20%"
+              barCategoryGap="5%"
+              maxBarSize={200}
               onMouseMove={(state) => {
                 if (state && typeof state.activeTooltipIndex === 'number' && state.activeTooltipIndex >= 0) {
                   setActiveIndexRewards(state.activeTooltipIndex)
@@ -234,7 +239,7 @@ export function DashboardCharts() {
               }}
               onMouseLeave={() => setActiveIndexRewards(null)}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="transparent" vertical={false} />
               <XAxis 
                 dataKey="timeLabel" 
                 stroke="#9CA3AF"
@@ -252,7 +257,10 @@ export function DashboardCharts() {
                 tickLine={false}
                 tickFormatter={(value) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip 
+                content={<CustomTooltip />} 
+                cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }}
+              />
               <Bar 
                 dataKey="totalRewards" 
                 radius={[3, 3, 0, 0]}
@@ -265,7 +273,7 @@ export function DashboardCharts() {
                         ? "#EC4899" // All bars pink when no hover
                         : activeIndexRewards === index 
                         ? "#EC4899" // Hovered bar stays pink
-                        : "#4C1D4F" // Other bars become darker purple
+                        : "#3A1A3BA0" // Other bars become dark maroon purple with less transparency
                     } 
                   />
                 ))}
