@@ -95,6 +95,20 @@ export function DashboardCharts() {
     return null
   }
 
+  const CustomCursor = ({ x, y, width, height }: any) => {
+    return (
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill="rgba(255, 255, 255, 0.1)"
+        rx={8}
+        ry={8}
+      />
+    )
+  }
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -184,6 +198,7 @@ export function DashboardCharts() {
                 interval="preserveStartEnd"
               />
               <YAxis 
+                orientation="right"
                 stroke="#9CA3AF"
                 fontSize={12}
                 tick={{ fill: '#9CA3AF' }}
@@ -193,7 +208,7 @@ export function DashboardCharts() {
               />
               <Tooltip 
                 content={<CustomTooltip />} 
-                cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }}
+                cursor={<CustomCursor />}
               />
               <Bar 
                 dataKey="totalParticipants" 
@@ -250,6 +265,7 @@ export function DashboardCharts() {
                 interval="preserveStartEnd"
               />
               <YAxis 
+                orientation="right"
                 stroke="#9CA3AF"
                 fontSize={12}
                 tick={{ fill: '#9CA3AF' }}
@@ -259,7 +275,7 @@ export function DashboardCharts() {
               />
               <Tooltip 
                 content={<CustomTooltip />} 
-                cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }}
+                cursor={<CustomCursor />}
               />
               <Bar 
                 dataKey="totalRewards" 
