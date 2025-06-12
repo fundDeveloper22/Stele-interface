@@ -165,6 +165,11 @@ export function DashboardCharts() {
               data={chartData} 
               margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
               barCategoryGap="20%"
+              onMouseMove={(state) => {
+                if (state && state.activeTooltipIndex !== undefined) {
+                  setActiveIndexParticipants(state.activeTooltipIndex)
+                }
+              }}
               onMouseLeave={() => setActiveIndexParticipants(null)}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
@@ -189,7 +194,6 @@ export function DashboardCharts() {
               <Bar 
                 dataKey="totalParticipants" 
                 radius={[3, 3, 0, 0]}
-                onMouseEnter={(data, index) => setActiveIndexParticipants(index)}
               >
                 {chartData.map((entry, index) => (
                   <Cell 
@@ -199,7 +203,7 @@ export function DashboardCharts() {
                         ? "#EC4899" // All bars pink when no hover
                         : activeIndexParticipants === index 
                         ? "#EC4899" // Hovered bar stays pink
-                        : "#7C2D87" // Other bars become dark purple
+                        : "#4C1D4F" // Other bars become darker purple
                     } 
                   />
                 ))}
@@ -223,6 +227,11 @@ export function DashboardCharts() {
               data={chartData} 
               margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
               barCategoryGap="20%"
+              onMouseMove={(state) => {
+                if (state && state.activeTooltipIndex !== undefined) {
+                  setActiveIndexRewards(state.activeTooltipIndex)
+                }
+              }}
               onMouseLeave={() => setActiveIndexRewards(null)}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
@@ -247,7 +256,6 @@ export function DashboardCharts() {
               <Bar 
                 dataKey="totalRewards" 
                 radius={[3, 3, 0, 0]}
-                onMouseEnter={(data, index) => setActiveIndexRewards(index)}
               >
                 {chartData.map((entry, index) => (
                   <Cell 
@@ -257,7 +265,7 @@ export function DashboardCharts() {
                         ? "#EC4899" // All bars pink when no hover
                         : activeIndexRewards === index 
                         ? "#EC4899" // Hovered bar stays pink
-                        : "#7C2D87" // Other bars become dark purple
+                        : "#4C1D4F" // Other bars become darker purple
                     } 
                   />
                 ))}
