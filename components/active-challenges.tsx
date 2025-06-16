@@ -242,7 +242,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
   const defaultChallenges: ChallengeCardProps[] = [
     {
       id: "one-week-challenge",
-      title: "1 week challenge",
+      title: "1 week",
       type: "1 week challenge",
       participants: 0,
       timeLeft: "Not started",
@@ -256,7 +256,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
     },
     {
       id: "one-month-challenge",
-      title: "1 month challenge",
+      title: "1 month",
       type: "1 month challenge",
       participants: 0,
       timeLeft: "Not started",
@@ -270,7 +270,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
     },
     {
       id: "three-month-challenge",
-      title: "3 months challenge",
+      title: "3 months",
       type: "3 months challenge",
       participants: 0,
       timeLeft: "Not started",
@@ -284,7 +284,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
     },
     {
       id: "six-month-challenge",
-      title: "6 months challenge",
+      title: "6 months",
       type: "6 months challenge",
       participants: 0,
       timeLeft: "Not started",
@@ -298,7 +298,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
     },
     {
       id: "one-year-challenge",
-      title: "1 year challenge",
+      title: "1 year",
       type: "1 year challenge",
       participants: 0,
       timeLeft: "Not started",
@@ -316,7 +316,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
   const challenges: ChallengeCardProps[] = data?.activeChallenges ? [
     {
       id: "one-week-challenge",
-      title: "1 week challenge",
+      title: "1 week",
       type: "1 week challenge",
       participants: Number(data.activeChallenges.one_week_investorCounter) || 0,
       timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.one_week_startTime, data.activeChallenges.one_week_endTime, currentTime) : "Loading...",
@@ -331,7 +331,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
     },
     {
       id: "one-month-challenge",
-      title: "1 month challenge",
+      title: "1 month",
       type: "1 month challenge",
       participants: Number(data.activeChallenges.one_month_investorCounter) || 0,
       timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.one_month_startTime, data.activeChallenges.one_month_endTime, currentTime) : "Loading...",
@@ -346,7 +346,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
     },
     {
       id: "three-month-challenge",
-      title: "3 months challenge",
+      title: "3 months",
       type: "3 months challenge",
       participants: Number(data.activeChallenges.three_month_investorCounter) || 0,
       timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.three_month_startTime, data.activeChallenges.three_month_endTime, currentTime) : "Loading...",
@@ -361,7 +361,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
     },
     {
       id: "six-month-challenge",
-      title: "6 months challenge",
+      title: "6 months",
       type: "6 months challenge",
       participants: Number(data.activeChallenges.six_month_investorCounter) || 0,
       timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.six_month_startTime, data.activeChallenges.six_month_endTime, currentTime) : "Loading...",
@@ -376,7 +376,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
     },
     {
       id: "one-year-challenge",
-      title: "1 year challenge",
+      title: "1 year",
       type: "1 year challenge",
       participants: Number(data.activeChallenges.one_year_investorCounter) || 0,
       timeLeft: isClient ? calculateTimeLeft(data.activeChallenges.one_year_startTime, data.activeChallenges.one_year_endTime, currentTime) : "Loading...",
@@ -565,7 +565,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-gray-700 hover:bg-gray-800/50">
-                  <TableHead className="text-gray-300 pl-14">Challenge Type</TableHead>
+                  <TableHead className="text-gray-300 pl-10">Challenge Period</TableHead>
                   <TableHead className="text-gray-300 pl-4">Participants</TableHead>
                   <TableHead className="text-gray-300 pl-20">Time Left</TableHead>
                   <TableHead className="text-gray-300 pl-6">Prize Pool</TableHead>
@@ -581,7 +581,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
                     className="border-b border-gray-700 hover:bg-gray-800/50 cursor-pointer transition-colors"
                     onClick={() => window.location.href = `/challenge/${challenge.challengeId}`}
                   >
-                    <TableCell className="font-medium text-gray-100 pl-10">
+                    <TableCell className="font-medium text-gray-100 pl-14">
                       <div className="flex items-center gap-2">
                         <Trophy className="h-4 w-4 text-yellow-500" />
                         {challenge.title}
