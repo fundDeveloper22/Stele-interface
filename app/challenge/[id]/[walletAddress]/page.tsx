@@ -29,6 +29,7 @@ import {
   FileText
 } from "lucide-react"
 import { AssetSwap } from "@/components/asset-swap"
+import { InvestorCharts } from "@/components/investor-charts"
 import { useInvestorData } from "@/app/subgraph/Account"
 import { useUserTokens } from "@/app/hooks/useUserTokens"
 import { useChallenge } from "@/app/hooks/useChallenge"
@@ -392,70 +393,10 @@ export default function InvestorPage({ params }: InvestorPageProps) {
           </div>
         </div>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-gray-900/50 border-gray-700/50">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-100">Portfolio Value</CardTitle>
-              <DollarSign className="h-4 w-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-100">${currentValue.toFixed(2)}</div>
-              <div className={cn(
-                "text-xs flex items-center gap-1",
-                isPositive ? "text-emerald-400" : "text-red-400"
-              )}>
-                {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                {isPositive ? "+" : ""}{gainLossPercentage.toFixed(2)}%
-              </div>
-            </CardContent>
-          </Card>
+        {/* Investor Charts */}
+        <InvestorCharts challengeId={challengeId} investor={walletAddress} investorData={investorData} />
 
-          <Card className="bg-gray-900/50 border-gray-700/50">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-100">Gain/Loss</CardTitle>
-              {isPositive ? <TrendingUp className="h-4 w-4 text-emerald-400" /> : <TrendingDown className="h-4 w-4 text-red-400" />}
-            </CardHeader>
-            <CardContent>
-              <div className={cn(
-                "text-2xl font-bold",
-                isPositive ? "text-emerald-400" : "text-red-400"
-              )}>
-                {isPositive ? "+" : ""}${gainLoss.toFixed(2)}
-              </div>
-              <p className="text-xs text-gray-400">
-                From ${initialValue.toFixed(2)} initial
-              </p>
-            </CardContent>
-          </Card>
 
-          <Card className="bg-gray-900/50 border-gray-700/50">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-100">Ranking</CardTitle>
-              <User className="h-4 w-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-100">#{challengeDetails?.participants || 0}</div>
-              <p className="text-xs text-gray-400">
-                Current estimated ranking
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-900/50 border-gray-700/50">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-100">Total Rewards</CardTitle>
-              <Trophy className="h-4 w-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-100">{challengeDetails?.prize || '$0.00'}</div>
-              <p className="text-xs text-gray-400">
-                Current estimated ranking
-              </p>
-            </CardContent>
-          </Card>
-
-        </div>
 
         {/* Tabbed Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
