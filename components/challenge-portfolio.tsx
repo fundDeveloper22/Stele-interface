@@ -230,15 +230,15 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       const challengeType = challengeData.challenge.challengeType;
       switch(challengeType) {
         case 0:
-          return 'One Week Challenge';
+          return '1 Week Challenge';
         case 1:
-          return 'One Month Challenge';
+          return '1 Month Challenge';
         case 2:
-          return 'Three Month Challenge';
+          return '3 Month Challenge';
         case 3:
-          return 'Six Month Challenge';
+          return '6 Month Challenge';
         case 4:
-          return 'One Year Challenge';
+          return '1 Year Challenge';
         default:
           return `Challenge Type ${challengeType}`;
       }
