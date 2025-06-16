@@ -10,6 +10,7 @@ import { ethers } from "ethers"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import { ChallengeTypeModal } from "@/components/challenge-type-modal"
+import { ChallengeCharts } from "@/components/challenge-charts"
 import { useRouter } from "next/navigation"
 import { 
   BASE_CHAIN_ID, 
@@ -768,6 +769,9 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
           )}
         </div>
       </div>
+
+      {/* Challenge Charts */}
+      <ChallengeCharts challengeId={challengeId} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="bg-gray-900/50 border-gray-700/50">
