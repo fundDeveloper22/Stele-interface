@@ -31,7 +31,7 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
 
   // Format challenge type
   const getChallengeType = (challengeId: string) => {
-    return `Challenge ${challengeId}`
+    return `${challengeId}`
   }
 
   // Format seed money (convert from BigInt to USD)
@@ -113,10 +113,10 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
                 <TableHeader>
                   <TableRow className="border-b border-gray-700 hover:bg-gray-800/50">
                     <TableHead className="text-gray-300">Rank</TableHead>
-                    <TableHead className="text-gray-300">User</TableHead>
+                    <TableHead className="text-gray-300 pl-12">User</TableHead>
                     <TableHead className="text-gray-300">Challenge</TableHead>
-                    <TableHead className="text-gray-300">Score</TableHead>
-                    <TableHead className="text-gray-300">Profit Ratio</TableHead>
+                    <TableHead className="text-gray-300 pl-6">Score</TableHead>
+                    <TableHead className="text-gray-300 pl-6">Profit Ratio</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -127,10 +127,7 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
                     return (
                       <TableRow key={ranking.id} className="border-b border-gray-700 hover:bg-gray-800/30">
                         <TableCell className="font-medium text-gray-100">
-                          <div className="flex items-center gap-2">
-                            {index === 0 && <Trophy className="h-4 w-4 text-yellow-500" />}
-                            {index === 1 && <Trophy className="h-4 w-4 text-gray-400" />}
-                            {index === 2 && <Trophy className="h-4 w-4 text-amber-600" />}
+                          <div className="flex items-center gap-2 pl-2">
                             <span>#{index + 1}</span>
                           </div>
                         </TableCell>
@@ -139,8 +136,8 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
                             {formatAddress(ranking.user)}
                           </code>
                         </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="bg-gray-800 text-gray-300 border-gray-600">
+                        <TableCell className="pl-8">
+                          <Badge variant="outlin" className="bg-gray-800 text-gray-300 border-gray-600">
                             {getChallengeType(ranking.challengeId)}
                           </Badge>
                         </TableCell>
