@@ -83,7 +83,6 @@ export function InvestableTokens() {
                   <TableHead className="text-gray-300">Symbol</TableHead>
                   <TableHead className="text-gray-300">Token Address</TableHead>
                   <TableHead className="text-gray-300">Decimals</TableHead>
-                  <TableHead className="text-gray-300">Status</TableHead>
                   <TableHead className="text-gray-300">Last Updated</TableHead>
                 </TableRow>
               </TableHeader>
@@ -98,16 +97,8 @@ export function InvestableTokens() {
                         {formatAddress(token.tokenAddress)}
                       </code>
                     </TableCell>
-                    <TableCell className="text-gray-300">
+                    <TableCell className="text-gray-300 pl-8">
                       {token.decimals}
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={token.isInvestable ? "default" : "secondary"}
-                        className={token.isInvestable ? "bg-green-500 text-white" : "bg-gray-700 text-gray-300"}
-                      >
-                        {token.isInvestable ? "✓ Investable" : "Not Investable"}
-                      </Badge>
                     </TableCell>
                     <TableCell className="text-gray-400">
                       {formatDate(token.updatedTimestamp)}
