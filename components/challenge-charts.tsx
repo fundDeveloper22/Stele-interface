@@ -3,8 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { useChallengeSnapshots } from '@/app/hooks/useChallengeSnapshots'
-import { Users, DollarSign } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useChallenge } from '@/app/hooks/useChallenge'
+import { Users, DollarSign, Clock, Trophy, Calendar } from 'lucide-react'
+import { useMemo, useState, useEffect } from 'react'
 
 interface ChartDataPoint {
   id: string
@@ -21,8 +22,18 @@ interface ChallengeChartsProps {
 
 export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
   const { data, isLoading, error } = useChallengeSnapshots(challengeId, 30)
-  const [activeIndexParticipants, setActiveIndexParticipants] = useState<number | null>(null)
+  const { data: challengeData } = useChallenge(challengeId)
   const [activeIndexRewards, setActiveIndexRewards] = useState<number | null>(null)
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  // Update time every second for accurate progress
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   const chartData = useMemo(() => {
     if (!data?.challengeSnapshots) return []
@@ -61,15 +72,71 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
   }, [data])
 
   // Calculate current values for headers (use the most recent snapshot)
-  const currentInvestorCount = useMemo(() => {
-    if (!chartData.length) return 0
-    return chartData[chartData.length - 1]?.investorCount || 0
-  }, [chartData])
-
   const currentRewardAmount = useMemo(() => {
     if (!chartData.length) return 0
     return chartData[chartData.length - 1]?.rewardAmountUSD || 0
   }, [chartData])
+
+  // Get challenge details for the info card
+  const getChallengeDetails = () => {
+    if (!challengeData?.challenge) {
+      return {
+        participants: 0,
+        startTime: new Date(),
+        endTime: new Date(),
+        isActive: false,
+        totalPrize: 0,
+        challengePeriod: '',
+      }
+    }
+    
+    const challenge = challengeData.challenge
+    const startTime = new Date(parseInt(challenge.startTime) * 1000)
+    const endTime = new Date(parseInt(challenge.endTime) * 1000)
+    
+    // Get challenge period based on challenge type
+    const getChallengeTypeLabel = (challengeType: number) => {
+      switch(challengeType) {
+        case 0:
+          return '1 Week'
+        case 1:
+          return '1 Month'
+        case 2:
+          return '3 Months'
+        case 3:
+          return '6 Months'
+        case 4:
+          return '1 Year'
+        default:
+          return `Type ${challengeType}`
+      }
+    }
+    
+    return {
+      participants: parseInt(challenge.investorCounter),
+      startTime,
+      endTime,
+      isActive: challenge.isActive,
+      totalPrize: parseInt(challenge.rewardAmountUSD) / 1e18, // Convert from wei to USD
+      challengePeriod: getChallengeTypeLabel(challenge.challengeType),
+    }
+  }
+
+  const challengeDetails = getChallengeDetails()
+
+  // Calculate progress percentage
+  const getProgressPercentage = () => {
+    const { startTime, endTime } = challengeDetails
+    const totalDuration = endTime.getTime() - startTime.getTime()
+    const elapsed = currentTime.getTime() - startTime.getTime()
+    
+    if (elapsed <= 0) return 0
+    if (elapsed >= totalDuration) return 100
+    
+    return Math.round((elapsed / totalDuration) * 100)
+  }
+
+  const progressPercentage = getProgressPercentage()
 
   // Get current date for header
   const currentDate = new Date().toLocaleDateString('en-US', { 
@@ -84,12 +151,11 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const value = payload[0]?.value
-      const dataKey = payload[0]?.dataKey
       
       return (
         <div className="bg-gray-800/95 border border-gray-600 rounded-lg px-3 py-2 shadow-xl backdrop-blur-sm">
           <p className="text-gray-100 text-sm font-medium">
-            {dataKey === 'investorCount' ? `Participants: ${value?.toLocaleString()}` : `Rewards: $${value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            Rewards: ${value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
       )
@@ -113,8 +179,8 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card className="bg-gray-900/50 border-gray-700/50">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-3">
           <CardHeader>
             <div className="h-8 bg-gray-700 rounded animate-pulse"></div>
             <div className="h-4 bg-gray-700 rounded animate-pulse mt-2 w-2/3"></div>
@@ -123,7 +189,7 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
             <div className="h-80 bg-gray-700 rounded animate-pulse"></div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-700/50">
+        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-1">
           <CardHeader>
             <div className="h-8 bg-gray-700 rounded animate-pulse"></div>
             <div className="h-4 bg-gray-700 rounded animate-pulse mt-2 w-2/3"></div>
@@ -138,19 +204,8 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
 
   if (error || !data?.challengeSnapshots || chartData.length === 0) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card className="bg-gray-900/50 border-gray-700/50">
-          <CardHeader>
-            <CardTitle className="text-4xl font-bold text-gray-100">-</CardTitle>
-            <p className="text-sm text-gray-400">{currentDate}</p>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 flex items-center justify-center">
-              <p className="text-gray-400">No data available</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-900/50 border-gray-700/50">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-3">
           <CardHeader>
             <CardTitle className="text-4xl font-bold text-gray-100">$0</CardTitle>
             <p className="text-sm text-gray-400">{currentDate}</p>
@@ -161,81 +216,24 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
             </div>
           </CardContent>
         </Card>
+        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold text-gray-100">Challenge Info</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80 flex items-center justify-center">
+              <p className="text-gray-400">Loading challenge data...</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      {/* Participants Chart */}
-      <Card className="bg-gray-900/50 border-gray-700/50">
-        <CardHeader className="pb-6">
-          <CardTitle className="text-4xl font-bold text-gray-100">
-            {currentInvestorCount >= 1000 ? `${(currentInvestorCount / 1000).toFixed(1)}K` : currentInvestorCount.toLocaleString()}
-          </CardTitle>
-          <p className="text-sm text-gray-400">{currentDate}</p>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart 
-              data={chartData} 
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-              barCategoryGap="5%"
-              maxBarSize={200}
-              onMouseMove={(state) => {
-                if (state && typeof state.activeTooltipIndex === 'number' && state.activeTooltipIndex >= 0) {
-                  setActiveIndexParticipants(state.activeTooltipIndex)
-                }
-              }}
-              onMouseLeave={() => setActiveIndexParticipants(null)}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="transparent" vertical={false} />
-              <XAxis 
-                dataKey="timeLabel" 
-                stroke="#9CA3AF"
-                fontSize={12}
-                tick={{ fill: '#9CA3AF' }}
-                axisLine={false}
-                tickLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis 
-                orientation="right"
-                stroke="#9CA3AF"
-                fontSize={12}
-                tick={{ fill: '#9CA3AF' }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}K` : value.toString()}
-              />
-              <Tooltip 
-                content={<CustomTooltip />} 
-                cursor={<CustomCursor />}
-              />
-              <Bar 
-                dataKey="investorCount" 
-                radius={[3, 3, 0, 0]}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-participants-${index}`} 
-                    fill={
-                      activeIndexParticipants === null 
-                        ? "#EC4899" // All bars pink when no hover
-                        : activeIndexParticipants === index 
-                        ? "#EC4899" // Hovered bar stays pink
-                        : "#3A1A3BA0" // Other bars become dark maroon purple with less transparency
-                    } 
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Total Rewards Chart */}
-      <Card className="bg-gray-900/50 border-gray-700/50">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+      {/* Total Rewards Chart - Takes 3 columns */}
+      <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-3">
         <CardHeader className="pb-6">
           <CardTitle className="text-4xl font-bold text-gray-100">
             ${currentRewardAmount >= 1000000 ? `${(currentRewardAmount / 1000000).toFixed(1)}M` : currentRewardAmount >= 1000 ? `${(currentRewardAmount / 1000).toFixed(1)}K` : currentRewardAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
@@ -298,6 +296,93 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Challenge Info Card */}
+      <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-1">
+        <CardHeader className="pb-6">
+          <CardTitle className="text-lg font-bold text-gray-100">Challenge Info</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Challenge ID */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-gray-400" />
+              <span className="text-sm text-gray-400">Challenge ID</span>
+            </div>
+            <span className="text-sm font-medium text-gray-100">{challengeId}</span>
+          </div>
+
+          {/* Total Prize */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-gray-400" />
+              <span className="text-sm text-gray-400">Total Prize</span>
+            </div>
+            <span className="text-xl font-bold text-green-400">
+              ${challengeDetails.totalPrize >= 1000000 
+                ? `${(challengeDetails.totalPrize / 1000000).toFixed(1)}M` 
+                : challengeDetails.totalPrize >= 1000 
+                ? `${(challengeDetails.totalPrize / 1000).toFixed(1)}K` 
+                : challengeDetails.totalPrize.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+              }
+            </span>
+          </div>
+
+          {/* Challenge Period */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-gray-400" />
+              <span className="text-sm text-gray-400">Challenge Period</span>
+            </div>
+            <span className="text-sm font-medium text-gray-100">{challengeDetails.challengePeriod}</span>
+          </div>
+
+          {/* Participants */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-gray-400" />
+              <span className="text-sm text-gray-400">Participants</span>
+            </div>
+            <span className="text-2xl font-bold text-gray-100">{challengeDetails.participants.toLocaleString()}</span>
+          </div>
+
+          {/* Progress */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-gray-400" />
+                <span className="text-sm text-gray-400">Progress</span>
+              </div>
+              <span className="text-sm font-medium text-gray-100">{progressPercentage}%</span>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-700 rounded-full h-3">
+              <div 
+                className="bg-gradient-to-r from-pink-500 to-purple-500 h-3 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
+            </div>
+            
+            {/* Time Info */}
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>Started: {challengeDetails.startTime.toLocaleDateString()}</span>
+              <span>Ends: {challengeDetails.endTime.toLocaleDateString()}</span>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div className="flex items-center justify-between pt-4 border-t border-gray-700">
+            <span className="text-sm text-gray-400">Status</span>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${challengeDetails.isActive ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <span className={`text-sm font-medium ${challengeDetails.isActive ? 'text-green-400' : 'text-red-400'}`}>
+                {challengeDetails.isActive ? 'Active' : 'Inactive'}
+              </span>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

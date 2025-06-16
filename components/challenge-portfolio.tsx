@@ -773,68 +773,6 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       {/* Challenge Charts */}
       <ChallengeCharts challengeId={challengeId} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-gray-900/50 border-gray-700/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-100">Participants</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-100">{challengeDetails.participants}</div>
-            <div className="flex items-center mt-1 text-sm text-gray-400">
-              <span className="text-gray-400">Total participants</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-900/50 border-gray-700/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-100">Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-100">
-              {isClient ? (
-                challengeDetails.endTime > currentTime ? 
-                  (() => {
-                    const diff = challengeDetails.endTime.getTime() - currentTime.getTime()
-                    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-                    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-                    
-                    if (days > 0) {
-                      return `${days} days ${hours} hours remaining`
-                    } else if (hours > 0) {
-                      return `${hours} hours ${minutes} minutes remaining`
-                    } else if (minutes > 0) {
-                      return `${minutes} minutes ${seconds} seconds remaining`
-                    } else {
-                      return `${seconds} seconds remaining`
-                    }
-                  })() :
-                  "Challenge Ended"
-              ) : "Loading..."}
-            </div>
-            <div className="flex items-center mt-1 text-sm text-gray-400">
-              <span className="text-gray-400">
-                {isClient ? `Ends on ${challengeDetails.endTime.toLocaleDateString()}` : "Calculating..."}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-900/50 border-gray-700/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-100">Total Prize</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-100">{challengeDetails.prize}</div>
-            <div className="flex items-center mt-1 text-sm text-gray-400">
-              <span className="text-gray-400">Challenge reward</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Transactions and Ranking Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Transactions */}
