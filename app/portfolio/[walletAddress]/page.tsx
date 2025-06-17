@@ -15,7 +15,9 @@ import {
   ExternalLink,
   Trophy,
   Calendar,
-  BarChart3
+  BarChart3,
+  Clock,
+  CheckCircle
 } from "lucide-react"
 import { useInvestorPortfolio } from "@/app/hooks/useInvestorPortfolio"
 import { useChallenge } from "@/app/hooks/useChallenge"
@@ -36,6 +38,9 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
   // Calculate derived state with useMemo
   const investors = portfolioData?.investors || []
   
+  // We'll categorize challenges based on individual challenge data from useChallenge hook
+  // This will be calculated per row in the ChallengeRow component
+
   // Calculate portfolio summary
   const portfolioSummary = useMemo(() => {
     if (!investors.length) {
@@ -45,7 +50,8 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
         totalCurrentValue: 0,
         totalProfit: 0,
         totalProfitRatio: 0,
-        activeChallenges: 0
+        activeChallenges: 0,
+        completedChallenges: 0
       }
     }
 
@@ -60,7 +66,8 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
       totalCurrentValue,
       totalProfit,
       totalProfitRatio,
-      activeChallenges: investors.length // You might want to check actual status
+      activeChallenges: 0, // Will be calculated dynamically
+      completedChallenges: 0 // Will be calculated dynamically
     }
   }, [investors])
 
@@ -110,18 +117,35 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
     const profitRatio = parseFloat(investor.profitRatio)
     const isPositive = profit >= 0
 
+    // Check if challenge is active based on challenge data
+    const isActive = useMemo(() => {
+      if (!challengeData?.challenge?.endTime) return false
+      const currentTime = Math.floor(Date.now() / 1000)
+      const endTime = parseInt(challengeData.challenge.endTime)
+      return currentTime < endTime
+    }, [challengeData])
+
     const challengeType = challengeData?.challenge?.challengeType ?? parseInt(investor.challengeId) % 5
     const challengeTitle = getChallengeTitle(challengeType)
 
+    const handleRowClick = () => {
+      window.location.href = `/challenge/${investor.challengeId}/${walletAddress}`
+    }
+
     return (
-      <tr className="border-b border-gray-700/50 hover:bg-gray-800/30 transition-colors">
+      <tr 
+        className="border-b border-gray-700/50 hover:bg-gray-800/30 transition-colors cursor-pointer" 
+        onClick={handleRowClick}
+      >
         <td className="py-4 px-4">
-          <div>
-            <div className="font-medium text-gray-100">
-              {challengeTitle}
-            </div>
-            <div className="text-sm text-gray-400">
-              ID: {investor.challengeId}
+          <div className="flex items-center gap-3">
+            <div>
+              <div className="font-medium text-gray-100">
+                {challengeTitle}
+              </div>
+              <div className="text-sm text-gray-400">
+                ID: {investor.challengeId}
+              </div>
             </div>
           </div>
         </td>
@@ -133,14 +157,6 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
         <td className="py-4 px-4">
           <span className="font-medium text-gray-100">
             {formatCurrency(parseFloat(investor.currentUSD))}
-          </span>
-        </td>
-        <td className="py-4 px-4">
-          <span className={cn(
-            "font-medium",
-            isPositive ? "text-emerald-400" : "text-red-400"
-          )}>
-            {formatCurrency(profit)}
           </span>
         </td>
         <td className="py-4 px-4">
@@ -158,33 +174,69 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
           </div>
         </td>
         <td className="py-4 px-4">
-          <div className="flex flex-wrap gap-1">
-            {investor.tokensSymbols.slice(0, 3).map((symbol: string, idx: number) => (
-              <Badge key={idx} variant="outline" className="text-xs">
-                {symbol}
-              </Badge>
-            ))}
-            {investor.tokensSymbols.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{investor.tokensSymbols.length - 3}
-              </Badge>
-            )}
+          <div className="text-sm text-gray-400">
+            {challengeData?.challenge?.endTime ? formatDate(challengeData.challenge.endTime) : 'Loading...'}
           </div>
         </td>
         <td className="py-4 px-4">
           <div className="text-sm text-gray-400">
-            {formatDate(investor.updatedAtTimestamp)}
+            {isActive ? (
+              <Badge 
+                variant="default"
+                className="bg-green-500/20 text-green-400 border-green-500/30"
+              >
+                <Clock className="h-3 w-3 mr-1" />
+                Active
+              </Badge>
+            ) : (
+              <Badge 
+                variant="secondary"
+                className="bg-gray-500/20 text-gray-400 border-gray-500/30"
+              >
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Completed
+              </Badge>
+            )}
           </div>
         </td>
-        <td className="py-4 px-4">
-          <Link href={`/challenge/${investor.challengeId}/${walletAddress}`}>
-            <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">
-              <ExternalLink className="h-4 w-4 mr-1" />
-              View
-            </Button>
-          </Link>
-        </td>
       </tr>
+    )
+  }
+
+  // Challenge Section Component - simplified to show all challenges in one table
+  const ChallengeTable = ({ challenges, title }: { challenges: any[], title: string }) => {
+    if (challenges.length === 0) return null
+
+    return (
+      <Card className="bg-gray-900/50 border-gray-700/50">
+        <CardHeader>
+          <CardTitle className="text-gray-100 flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-gray-400" />
+            {title} ({challenges.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Challenge</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Initial Investment</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Current Value</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">P&L</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">End Date</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">State</th>
+                </tr>
+              </thead>
+              <tbody>
+                {challenges.map((investor) => (
+                  <ChallengeRow key={investor.id} investor={investor} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     )
   }
 
@@ -232,124 +284,37 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
               <p className="text-gray-400 font-mono">
                 {walletAddress.slice(0, 8)}...{walletAddress.slice(-8)}
               </p>
+              <div className="flex items-center gap-4 mt-2">
+                <span className="text-sm text-gray-400">
+                  {portfolioSummary.totalChallenges} Total Challenges
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Challenge Sections */}
+        {investors.length === 0 ? (
           <Card className="bg-gray-900/50 border-gray-700/50">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-100">Total Challenges</CardTitle>
-              <Trophy className="h-4 w-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-100">{portfolioSummary.totalChallenges}</div>
-              <p className="text-xs text-gray-400">
-                {portfolioSummary.activeChallenges} active
+            <CardContent className="text-center py-12">
+              <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50 text-gray-400" />
+              <h3 className="text-lg font-medium text-gray-100 mb-2">No Challenges Found</h3>
+              <p className="text-gray-400 mb-4">
+                This wallet address hasn't participated in any challenges yet.
               </p>
+              <Link href="/challenges">
+                <Button className="bg-blue-500 hover:bg-blue-600 text-white">
+                  Browse Challenges
+                </Button>
+              </Link>
             </CardContent>
           </Card>
-
-          <Card className="bg-gray-900/50 border-gray-700/50">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-100">Total Investment</CardTitle>
-              <DollarSign className="h-4 w-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-100">
-                {formatCurrency(portfolioSummary.totalInvestment)}
-              </div>
-              <p className="text-xs text-gray-400">
-                Initial seed money
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-900/50 border-gray-700/50">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-100">Current Value</CardTitle>
-              <BarChart3 className="h-4 w-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-100">
-                {formatCurrency(portfolioSummary.totalCurrentValue)}
-              </div>
-              <p className="text-xs text-gray-400">
-                Current portfolio value
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-900/50 border-gray-700/50">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-100">Total P&L</CardTitle>
-              {portfolioSummary.totalProfit >= 0 ? 
-                <TrendingUp className="h-4 w-4 text-emerald-400" /> : 
-                <TrendingDown className="h-4 w-4 text-red-400" />
-              }
-            </CardHeader>
-            <CardContent>
-              <div className={cn(
-                "text-2xl font-bold",
-                portfolioSummary.totalProfit >= 0 ? "text-emerald-400" : "text-red-400"
-              )}>
-                {formatCurrency(portfolioSummary.totalProfit)}
-              </div>
-              <p className={cn(
-                "text-xs flex items-center gap-1",
-                portfolioSummary.totalProfit >= 0 ? "text-emerald-400" : "text-red-400"
-              )}>
-                {formatPercentage(portfolioSummary.totalProfitRatio)}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Challenges Table */}
-        <Card className="bg-gray-900/50 border-gray-700/50">
-          <CardHeader>
-            <CardTitle className="text-gray-100">Challenge Portfolio</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {investors.length === 0 ? (
-              <div className="text-center py-12">
-                <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50 text-gray-400" />
-                <h3 className="text-lg font-medium text-gray-100 mb-2">No Challenges Found</h3>
-                <p className="text-gray-400 mb-4">
-                  This wallet address hasn't participated in any challenges yet.
-                </p>
-                <Link href="/challenges">
-                  <Button className="bg-blue-500 hover:bg-blue-600 text-white">
-                    Browse Challenges
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-700">
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Challenge</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Initial Investment</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Current Value</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">P&L</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">P&L %</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Tokens</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Last Updated</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {investors.map((investor) => (
-                      <ChallengeRow key={investor.id} investor={investor} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        ) : (
+          <ChallengeTable 
+            challenges={investors}
+            title="All Challenges"
+          />
+        )}
       </div>
     </div>
   )
