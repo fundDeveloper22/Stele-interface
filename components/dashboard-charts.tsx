@@ -1,6 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { useActiveChallengesSnapshots } from '@/app/hooks/useActiveChallengesSnapshots'
 import { Users, DollarSign, TrendingUp, Calendar } from 'lucide-react'
@@ -111,16 +112,7 @@ export function DashboardCharts() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card className="bg-gray-900/50 border-gray-700/50">
-          <CardHeader>
-            <div className="h-8 bg-gray-700 rounded animate-pulse"></div>
-            <div className="h-4 bg-gray-700 rounded animate-pulse mt-2 w-2/3"></div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 bg-gray-700 rounded animate-pulse"></div>
-          </CardContent>
-        </Card>
+      <div className="mb-6">
         <Card className="bg-gray-900/50 border-gray-700/50">
           <CardHeader>
             <div className="h-8 bg-gray-700 rounded animate-pulse"></div>
@@ -136,21 +128,10 @@ export function DashboardCharts() {
 
   if (error || !data?.activeChallengesSnapshots || chartData.length === 0) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="mb-6">
         <Card className="bg-gray-900/50 border-gray-700/50">
           <CardHeader>
             <CardTitle className="text-4xl font-bold text-gray-100">-</CardTitle>
-            <p className="text-sm text-gray-400">{currentDate}</p>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 flex items-center justify-center">
-              <p className="text-gray-400">No data available</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-900/50 border-gray-700/50">
-          <CardHeader>
-            <CardTitle className="text-4xl font-bold text-gray-100">$0</CardTitle>
             <p className="text-sm text-gray-400">{currentDate}</p>
           </CardHeader>
           <CardContent>
@@ -164,140 +145,156 @@ export function DashboardCharts() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      {/* Participants Chart */}
-      <Card className="bg-gray-900/50 border-gray-700/50">
-        <CardHeader className="pb-6">
-          <CardTitle className="text-4xl font-bold text-gray-100">
-            {totalParticipants >= 1000 ? `${(totalParticipants / 1000).toFixed(1)}K` : totalParticipants.toLocaleString()}
-          </CardTitle>
-          <p className="text-sm text-gray-400">{currentDate}</p>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart 
-              data={chartData} 
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-              barCategoryGap="5%"
-              maxBarSize={200}
-              onMouseMove={(state) => {
-                if (state && typeof state.activeTooltipIndex === 'number' && state.activeTooltipIndex >= 0) {
-                  setActiveIndexParticipants(state.activeTooltipIndex)
-                }
-              }}
-              onMouseLeave={() => setActiveIndexParticipants(null)}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="transparent" vertical={false} />
-              <XAxis 
-                dataKey="timeLabel" 
-                stroke="#9CA3AF"
-                fontSize={12}
-                tick={{ fill: '#9CA3AF' }}
-                axisLine={false}
-                tickLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis 
-                orientation="right"
-                stroke="#9CA3AF"
-                fontSize={12}
-                tick={{ fill: '#9CA3AF' }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}K` : value.toString()}
-              />
-              <Tooltip 
-                content={<CustomTooltip />} 
-                cursor={<CustomCursor />}
-              />
-              <Bar 
-                dataKey="totalParticipants" 
-                radius={[3, 3, 0, 0]}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-participants-${index}`} 
-                    fill={
-                      activeIndexParticipants === null 
-                        ? "#EC4899" // All bars pink when no hover
-                        : activeIndexParticipants === index 
-                        ? "#EC4899" // Hovered bar stays pink
-                        : "#3A1A3BA0" // Other bars become dark maroon purple with less transparency
-                    } 
+    <div className="mb-6">
+      <Tabs defaultValue="participants" className="w-full">
+        <Card className="bg-gray-900/50 border-gray-700/50">
+          <CardHeader className="pb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <TabsList className="grid w-full grid-cols-2 bg-gray-800/50">
+                  <TabsTrigger value="participants" className="data-[state=active]:bg-gray-700">
+                    <Users className="h-4 w-4 mr-2" />
+                    Participants
+                  </TabsTrigger>
+                  <TabsTrigger value="rewards" className="data-[state=active]:bg-gray-700">
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Rewards
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <TabsContent value="participants" className="mt-0">
+              <div className="mb-4">
+                <CardTitle className="text-4xl font-bold text-gray-100">
+                  {totalParticipants >= 1000 ? `${(totalParticipants / 1000).toFixed(1)}K` : totalParticipants.toLocaleString()}
+                </CardTitle>
+                <p className="text-sm text-gray-400">{currentDate}</p>
+              </div>
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart 
+                  data={chartData} 
+                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                  barCategoryGap="5%"
+                  maxBarSize={200}
+                  onMouseMove={(state) => {
+                    if (state && typeof state.activeTooltipIndex === 'number' && state.activeTooltipIndex >= 0) {
+                      setActiveIndexParticipants(state.activeTooltipIndex)
+                    }
+                  }}
+                  onMouseLeave={() => setActiveIndexParticipants(null)}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="transparent" vertical={false} />
+                  <XAxis 
+                    dataKey="timeLabel" 
+                    stroke="#9CA3AF"
+                    fontSize={12}
+                    tick={{ fill: '#9CA3AF' }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
                   />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+                  <YAxis 
+                    orientation="right"
+                    stroke="#9CA3AF"
+                    fontSize={12}
+                    tick={{ fill: '#9CA3AF' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}K` : value.toString()}
+                  />
+                  <Tooltip 
+                    content={<CustomTooltip />} 
+                    cursor={<CustomCursor />}
+                  />
+                  <Bar 
+                    dataKey="totalParticipants" 
+                    radius={[3, 3, 0, 0]}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-participants-${index}`} 
+                        fill={
+                          activeIndexParticipants === null 
+                            ? "#EC4899" // All bars pink when no hover
+                            : activeIndexParticipants === index 
+                            ? "#EC4899" // Hovered bar stays pink
+                            : "#3A1A3BA0" // Other bars become dark maroon purple with less transparency
+                        } 
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </TabsContent>
 
-      {/* Total Rewards Chart */}
-      <Card className="bg-gray-900/50 border-gray-700/50">
-        <CardHeader className="pb-6">
-          <CardTitle className="text-4xl font-bold text-gray-100">
-            ${totalRewards >= 1000000 ? `${(totalRewards / 1000000).toFixed(1)}M` : totalRewards >= 1000 ? `${(totalRewards / 1000).toFixed(1)}K` : totalRewards.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-          </CardTitle>
-          <p className="text-sm text-gray-400">{currentDate}</p>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart 
-              data={chartData} 
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-              barCategoryGap="5%"
-              maxBarSize={200}
-              onMouseMove={(state) => {
-                if (state && typeof state.activeTooltipIndex === 'number' && state.activeTooltipIndex >= 0) {
-                  setActiveIndexRewards(state.activeTooltipIndex)
-                }
-              }}
-              onMouseLeave={() => setActiveIndexRewards(null)}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="transparent" vertical={false} />
-              <XAxis 
-                dataKey="timeLabel" 
-                stroke="#9CA3AF"
-                fontSize={12}
-                tick={{ fill: '#9CA3AF' }}
-                axisLine={false}
-                tickLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis 
-                orientation="right"
-                stroke="#9CA3AF"
-                fontSize={12}
-                tick={{ fill: '#9CA3AF' }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(value) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-              />
-              <Tooltip 
-                content={<CustomTooltip />} 
-                cursor={<CustomCursor />}
-              />
-              <Bar 
-                dataKey="totalRewards" 
-                radius={[3, 3, 0, 0]}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-rewards-${index}`} 
-                    fill={
-                      activeIndexRewards === null 
-                        ? "#EC4899" // All bars pink when no hover
-                        : activeIndexRewards === index 
-                        ? "#EC4899" // Hovered bar stays pink
-                        : "#3A1A3BA0" // Other bars become dark maroon purple with less transparency
-                    } 
+            <TabsContent value="rewards" className="mt-0">
+              <div className="mb-4">
+                <CardTitle className="text-4xl font-bold text-gray-100">
+                  ${totalRewards >= 1000000 ? `${(totalRewards / 1000000).toFixed(1)}M` : totalRewards >= 1000 ? `${(totalRewards / 1000).toFixed(1)}K` : totalRewards.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </CardTitle>
+                <p className="text-sm text-gray-400">{currentDate}</p>
+              </div>
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart 
+                  data={chartData} 
+                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                  barCategoryGap="5%"
+                  maxBarSize={200}
+                  onMouseMove={(state) => {
+                    if (state && typeof state.activeTooltipIndex === 'number' && state.activeTooltipIndex >= 0) {
+                      setActiveIndexRewards(state.activeTooltipIndex)
+                    }
+                  }}
+                  onMouseLeave={() => setActiveIndexRewards(null)}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="transparent" vertical={false} />
+                  <XAxis 
+                    dataKey="timeLabel" 
+                    stroke="#9CA3AF"
+                    fontSize={12}
+                    tick={{ fill: '#9CA3AF' }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
                   />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+                  <YAxis 
+                    orientation="right"
+                    stroke="#9CA3AF"
+                    fontSize={12}
+                    tick={{ fill: '#9CA3AF' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  />
+                  <Tooltip 
+                    content={<CustomTooltip />} 
+                    cursor={<CustomCursor />}
+                  />
+                  <Bar 
+                    dataKey="totalRewards" 
+                    radius={[3, 3, 0, 0]}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-rewards-${index}`} 
+                        fill={
+                          activeIndexRewards === null 
+                            ? "#EC4899" // All bars pink when no hover
+                            : activeIndexRewards === index 
+                            ? "#EC4899" // Hovered bar stays pink
+                            : "#3A1A3BA0" // Other bars become dark maroon purple with less transparency
+                        } 
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </TabsContent>
+          </CardContent>
+        </Card>
+      </Tabs>
     </div>
   )
 } 

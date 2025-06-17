@@ -148,6 +148,19 @@ export function Header() {
               <span>Dashboard</span>
             </div>
           </Link>
+          <Link href={"/portfolio"} className="mr-4">
+            <div 
+              className={cn(
+                "flex flex-row items-center font-medium text-sm transition-colors",
+                pathname.includes("/portfolio") 
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <BarChart3 className="h-4 w-4 mr-1.5" />
+              <span>My Portfolio</span>
+            </div>
+          </Link>
           <Link href={"/challenges"} className="mr-4">
             <div 
               className={cn(
@@ -159,19 +172,6 @@ export function Header() {
             >
               <Trophy className="h-4 w-4 mr-1.5" />
               <span>Challenges</span>
-            </div>
-          </Link>
-          <Link href={"/portfolio"} className="mr-4">
-            <div 
-              className={cn(
-                "flex flex-row items-center font-medium text-sm transition-colors",
-                pathname.includes("/portfolio") 
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <BarChart3 className="h-4 w-4 mr-1.5" />
-              <span>Portfolio</span>
             </div>
           </Link>
           <Link href={"/vote"}>
