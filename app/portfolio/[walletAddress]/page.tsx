@@ -5,6 +5,7 @@ import { useState, useMemo, use } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { 
   TrendingUp, 
@@ -17,7 +18,8 @@ import {
   Calendar,
   BarChart3,
   Clock,
-  CheckCircle
+  CheckCircle,
+  UserCheck
 } from "lucide-react"
 import { useInvestorPortfolio } from "@/app/hooks/useInvestorPortfolio"
 import { useChallenge } from "@/app/hooks/useChallenge"
@@ -179,11 +181,30 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
           </div>
         </td>
         <td className="py-4 px-4">
-          <div className="text-sm text-gray-400">
+          <div className="flex flex-row items-center gap-2">
+            {/* Challenge Status */}
+            {/* Registration Status */}
+            {investor.isClosed && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge 
+                      variant="outline"
+                      className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs w-fit"
+                    >
+                      <UserCheck className="h-3 w-3" />
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Registered</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             {isActive ? (
               <Badge 
                 variant="default"
-                className="bg-green-500/20 text-green-400 border-green-500/30"
+                className="bg-green-500/20 text-green-400 border-green-500/30 text-xs"
               >
                 <Clock className="h-3 w-3 mr-1" />
                 Active
@@ -191,7 +212,7 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
             ) : (
               <Badge 
                 variant="secondary"
-                className="bg-gray-500/20 text-gray-400 border-gray-500/30"
+                className="bg-gray-500/20 text-gray-400 border-gray-500/30 text-xs"
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Completed
