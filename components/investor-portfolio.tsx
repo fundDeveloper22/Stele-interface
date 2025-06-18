@@ -7,6 +7,8 @@ import { Loader2 } from "lucide-react"
 import { useInvestorData } from "@/app/subgraph/Account"
 import { useTokenPrices } from "@/app/hooks/useTokenPrices"
 import { useUserTokens } from "@/app/hooks/useUserTokens"
+import { ethers } from "ethers"
+import { USDC_DECIMALS } from "@/lib/constants"
 
 interface InvestorPortfolioProps {
   challengeId: string
@@ -62,9 +64,24 @@ export function InvestorPortfolio({ challengeId, walletAddress }: InvestorPortfo
 
   const investor = investorData.investor
 
+  // Helper function to safely format USD values
+  const safeFormatUSD = (value: string): number => {
+    try {
+      // Check if the value is already a decimal (contains '.')
+      if (value.includes('.')) {
+        return parseFloat(value)
+      }
+      // Otherwise, treat as raw amount and format with USDC_DECIMALS
+      return parseFloat(ethers.formatUnits(value, USDC_DECIMALS))
+    } catch (error) {
+      console.warn('Error formatting USD value:', value, error)
+      return parseFloat(value) || 0
+    }
+  }
+
   // Calculate portfolio summary
-  const portfolioValue = parseFloat(investor.currentUSD) || 0
-  const seedMoney = parseFloat(investor.seedMoneyUSD) || 0
+  const portfolioValue = safeFormatUSD(investor.currentUSD)
+  const seedMoney = safeFormatUSD(investor.seedMoneyUSD)
   const profitLoss = portfolioValue - seedMoney
   const profitRatio = parseFloat(investor.profitRatio) || 0
 

@@ -24,6 +24,8 @@ import {
 import { useInvestorPortfolio } from "@/app/hooks/useInvestorPortfolio"
 import { useChallenge } from "@/app/hooks/useChallenge"
 import Link from "next/link"
+import { ethers } from "ethers"
+import { USDC_DECIMALS } from "@/lib/constants"
 
 interface PortfolioPageProps {
   params: Promise<{
@@ -39,6 +41,21 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
 
   // Calculate derived state with useMemo
   const investors = portfolioData?.investors || []
+
+  // Helper function to safely format USD values
+  const safeFormatUSD = (value: string): number => {
+    try {
+      // Check if the value is already a decimal (contains '.')
+      if (value.includes('.')) {
+        return parseFloat(value)
+      }
+      // Otherwise, treat as raw amount and format with USDC_DECIMALS
+      return parseFloat(ethers.formatUnits(value, USDC_DECIMALS))
+    } catch (error) {
+      console.warn('Error formatting USD value:', value, error)
+      return parseFloat(value) || 0
+    }
+  }
   
   // We'll categorize challenges based on individual challenge data from useChallenge hook
   // This will be calculated per row in the ChallengeRow component
@@ -57,9 +74,9 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
       }
     }
 
-    const totalInvestment = investors.reduce((sum, inv) => sum + parseFloat(inv.seedMoneyUSD), 0)
-    const totalCurrentValue = investors.reduce((sum, inv) => sum + parseFloat(inv.currentUSD), 0)
-    const totalProfit = investors.reduce((sum, inv) => sum + parseFloat(inv.profitUSD), 0)
+    const totalInvestment = investors.reduce((sum, inv) => sum + safeFormatUSD(inv.seedMoneyUSD), 0)
+    const totalCurrentValue = investors.reduce((sum, inv) => sum + safeFormatUSD(inv.currentUSD), 0)
+    const totalProfit = investors.reduce((sum, inv) => sum + safeFormatUSD(inv.profitUSD), 0)
     const totalProfitRatio = totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0
 
     return {
@@ -115,7 +132,7 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
   // Challenge Table Row Component
   const ChallengeRow = ({ investor }: { investor: any }) => {
     const { data: challengeData } = useChallenge(investor.challengeId)
-    const profit = parseFloat(investor.profitUSD)
+    const profit = safeFormatUSD(investor.profitUSD)
     const profitRatio = parseFloat(investor.profitRatio)
     const isPositive = profit >= 0
 
@@ -153,12 +170,12 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
         </td>
         <td className="py-4 px-4">
           <span className="font-medium text-gray-100">
-            {formatCurrency(parseFloat(investor.seedMoneyUSD))}
+            {formatCurrency(safeFormatUSD(investor.seedMoneyUSD))}
           </span>
         </td>
         <td className="py-4 px-4">
           <span className="font-medium text-gray-100">
-            {formatCurrency(parseFloat(investor.currentUSD))}
+            {formatCurrency(safeFormatUSD(investor.currentUSD))}
           </span>
         </td>
         <td className="py-4 px-4">

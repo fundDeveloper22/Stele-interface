@@ -29,6 +29,9 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
   const [toToken, setToToken] = useState<string>("USDC")
   const [isSwapping, setIsSwapping] = useState(false)
 
+  // Minimum swap amount in USD (greater than or equal to)
+  const MINIMUM_SWAP_USD = 10.0;
+
   // Get challengeId from URL params for contract call
   const params = useParams()
   const challengeId = params?.id || params?.challengeId || "1"
@@ -107,6 +110,58 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
   };
 
   const disabledReason = getDisabledReason();
+
+  // Helper function to check if input amount exceeds available balance
+  const isAmountExceedsBalance = (): boolean => {
+    if (!fromAmount || !fromToken || parseFloat(fromAmount) <= 0) return false;
+    
+    const rawBalance = getFromTokenBalance(fromToken);
+    const userToken = userTokens.find(token => token.symbol === fromToken);
+    
+    if (!userToken || rawBalance === '0') return false;
+    
+    try {
+      let formattedBalance = 0;
+      if (rawBalance.includes('.')) {
+        // Already formatted
+        formattedBalance = parseFloat(rawBalance);
+      } else {
+        // Raw amount, format it
+        formattedBalance = parseFloat(ethers.formatUnits(rawBalance, parseInt(userToken.decimals)));
+      }
+      
+      return parseFloat(fromAmount) > formattedBalance;
+    } catch (error) {
+      console.error('Error checking balance:', error);
+      return false;
+    }
+  };
+
+  // Helper function to check if input amount is below minimum swap amount ($10 USD)
+  const isBelowMinimumSwapAmount = (): boolean => {
+    if (!fromAmount || !fromToken || parseFloat(fromAmount) <= 0) return false;
+    
+    const tokenPrice = priceData?.tokens?.[fromToken]?.priceUSD;
+    if (!tokenPrice) return false;
+    
+    const usdValue = parseFloat(fromAmount) * tokenPrice;
+    
+    // Use a small epsilon to handle floating point precision issues
+    const epsilon = 0.001; // $0.001 tolerance
+    const isBelowMin = usdValue < (MINIMUM_SWAP_USD - epsilon);
+    
+    return isBelowMin; // Must be $10.00 or higher with tolerance
+  };
+
+  // Get USD value of the current input amount
+  const getSwapAmountUSD = (): number => {
+    if (!fromAmount || !fromToken || parseFloat(fromAmount) <= 0) return 0;
+    
+    const tokenPrice = priceData?.tokens?.[fromToken]?.priceUSD;
+    if (!tokenPrice) return 0;
+    
+    return parseFloat(fromAmount) * tokenPrice;
+  };
 
   const handleFromAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -213,12 +268,31 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
     }
 
     // Check if user has sufficient balance
-    const userBalance = parseFloat(getFromTokenBalance(fromToken));
-    if (parseFloat(fromAmount) > userBalance) {
+    const rawBalance = getFromTokenBalance(fromToken);
+    const userToken = userTokens.find(token => token.symbol === fromToken);
+    
+    // Safe format function for balance comparison
+    let formattedBalance = 0;
+    try {
+      if (rawBalance.includes('.')) {
+        // Already formatted
+        formattedBalance = parseFloat(rawBalance);
+      } else if (userToken) {
+        // Raw amount, format it
+        formattedBalance = parseFloat(ethers.formatUnits(rawBalance, parseInt(userToken.decimals)));
+      } else {
+        formattedBalance = parseFloat(rawBalance);
+      }
+    } catch (error) {
+      console.error('Error formatting balance for comparison:', error);
+      formattedBalance = parseFloat(rawBalance);
+    }
+    
+    if (parseFloat(fromAmount) > formattedBalance) {
       toast({
         variant: "destructive",
         title: "Insufficient Balance",
-        description: `You don't have enough ${fromToken}. Available: ${userBalance}`,
+        description: `You don't have enough ${fromToken}. Available: ${formattedBalance.toFixed(6)}`,
       });
       return;
     }
@@ -293,18 +367,6 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
       // Convert amount to wei format based on token decimals
       const fromTokenDecimals = getTokenDecimals(fromToken);
       const amountInWei = ethers.parseUnits(fromAmount, fromTokenDecimals);
-
-      console.log('Swap parameters:', {
-        challengeId: challengeId,
-        from: fromTokenAddress,
-        to: toTokenAddress,
-        amount: amountInWei.toString(),
-        fromToken,
-        toToken,
-        fromAmount,
-        fromTokenDecimals,
-        toTokenDecimals: getTokenDecimals(toToken)
-      });
 
       // Call the swap function
       const tx = await steleContract.swap(
@@ -471,7 +533,12 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                     placeholder="0.0"
                     value={fromAmount}
                     onChange={handleFromAmountChange}
-                    className="text-right text-lg bg-gray-800 border-gray-600 text-gray-100 placeholder:text-gray-500"
+                    className={cn(
+                      "text-right text-lg bg-gray-800 text-gray-100 placeholder:text-gray-500",
+                      (isAmountExceedsBalance() || isBelowMinimumSwapAmount()) 
+                        ? "border-red-500 focus:border-red-500" 
+                        : "border-gray-600"
+                    )}
                   />
                 </div>
                 <Button
@@ -481,13 +548,21 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                     const rawBalance = getFromTokenBalance(fromToken);
                     const userToken = userTokens.find(token => token.symbol === fromToken);
                     if (userToken && rawBalance !== '0') {
-                      // Convert raw amount to formatted amount for input display
+                      // Safe format function to handle both raw and formatted amounts
                       try {
-                        const formattedBalance = ethers.formatUnits(rawBalance, parseInt(userToken.decimals));
-                        setFromAmount(formattedBalance);
+                        // Check if rawBalance is already formatted (contains decimal point)
+                        if (rawBalance.includes('.')) {
+                          // Already formatted, use directly
+                          setFromAmount(rawBalance);
+                        } else {
+                          // Raw amount, format it
+                          const formattedBalance = ethers.formatUnits(rawBalance, parseInt(userToken.decimals));
+                          setFromAmount(formattedBalance);
+                        }
                       } catch (error) {
                         console.error('Error formatting balance for MAX button:', error);
-                        setFromAmount(rawBalance); // Fallback to raw amount
+                        // Fallback: use raw amount directly
+                        setFromAmount(rawBalance);
                       }
                     }
                   }}
@@ -498,18 +573,32 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
               </div>
               
               {fromToken && priceData?.tokens?.[fromToken] && (
-                <div className="flex justify-between text-sm text-gray-400">
-                  <span>Price: ${priceData.tokens[fromToken].priceUSD}</span>
-                  <span className={cn(
-                    "flex items-center gap-1",
-                    priceData.tokens[fromToken].priceChange24h && priceData.tokens[fromToken].priceChange24h! >= 0 ? "text-green-400" : "text-red-400"
-                  )}>
-                    {priceData.tokens[fromToken].priceChange24h && priceData.tokens[fromToken].priceChange24h! >= 0 ? 
-                      <TrendingUp className="h-3 w-3" /> : 
-                      <TrendingDown className="h-3 w-3" />
-                    }
-                    {priceData.tokens[fromToken].priceChange24h?.toFixed(2) || 'N/A'}%
-                  </span>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm text-gray-400">
+                    <span>Price: ${priceData.tokens[fromToken].priceUSD}</span>
+                    <span className={cn(
+                      "flex items-center gap-1",
+                      priceData.tokens[fromToken].priceChange24h && priceData.tokens[fromToken].priceChange24h! >= 0 ? "text-green-400" : "text-red-400"
+                    )}>
+                      {priceData.tokens[fromToken].priceChange24h && priceData.tokens[fromToken].priceChange24h! >= 0 ? 
+                        <TrendingUp className="h-3 w-3" /> : 
+                        <TrendingDown className="h-3 w-3" />
+                      }
+                      {priceData.tokens[fromToken].priceChange24h?.toFixed(2) || 'N/A'}%
+                    </span>
+                  </div>
+                  {fromAmount && parseFloat(fromAmount) > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">USD Value:</span>
+                                            <span className={cn(
+                        "font-medium",
+                        isBelowMinimumSwapAmount() ? "text-red-400" : "text-gray-300"
+                      )}>
+                         ${getSwapAmountUSD().toFixed(2)}
+                          {isBelowMinimumSwapAmount() && ` (Min: $${MINIMUM_SWAP_USD.toFixed(2)})`}
+                       </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -574,6 +663,44 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
             </div>
           </div>
 
+          {/* Insufficient Balance Warning */}
+          {isAmountExceedsBalance() && (
+            <div className="p-4 bg-red-900/20 border border-red-700/50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <XCircle className="h-5 w-5 text-red-400" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-red-300">
+                    Insufficient Balance
+                  </h4>
+                  <p className="text-sm text-red-400 mt-1">
+                    You don't have enough {fromToken}. Available: {getFormattedTokenBalance(fromToken)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Minimum Swap Amount Warning */}
+          {isBelowMinimumSwapAmount() && !isAmountExceedsBalance() && (
+            <div className="p-4 bg-amber-900/20 border border-amber-700/50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <XCircle className="h-5 w-5 text-amber-400" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-amber-300">
+                    Minimum Swap Amount Required
+                  </h4>
+                  <p className="text-sm text-amber-400 mt-1">
+                    Current value: ${getSwapAmountUSD().toFixed(2)} USD. Minimum required: ${MINIMUM_SWAP_USD.toFixed(2)} USD.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Data Ready Status Warning */}
           {!isDataReady && (
             <div className="p-4 bg-amber-900/20 border border-amber-700/50 rounded-lg">
@@ -601,7 +728,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                 <span>1 {fromToken} = {swapQuote.exchangeRate.toFixed(6)} {toToken}</span>
               </div>
               <div className="flex justify-between text-gray-300">
-                <span>Minimum Received</span>
+                <span>Estimated Received</span>
                 <span>{minimumReceived} {toToken}</span>
               </div>
             </div>
@@ -612,7 +739,21 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
             className="w-full" 
             size="lg"
             onClick={handleSwapTransaction}
-            disabled={!fromAmount || parseFloat(fromAmount) <= 0 || !fromToken || !toToken || !isDataReady || isSwapping}
+            disabled={(() => {
+              const conditions = {
+                noFromAmount: !fromAmount,
+                invalidAmount: parseFloat(fromAmount) <= 0,
+                noFromToken: !fromToken,
+                noToToken: !toToken,
+                dataNotReady: !isDataReady,
+                isSwapping: isSwapping,
+                exceedsBalance: isAmountExceedsBalance(),
+                belowMinimum: isBelowMinimumSwapAmount()
+              };
+              
+              const isDisabled = Object.values(conditions).some(condition => condition);  
+              return isDisabled;
+            })()}
           >
             {isSwapping ? (
               <div className="flex items-center">
@@ -626,8 +767,18 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
               </div>
             ) : !fromAmount || parseFloat(fromAmount) <= 0 || !fromToken || !toToken ? (
               'Enter Amount to Swap'
+            ) : isAmountExceedsBalance() ? (
+              <div className="flex items-center">
+                <XCircle className="mr-2 h-4 w-4" />
+                Insufficient Balance
+              </div>
+            ) : isBelowMinimumSwapAmount() ? (
+              <div className="flex items-center">
+                <XCircle className="mr-2 h-4 w-4" />
+                Minimum $${MINIMUM_SWAP_USD.toFixed(0)} Required (Current: ${getSwapAmountUSD().toFixed(2)})
+              </div>
             ) : (
-              'Swap Tokens'
+              `Swap Tokens ($${getSwapAmountUSD().toFixed(2)})`
             )}
           </Button>
         </CardFooter>
