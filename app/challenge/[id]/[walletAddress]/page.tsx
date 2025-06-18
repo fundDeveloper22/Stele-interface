@@ -41,7 +41,8 @@ import { ToastAction } from "@/components/ui/toast"
 import { 
   BASE_CHAIN_ID, 
   BASE_CHAIN_CONFIG, 
-  STELE_CONTRACT_ADDRESS
+  STELE_CONTRACT_ADDRESS,
+  USDC_DECIMALS
 } from "@/lib/constants"
 import SteleABI from "@/app/abis/Stele.json"
 
@@ -111,11 +112,47 @@ export default function InvestorPage({ params }: InvestorPageProps) {
 
   const investor = investorData.investor
 
+  // Helper function to safely format USD values
+  const formatUSDValue = (value: string | undefined, decimals: number = USDC_DECIMALS): number => {
+    if (!value || value === "0") return 0
+    
+    // If the value contains a decimal point, it's already formatted
+    if (value.includes('.')) {
+      return parseFloat(value)
+    }
+    
+    // If no decimal point, it's likely a raw integer amount that needs formatting
+    try {
+      return parseFloat(ethers.formatUnits(value, decimals))
+    } catch (error) {
+      // Fallback: treat as already formatted number
+      return parseFloat(value)
+    }
+  }
+
+  // Helper function to format token amounts for display
+  const formatTokenAmount = (rawAmount: string, decimals: string): string => {
+    try {
+      const formatted = ethers.formatUnits(rawAmount, parseInt(decimals))
+      const num = parseFloat(formatted)
+      
+      // Format for better readability without K/M abbreviations
+      if (num >= 1) {
+        return num.toFixed(4)
+      } else {
+        return num.toFixed(6)
+      }
+    } catch (error) {
+      return rawAmount // Fallback to raw amount if formatting fails
+    }
+  }
+
   // Calculate portfolio metrics using the actual data structure
   const currentValue = parseFloat(investor.currentUSD || "0")
-  const initialValue = parseFloat(investor.seedMoneyUSD || "0")
-  const gainLoss = currentValue - initialValue
-  const gainLossPercentage = initialValue > 0 ? (gainLoss / initialValue) * 100 : 0
+  // Format the raw seedMoney amount using USDC_DECIMALS
+  const formattedSeedMoney = formatUSDValue(investor.seedMoneyUSD)
+  const gainLoss = currentValue - formattedSeedMoney
+  const gainLossPercentage = formattedSeedMoney > 0 ? (gainLoss / formattedSeedMoney) * 100 : 0
   const isPositive = gainLoss >= 0
 
   // Simple challenge progress based on profit
@@ -396,8 +433,6 @@ export default function InvestorPage({ params }: InvestorPageProps) {
         {/* Investor Charts */}
         <InvestorCharts challengeId={challengeId} investor={walletAddress} investorData={investorData} />
 
-
-
         {/* Tabbed Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-4">
@@ -439,7 +474,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-gray-100">{token.amount}</p>
+                        <p className="font-medium text-gray-100">{formatTokenAmount(token.amount, token.decimals)}</p>
                         <p className="text-sm text-gray-400">{token.symbol}</p>
                       </div>
                     </div>
@@ -557,81 +592,161 @@ export default function InvestorPage({ params }: InvestorPageProps) {
           </TabsContent>
 
           <TabsContent value="stats" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <Card className="bg-gray-900/50 border-gray-700/50">
-                <CardHeader>
-                  <CardTitle className="text-gray-100">Performance Metrics</CardTitle>
+                <CardHeader className="pb-6">
+                  <CardTitle className="text-xl font-bold text-gray-100 flex items-center gap-2">
+                    <Trophy className="h-6 w-6 text-yellow-400" />
+                    Challenge Statistics
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Overview of challenge details and your participation
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">Total Return</span>
-                    <span className="font-medium text-gray-100">{parseFloat(investor.profitRatio).toFixed(2)}%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">Profit</span>
-                    <span className="font-medium text-green-400">${parseFloat(investor.profitUSD).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">Initial Investment</span>
-                    <span className="font-medium text-gray-100">${parseFloat(investor.seedMoneyUSD).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">Total Assets</span>
-                    <span className="font-medium text-gray-100">{userTokens.length}</span>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-gray-900/50 border-gray-700/50">
-                <CardHeader>
-                  <CardTitle className="text-gray-100">Challenge Stats</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">Challenge</span>
-                    <span className="font-medium text-gray-100">{getChallengeTitle()}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">Challenge ID</span>
-                    <span className="font-medium text-gray-100">{challengeData?.challenge?.challengeId || challengeId}</span>
-                  </div>
-                  {challengeDetails && (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-400">Start Date</span>
-                        <span className="font-medium text-gray-100">{challengeDetails.startTime.toLocaleDateString()}</span>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Challenge Info */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-100 mb-4 flex items-center gap-2">
+                        <Target className="h-5 w-5 text-blue-400" />
+                        Challenge Info
+                      </h3>
+                      
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
+                          <span className="text-sm text-gray-400 flex items-center gap-2">
+                            <Star className="h-4 w-4" />
+                            Challenge Type
+                          </span>
+                          <Badge variant="outline" className="font-medium">
+                            {getChallengeTitle()}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
+                          <span className="text-sm text-gray-400 flex items-center gap-2">
+                            <BarChart3 className="h-4 w-4" />
+                            Challenge ID
+                          </span>
+                          <span className="font-medium text-gray-100">#{challengeData?.challenge?.challengeId || challengeId}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
+                          <span className="text-sm text-gray-400 flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            Participants
+                          </span>
+                          <span className="font-medium text-gray-100">
+                            {challengeDetails ? challengeDetails.participants : 'Loading...'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
+                          <span className="text-sm text-gray-400 flex items-center gap-2">
+                            <Badge 
+                              variant={challengeData?.challenge?.isActive ? "default" : "secondary"}
+                              className="h-4 w-4 rounded-full p-0"
+                            />
+                            Status
+                          </span>
+                          <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
+                            {challengeData?.challenge?.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-400">End Date</span>
-                        <span className="font-medium text-gray-100">{challengeDetails.endTime.toLocaleDateString()}</span>
+                    </div>
+
+                    {/* Timeline & Rewards */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-100 mb-4 flex items-center gap-2">
+                        <Clock className="h-5 w-5 text-green-400" />
+                        Timeline & Rewards
+                      </h3>
+                      
+                      <div className="space-y-3">
+                        {challengeDetails ? (
+                          <>
+                            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
+                              <span className="text-sm text-gray-400 flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                Start Date
+                              </span>
+                              <span className="font-medium text-gray-100">
+                                {challengeDetails.startTime.toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
+                              <span className="text-sm text-gray-400 flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                End Date
+                              </span>
+                              <span className="font-medium text-gray-100">
+                                {challengeDetails.endTime.toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
+                              <span className="text-sm text-gray-400 flex items-center gap-2">
+                                <Trophy className="h-4 w-4" />
+                                Prize Pool
+                              </span>
+                              <span className="font-semibold text-yellow-400 text-lg">
+                                {challengeDetails.prize}
+                              </span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
+                              <span className="text-sm text-gray-400 flex items-center gap-2">
+                                <DollarSign className="h-4 w-4" />
+                                Entry Fee
+                              </span>
+                              <span className="font-medium text-gray-100">
+                                {challengeDetails.entryFee}
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
+                              <span className="text-sm text-gray-400 flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                Start Date
+                              </span>
+                              <span className="font-medium text-gray-100">
+                                {new Date(Number(investor.createdAtTimestamp) * 1000).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
+                              <span className="text-sm text-gray-400 flex items-center gap-2">
+                                <Activity className="h-4 w-4" />
+                                Last Update
+                              </span>
+                              <span className="font-medium text-gray-100">
+                                {new Date(Number(investor.updatedAtTimestamp) * 1000).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                          </>
+                        )}
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-400">Prize Pool</span>
-                        <span className="font-medium text-gray-100">{challengeDetails.prize}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-400">Participants</span>
-                        <span className="font-medium text-gray-100">{challengeDetails.participants}</span>
-                      </div>
-                    </>
-                  )}
-                  {!challengeDetails && (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-400">Start Date</span>
-                        <span className="font-medium text-gray-100">{new Date(Number(investor.createdAtTimestamp) * 1000).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-400">Last Update</span>
-                        <span className="font-medium text-gray-100">{new Date(Number(investor.updatedAtTimestamp) * 1000).toLocaleDateString()}</span>
-                      </div>
-                    </>
-                  )}
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-400">Status</span>
-                    <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
-                      {challengeData?.challenge?.isActive ? "Active" : "Inactive"}
-                    </Badge>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
