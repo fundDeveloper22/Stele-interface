@@ -14,6 +14,7 @@ interface ChartDataPoint {
   formattedDate: string
   fullDate: string
   timeLabel: string
+  dateLabel: string
 }
 
 export function DashboardCharts() {
@@ -51,10 +52,11 @@ export function DashboardCharts() {
             hour: 'numeric',
             minute: '2-digit',
             hour12: true
-          })
+          }),
+          dateLabel: simulatedDate.toISOString().split('T')[0] // YYYY-MM-DD 형식
         }
       })
-      .reverse() // Most recent first, then reverse for chart display
+      .sort((a, b) => a.dateLabel.localeCompare(b.dateLabel)) // 날짜 오름차순 정렬
 
     return processedData
   }, [data])
@@ -62,11 +64,13 @@ export function DashboardCharts() {
   // Calculate total values for headers (use the most recent snapshot)
   const totalParticipants = useMemo(() => {
     if (!chartData.length) return 0
+    // 이제 배열이 날짜 오름차순으로 정렬되어 있으므로 마지막 요소가 가장 최근
     return chartData[chartData.length - 1]?.totalParticipants || 0
   }, [chartData])
 
   const totalRewards = useMemo(() => {
     if (!chartData.length) return 0
+    // 이제 배열이 날짜 오름차순으로 정렬되어 있으므로 마지막 요소가 가장 최근
     return chartData[chartData.length - 1]?.totalRewards || 0
   }, [chartData])
 
@@ -187,7 +191,7 @@ export function DashboardCharts() {
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="transparent" vertical={false} />
                   <XAxis 
-                    dataKey="timeLabel" 
+                    dataKey="dateLabel" 
                     stroke="#9CA3AF"
                     fontSize={12}
                     tick={{ fill: '#9CA3AF' }}
@@ -251,7 +255,7 @@ export function DashboardCharts() {
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="transparent" vertical={false} />
                   <XAxis 
-                    dataKey="timeLabel" 
+                    dataKey="dateLabel" 
                     stroke="#9CA3AF"
                     fontSize={12}
                     tick={{ fill: '#9CA3AF' }}
