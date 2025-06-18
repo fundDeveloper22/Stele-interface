@@ -188,7 +188,8 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const shouldShowGetRewards = () => {
     const challengeEnded = isChallengeEnded();
     const inTop5 = isInTop5Ranking();
-    const shouldShow = challengeEnded && inTop5;
+    const isActive = challengeData?.challenge?.isActive === true;
+    const shouldShow = challengeEnded && inTop5 && isActive;
     return shouldShow;
   };
 
