@@ -29,6 +29,9 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
   const [toToken, setToToken] = useState<string>("USDC")
   const [isSwapping, setIsSwapping] = useState(false)
 
+  // Minimum swap amount in USD (greater than or equal to)
+  const MINIMUM_SWAP_USD = 10.0;
+
   // Get challengeId from URL params for contract call
   const params = useParams()
   const challengeId = params?.id || params?.challengeId || "1"
@@ -132,6 +135,32 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
       console.error('Error checking balance:', error);
       return false;
     }
+  };
+
+  // Helper function to check if input amount is below minimum swap amount ($10 USD)
+  const isBelowMinimumSwapAmount = (): boolean => {
+    if (!fromAmount || !fromToken || parseFloat(fromAmount) <= 0) return false;
+    
+    const tokenPrice = priceData?.tokens?.[fromToken]?.priceUSD;
+    if (!tokenPrice) return false;
+    
+    const usdValue = parseFloat(fromAmount) * tokenPrice;
+    
+    // Use a small epsilon to handle floating point precision issues
+    const epsilon = 0.001; // $0.001 tolerance
+    const isBelowMin = usdValue < (MINIMUM_SWAP_USD - epsilon);
+    
+    return isBelowMin; // Must be $10.00 or higher with tolerance
+  };
+
+  // Get USD value of the current input amount
+  const getSwapAmountUSD = (): number => {
+    if (!fromAmount || !fromToken || parseFloat(fromAmount) <= 0) return 0;
+    
+    const tokenPrice = priceData?.tokens?.[fromToken]?.priceUSD;
+    if (!tokenPrice) return 0;
+    
+    return parseFloat(fromAmount) * tokenPrice;
   };
 
   const handleFromAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -339,18 +368,6 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
       const fromTokenDecimals = getTokenDecimals(fromToken);
       const amountInWei = ethers.parseUnits(fromAmount, fromTokenDecimals);
 
-      console.log('Swap parameters:', {
-        challengeId: challengeId,
-        from: fromTokenAddress,
-        to: toTokenAddress,
-        amount: amountInWei.toString(),
-        fromToken,
-        toToken,
-        fromAmount,
-        fromTokenDecimals,
-        toTokenDecimals: getTokenDecimals(toToken)
-      });
-
       // Call the swap function
       const tx = await steleContract.swap(
         challengeId,
@@ -518,7 +535,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                     onChange={handleFromAmountChange}
                     className={cn(
                       "text-right text-lg bg-gray-800 text-gray-100 placeholder:text-gray-500",
-                      isAmountExceedsBalance() 
+                      (isAmountExceedsBalance() || isBelowMinimumSwapAmount()) 
                         ? "border-red-500 focus:border-red-500" 
                         : "border-gray-600"
                     )}
@@ -556,18 +573,32 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
               </div>
               
               {fromToken && priceData?.tokens?.[fromToken] && (
-                <div className="flex justify-between text-sm text-gray-400">
-                  <span>Price: ${priceData.tokens[fromToken].priceUSD}</span>
-                  <span className={cn(
-                    "flex items-center gap-1",
-                    priceData.tokens[fromToken].priceChange24h && priceData.tokens[fromToken].priceChange24h! >= 0 ? "text-green-400" : "text-red-400"
-                  )}>
-                    {priceData.tokens[fromToken].priceChange24h && priceData.tokens[fromToken].priceChange24h! >= 0 ? 
-                      <TrendingUp className="h-3 w-3" /> : 
-                      <TrendingDown className="h-3 w-3" />
-                    }
-                    {priceData.tokens[fromToken].priceChange24h?.toFixed(2) || 'N/A'}%
-                  </span>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm text-gray-400">
+                    <span>Price: ${priceData.tokens[fromToken].priceUSD}</span>
+                    <span className={cn(
+                      "flex items-center gap-1",
+                      priceData.tokens[fromToken].priceChange24h && priceData.tokens[fromToken].priceChange24h! >= 0 ? "text-green-400" : "text-red-400"
+                    )}>
+                      {priceData.tokens[fromToken].priceChange24h && priceData.tokens[fromToken].priceChange24h! >= 0 ? 
+                        <TrendingUp className="h-3 w-3" /> : 
+                        <TrendingDown className="h-3 w-3" />
+                      }
+                      {priceData.tokens[fromToken].priceChange24h?.toFixed(2) || 'N/A'}%
+                    </span>
+                  </div>
+                  {fromAmount && parseFloat(fromAmount) > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">USD Value:</span>
+                                            <span className={cn(
+                        "font-medium",
+                        isBelowMinimumSwapAmount() ? "text-red-400" : "text-gray-300"
+                      )}>
+                         ${getSwapAmountUSD().toFixed(2)}
+                          {isBelowMinimumSwapAmount() && ` (Min: $${MINIMUM_SWAP_USD.toFixed(2)})`}
+                       </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -651,6 +682,25 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
             </div>
           )}
 
+          {/* Minimum Swap Amount Warning */}
+          {isBelowMinimumSwapAmount() && !isAmountExceedsBalance() && (
+            <div className="p-4 bg-amber-900/20 border border-amber-700/50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <XCircle className="h-5 w-5 text-amber-400" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-amber-300">
+                    Minimum Swap Amount Required
+                  </h4>
+                  <p className="text-sm text-amber-400 mt-1">
+                    Current value: ${getSwapAmountUSD().toFixed(2)} USD. Minimum required: ${MINIMUM_SWAP_USD.toFixed(2)} USD.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Data Ready Status Warning */}
           {!isDataReady && (
             <div className="p-4 bg-amber-900/20 border border-amber-700/50 rounded-lg">
@@ -689,7 +739,21 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
             className="w-full" 
             size="lg"
             onClick={handleSwapTransaction}
-            disabled={!fromAmount || parseFloat(fromAmount) <= 0 || !fromToken || !toToken || !isDataReady || isSwapping || isAmountExceedsBalance()}
+            disabled={(() => {
+              const conditions = {
+                noFromAmount: !fromAmount,
+                invalidAmount: parseFloat(fromAmount) <= 0,
+                noFromToken: !fromToken,
+                noToToken: !toToken,
+                dataNotReady: !isDataReady,
+                isSwapping: isSwapping,
+                exceedsBalance: isAmountExceedsBalance(),
+                belowMinimum: isBelowMinimumSwapAmount()
+              };
+              
+              const isDisabled = Object.values(conditions).some(condition => condition);  
+              return isDisabled;
+            })()}
           >
             {isSwapping ? (
               <div className="flex items-center">
@@ -708,8 +772,13 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                 <XCircle className="mr-2 h-4 w-4" />
                 Insufficient Balance
               </div>
+            ) : isBelowMinimumSwapAmount() ? (
+              <div className="flex items-center">
+                <XCircle className="mr-2 h-4 w-4" />
+                Minimum $${MINIMUM_SWAP_USD.toFixed(0)} Required (Current: ${getSwapAmountUSD().toFixed(2)})
+              </div>
             ) : (
-              'Swap Tokens'
+              `Swap Tokens ($${getSwapAmountUSD().toFixed(2)})`
             )}
           </Button>
         </CardFooter>
