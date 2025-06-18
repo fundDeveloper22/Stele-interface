@@ -313,13 +313,16 @@ export function useTransactions(challengeId: string) {
         // Process rewards
         if (data.rewards && Array.isArray(data.rewards)) {
           data.rewards.forEach((reward) => {
+            const rewardValue = parseFloat(ethers.formatUnits(reward.rewardAmount, USDC_DECIMALS));
+            const userAddress = `${reward.user.slice(0, 6)}...${reward.user.slice(-4)}`;
+            
             allTransactions.push({
               type: 'reward',
               id: reward.id,
               challengeId: reward.challengeId,
               user: reward.user,
-              amount: `$${(parseInt(reward.rewardAmount) / 1e18).toFixed(2)}`, // Assuming reward is in wei
-              details: 'Reward Claimed',
+              amount: `$${rewardValue.toFixed(2)}`, // USDC has 6 decimals
+              details: `Reward Claimed → ${userAddress}`,
               timestamp: parseInt(reward.blockTimestamp),
               transactionHash: reward.transactionHash,
             })
