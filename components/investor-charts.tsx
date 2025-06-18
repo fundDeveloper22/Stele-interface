@@ -6,6 +6,8 @@ import { useInvestorSnapshots } from '@/app/hooks/useInvestorSnapshots'
 import { useChallenge } from '@/app/hooks/useChallenge'
 import { DollarSign, TrendingUp, TrendingDown, User, Trophy } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { ethers } from 'ethers'
+import { USDC_DECIMALS } from '@/lib/constants'
 
 interface ChartDataPoint {
   id: string
@@ -28,6 +30,24 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
   const { data: challengeData } = useChallenge(challengeId)
   const [activeIndexPortfolio, setActiveIndexPortfolio] = useState<number | null>(null)
 
+  // Helper function to safely format USD values
+  const formatUSDValue = (value: string | undefined, decimals: number = USDC_DECIMALS): number => {
+    if (!value || value === "0") return 0
+    
+    // If the value contains a decimal point, it's already formatted
+    if (value.includes('.')) {
+      return parseFloat(value)
+    }
+    
+    // If no decimal point, it's likely a raw integer amount that needs formatting
+    try {
+      return parseFloat(ethers.formatUnits(value, decimals))
+    } catch (error) {
+      // Fallback: treat as already formatted number
+      return parseFloat(value)
+    }
+  }
+
   const chartData = useMemo(() => {
     if (!data?.investorSnapshots) return []
 
@@ -38,7 +58,8 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
         
         return {
           id: snapshot.id,
-          currentUSD: Number(snapshot.currentUSD),
+          // Format raw currentUSD amount using USDC_DECIMALS
+          currentUSD: formatUSDValue(snapshot.currentUSD),
           seedMoneyUSD: Number(snapshot.seedMoneyUSD),
           profitRatio: Number(snapshot.profitRatio),
           formattedDate: date.toLocaleDateString('en-US', { 
@@ -85,10 +106,11 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
     }
 
     const investor = investorData.investor
-    const currentValue = parseFloat(investor.currentUSD || "0")
-    const initialValue = parseFloat(investor.seedMoneyUSD || "0")
-    const gainLoss = currentValue - initialValue
-    const gainLossPercentage = initialValue > 0 ? (gainLoss / initialValue) * 100 : 0
+    // Format both currentUSD and seedMoneyUSD using USDC_DECIMALS
+    const currentValue = formatUSDValue(investor.currentUSD)
+    const formattedSeedMoney = formatUSDValue(investor.seedMoneyUSD)
+    const gainLoss = currentValue - formattedSeedMoney
+    const gainLossPercentage = formattedSeedMoney > 0 ? (gainLoss / formattedSeedMoney) * 100 : 0
     const isPositive = gainLoss >= 0
 
     // Get challenge details for total rewards
@@ -211,7 +233,7 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
       <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-3">
         <CardHeader className="pb-6">
           <CardTitle className="text-4xl font-bold text-gray-100">
-            ${currentPortfolioValue >= 1000000 ? `${(currentPortfolioValue / 1000000).toFixed(1)}M` : currentPortfolioValue >= 1000 ? `${(currentPortfolioValue / 1000).toFixed(1)}K` : currentPortfolioValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            ${currentPortfolioValue.toFixed(2)}
           </CardTitle>
           <p className="text-sm text-gray-400">{currentDate}</p>
         </CardHeader>

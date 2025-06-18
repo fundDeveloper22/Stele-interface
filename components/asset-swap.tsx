@@ -15,6 +15,7 @@ import { STELE_CONTRACT_ADDRESS, BASE_CHAIN_ID, BASE_CHAIN_CONFIG } from "@/lib/
 import SteleABI from "@/app/abis/Stele.json"
 import { useParams } from "next/navigation"
 import { useInvestableTokensForSwap, getTokenAddressBySymbol, getTokenDecimalsBySymbol } from "@/app/hooks/useInvestableTokens"
+import { ethers } from "ethers"
 
 interface AssetSwapProps extends HTMLAttributes<HTMLDivElement> {
   userTokens?: UserTokenInfo[];
@@ -31,6 +32,23 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
   // Get challengeId from URL params for contract call
   const params = useParams()
   const challengeId = params?.id || params?.challengeId || "1"
+
+  // Helper function to format token amounts for display
+  const formatTokenAmount = (rawAmount: string, decimals: string): string => {
+    try {
+      const formatted = ethers.formatUnits(rawAmount, parseInt(decimals))
+      const num = parseFloat(formatted)
+      
+      // Format for better readability without K/M abbreviations
+      if (num >= 1) {
+        return num.toFixed(4)
+      } else {
+        return num.toFixed(6)
+      }
+    } catch (error) {
+      return rawAmount // Fallback to raw amount if formatting fails
+    }
+  }
 
   // Initialize fromToken when userTokens are available
   useEffect(() => {
@@ -104,11 +122,22 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
     .map(token => token.symbol)
     .filter(symbol => symbol !== fromToken); // Filter out the selected fromToken
 
-  // Get balance for fromToken
+  // Get balance for fromToken (raw amount)
   const getFromTokenBalance = (tokenSymbol: string): string => {
     if (userTokens.length > 0) {
       const userToken = userTokens.find(token => token.symbol === tokenSymbol);
       return userToken?.amount || '0';
+    }
+    return '0'; // Default balance if no user tokens
+  };
+
+  // Get formatted balance for display
+  const getFormattedTokenBalance = (tokenSymbol: string): string => {
+    if (userTokens.length > 0) {
+      const userToken = userTokens.find(token => token.symbol === tokenSymbol);
+      if (userToken) {
+        return formatTokenAmount(userToken.amount, userToken.decimals);
+      }
     }
     return '0'; // Default balance if no user tokens
   };
@@ -422,7 +451,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
             <div className="flex justify-between text-sm">
               <span className="text-gray-300">From</span>
               <span className="text-gray-400">
-                Balance: {getFromTokenBalance(fromToken)}
+                Balance: {getFormattedTokenBalance(fromToken)}
               </span>
             </div>
             <div className="p-4 border border-gray-700 bg-gray-800/30 rounded-lg space-y-2">
@@ -448,7 +477,20 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setFromAmount(getFromTokenBalance(fromToken))}
+                  onClick={() => {
+                    const rawBalance = getFromTokenBalance(fromToken);
+                    const userToken = userTokens.find(token => token.symbol === fromToken);
+                    if (userToken && rawBalance !== '0') {
+                      // Convert raw amount to formatted amount for input display
+                      try {
+                        const formattedBalance = ethers.formatUnits(rawBalance, parseInt(userToken.decimals));
+                        setFromAmount(formattedBalance);
+                      } catch (error) {
+                        console.error('Error formatting balance for MAX button:', error);
+                        setFromAmount(rawBalance); // Fallback to raw amount
+                      }
+                    }
+                  }}
                   className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
                 >
                   MAX
