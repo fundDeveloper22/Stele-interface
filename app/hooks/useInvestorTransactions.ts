@@ -2,7 +2,8 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { request } from 'graphql-request'
-import { SUBGRAPH_URL } from '@/lib/constants'
+import { SUBGRAPH_URL, USDC_DECIMALS } from '@/lib/constants'
+import { ethers } from 'ethers'
 
 const GET_INVESTOR_TRANSACTIONS_QUERY = `
   query GetInvestorTransactions($challengeId: BigInt!, $userAddress: Bytes!) {
@@ -195,12 +196,15 @@ export function useInvestorTransactions(challengeId: string, walletAddress: stri
         // Process registers
         if (data.registers && Array.isArray(data.registers)) {
           data.registers.forEach((register) => {
+            
+            const performanceValue = parseFloat(ethers.formatUnits(register.performance, USDC_DECIMALS));
+            
             allTransactions.push({
               type: 'register',
               id: register.id,
               challengeId: register.challengeId,
               user: register.user,
-              amount: `${(parseInt(register.performance) / 100).toFixed(2)}%`,
+              amount: performanceValue.toFixed(6), // Show as score value with 6 decimal places
               details: 'Performance Registered',
               timestamp: parseInt(register.blockTimestamp),
               transactionHash: register.transactionHash,
@@ -211,13 +215,16 @@ export function useInvestorTransactions(challengeId: string, walletAddress: stri
         // Process rewards
         if (data.rewards && Array.isArray(data.rewards)) {
           data.rewards.forEach((reward) => {
+            const rewardValue = parseFloat(ethers.formatUnits(reward.rewardAmount, USDC_DECIMALS));
+            const userAddress = `${reward.user.slice(0, 6)}...${reward.user.slice(-4)}`;
+            
             allTransactions.push({
               type: 'reward',
               id: reward.id,
               challengeId: reward.challengeId,
               user: reward.user,
-              amount: `$${(parseInt(reward.rewardAmount) / 1e18).toFixed(2)}`, // Assuming reward is in wei
-              details: 'Reward Claimed',
+              amount: `$${rewardValue.toFixed(2)}`, // USDC has 6 decimals
+              details: `Reward Claimed → ${userAddress}`,
               timestamp: parseInt(reward.blockTimestamp),
               transactionHash: reward.transactionHash,
             })

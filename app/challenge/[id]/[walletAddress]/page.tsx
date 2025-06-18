@@ -148,7 +148,8 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   }
 
   // Calculate portfolio metrics using the actual data structure
-  const currentValue = parseFloat(investor.currentUSD || "0")
+  // Format the raw currentUSD amount using USDC_DECIMALS
+  const currentValue = formatUSDValue(investor.currentUSD)
   // Format the raw seedMoney amount using USDC_DECIMALS
   const formattedSeedMoney = formatUSDValue(investor.seedMoneyUSD)
   const gainLoss = currentValue - formattedSeedMoney
