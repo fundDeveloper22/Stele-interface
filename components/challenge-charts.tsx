@@ -85,7 +85,7 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
     
     // Fallback to challenge data if snapshot data is not available or is 0
     if (challengeData?.challenge) {
-      return parseInt(challengeData.challenge.rewardAmountUSD) / 1e18
+      return parseInt(challengeData.challenge.rewardAmountUSD)
     }
     
     return 0
@@ -131,7 +131,7 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
       startTime,
       endTime,
       isActive: challenge.isActive,
-      totalPrize: parseInt(challenge.rewardAmountUSD), // Convert from wei to USD
+      totalPrize: parseInt(challenge.rewardAmountUSD),
       challengePeriod: getChallengeTypeLabel(challenge.challengeType),
     }
   }
