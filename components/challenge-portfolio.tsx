@@ -166,24 +166,12 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   // Check if current wallet is in top 5 ranking
   const isInTop5Ranking = () => {
     if (!walletAddress || !rankingData?.topUsers || rankingData.topUsers.length === 0) {
-      console.log('Debug - isInTop5Ranking: false (no wallet or ranking data)', {
-        walletAddress,
-        hasRankingData: !!rankingData?.topUsers,
-        rankingDataLength: rankingData?.topUsers?.length || 0
-      });
       return false;
     }
     
     // Check if current wallet address is in the top 5 users
     const top5Users = rankingData.topUsers.slice(0, 5);
-    const isInTop5 = top5Users.some(user => user.toLowerCase() === walletAddress.toLowerCase());
-    
-    console.log('Debug - isInTop5Ranking check:', {
-      walletAddress: walletAddress,
-      top5Users: top5Users,
-      isInTop5: isInTop5
-    });
-    
+    const isInTop5 = top5Users.some(user => user.toLowerCase() === walletAddress.toLowerCase());  
     return isInTop5;
   };
 
@@ -193,11 +181,6 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
     const challenge = challengeData.challenge;
     const endTime = new Date(parseInt(challenge.endTime) * 1000);
     const hasEnded = endTime <= currentTime;
-    console.log('Debug - isChallengeEnded:', {
-      endTime: endTime,
-      currentTime: currentTime,
-      hasEnded: hasEnded
-    });
     return hasEnded;
   };
 
@@ -206,14 +189,6 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
     const challengeEnded = isChallengeEnded();
     const inTop5 = isInTop5Ranking();
     const shouldShow = challengeEnded && inTop5;
-    
-    console.log('Debug - shouldShowGetRewards:', {
-      challengeEnded,
-      inTop5,
-      shouldShow,
-      walletAddress: walletAddress
-    });
-    
     return shouldShow;
   };
 
@@ -796,7 +771,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
               <User className="mr-2 h-4 w-4" />
               My Account
             </Button>
-          ) : (
+          ) : !isChallengeEnded() && (
             <Button 
               variant="outline" 
               size="sm" 
