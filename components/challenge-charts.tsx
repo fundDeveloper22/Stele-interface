@@ -14,6 +14,7 @@ interface ChartDataPoint {
   formattedDate: string
   fullDate: string
   timeLabel: string
+  dateLabel: string
 }
 
 interface ChallengeChartsProps {
@@ -63,10 +64,11 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
             hour: 'numeric',
             minute: '2-digit',
             hour12: true
-          })
+          }),
+          dateLabel: date.toISOString().split('T')[0] // YYYY-MM-DD 형식
         }
       })
-      .sort((a, b) => a.id.localeCompare(b.id)) // Sort by timestamp (ascending)
+      .sort((a, b) => a.dateLabel.localeCompare(b.dateLabel)) // Sort by date (ascending)
 
     return processedData
   }, [data])
@@ -256,7 +258,7 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
             >
               <CartesianGrid strokeDasharray="3 3" stroke="transparent" vertical={false} />
               <XAxis 
-                dataKey="timeLabel" 
+                dataKey="dateLabel" 
                 stroke="#9CA3AF"
                 fontSize={12}
                 tick={{ fill: '#9CA3AF' }}
