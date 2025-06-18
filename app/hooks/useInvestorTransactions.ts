@@ -2,7 +2,8 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { request } from 'graphql-request'
-import { SUBGRAPH_URL } from '@/lib/constants'
+import { SUBGRAPH_URL, USDC_DECIMALS } from '@/lib/constants'
+import { ethers } from 'ethers'
 
 const GET_INVESTOR_TRANSACTIONS_QUERY = `
   query GetInvestorTransactions($challengeId: BigInt!, $userAddress: Bytes!) {
@@ -195,12 +196,15 @@ export function useInvestorTransactions(challengeId: string, walletAddress: stri
         // Process registers
         if (data.registers && Array.isArray(data.registers)) {
           data.registers.forEach((register) => {
+            
+            const performanceValue = parseFloat(ethers.formatUnits(register.performance, USDC_DECIMALS));
+            
             allTransactions.push({
               type: 'register',
               id: register.id,
               challengeId: register.challengeId,
               user: register.user,
-              amount: `${(parseInt(register.performance) / 100).toFixed(2)}%`,
+              amount: performanceValue.toFixed(6), // Show as score value with 6 decimal places
               details: 'Performance Registered',
               timestamp: parseInt(register.blockTimestamp),
               transactionHash: register.transactionHash,

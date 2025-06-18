@@ -36,6 +36,10 @@ function RankingSection({ challengeId }: { challengeId: string }) {
   const { data: rankingData, isLoading: isLoadingRanking, error: rankingError } = useRanking(challengeId);
 
   const formatAddress = (address: string) => {
+    // Check if address is empty or zero address
+    if (!address || address === '0x0000000000000000000000000000000000000000' || address.toLowerCase() === '0x0000000000000000000000000000000000000000') {
+      return '';
+    }
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
@@ -45,7 +49,12 @@ function RankingSection({ challengeId }: { challengeId: string }) {
     return scoreValue.toFixed(2);
   };
 
-  const formatProfitRatio = (profitRatio: string) => {
+  const formatProfitRatio = (profitRatio: string, userAddress: string) => {
+    // Check if address is empty or zero address
+    if (!userAddress || userAddress === '0x0000000000000000000000000000000000000000' || userAddress.toLowerCase() === '0x0000000000000000000000000000000000000000') {
+      return '0.0%';
+    }
+    
     // Convert profit ratio to percentage
     const ratioValue = parseFloat(profitRatio);
     return `${ratioValue.toFixed(4)}%`;
@@ -99,6 +108,8 @@ function RankingSection({ challengeId }: { challengeId: string }) {
             rankingData.topUsers.map((user, index) => {
               const rank = index + 1;
               const profitRatio = rankingData.profitRatios[index];
+              const formattedAddress = formatAddress(user);
+              const isEmptySlot = !formattedAddress;
 
               return (
                 <div 
@@ -108,14 +119,20 @@ function RankingSection({ challengeId }: { challengeId: string }) {
                   <div className="flex items-center gap-3">
                     {getRankIcon(rank)}
                     <div>
-                      <div className="font-medium">{formatAddress(user)}</div>
+                      <div className="font-medium">
+                        {isEmptySlot ? (
+                          <span className="text-gray-500 italic">Empty</span>
+                        ) : (
+                          formattedAddress
+                        )}
+                      </div>
                       <div className="text-sm text-gray-400">
                         Rank #{rank}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-lg">{formatProfitRatio(profitRatio)}</div>
+                    <div className="font-bold text-lg">{formatProfitRatio(profitRatio, user)}</div>
                     <div className="text-xs text-gray-400">Profit Ratio</div>
                   </div>
                 </div>
