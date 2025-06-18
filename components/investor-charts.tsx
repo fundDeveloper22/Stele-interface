@@ -6,6 +6,8 @@ import { useInvestorSnapshots } from '@/app/hooks/useInvestorSnapshots'
 import { useChallenge } from '@/app/hooks/useChallenge'
 import { DollarSign, TrendingUp, TrendingDown, User, Trophy } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { ethers } from 'ethers'
+import { USDC_DECIMALS } from '@/lib/constants'
 
 interface ChartDataPoint {
   id: string
@@ -86,9 +88,10 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
 
     const investor = investorData.investor
     const currentValue = parseFloat(investor.currentUSD || "0")
-    const initialValue = parseFloat(investor.seedMoneyUSD || "0")
-    const gainLoss = currentValue - initialValue
-    const gainLossPercentage = initialValue > 0 ? (gainLoss / initialValue) * 100 : 0
+    // Format the raw seedMoney amount using USDC_DECIMALS
+    const formattedSeedMoney = parseFloat(ethers.formatUnits(investor.seedMoneyUSD || "0", USDC_DECIMALS))
+    const gainLoss = currentValue - formattedSeedMoney
+    const gainLossPercentage = formattedSeedMoney > 0 ? (gainLoss / formattedSeedMoney) * 100 : 0
     const isPositive = gainLoss >= 0
 
     // Get challenge details for total rewards
