@@ -213,12 +213,31 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
     }
 
     // Check if user has sufficient balance
-    const userBalance = parseFloat(getFromTokenBalance(fromToken));
-    if (parseFloat(fromAmount) > userBalance) {
+    const rawBalance = getFromTokenBalance(fromToken);
+    const userToken = userTokens.find(token => token.symbol === fromToken);
+    
+    // Safe format function for balance comparison
+    let formattedBalance = 0;
+    try {
+      if (rawBalance.includes('.')) {
+        // Already formatted
+        formattedBalance = parseFloat(rawBalance);
+      } else if (userToken) {
+        // Raw amount, format it
+        formattedBalance = parseFloat(ethers.formatUnits(rawBalance, parseInt(userToken.decimals)));
+      } else {
+        formattedBalance = parseFloat(rawBalance);
+      }
+    } catch (error) {
+      console.error('Error formatting balance for comparison:', error);
+      formattedBalance = parseFloat(rawBalance);
+    }
+    
+    if (parseFloat(fromAmount) > formattedBalance) {
       toast({
         variant: "destructive",
         title: "Insufficient Balance",
-        description: `You don't have enough ${fromToken}. Available: ${userBalance}`,
+        description: `You don't have enough ${fromToken}. Available: ${formattedBalance.toFixed(6)}`,
       });
       return;
     }
@@ -481,13 +500,21 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                     const rawBalance = getFromTokenBalance(fromToken);
                     const userToken = userTokens.find(token => token.symbol === fromToken);
                     if (userToken && rawBalance !== '0') {
-                      // Convert raw amount to formatted amount for input display
+                      // Safe format function to handle both raw and formatted amounts
                       try {
-                        const formattedBalance = ethers.formatUnits(rawBalance, parseInt(userToken.decimals));
-                        setFromAmount(formattedBalance);
+                        // Check if rawBalance is already formatted (contains decimal point)
+                        if (rawBalance.includes('.')) {
+                          // Already formatted, use directly
+                          setFromAmount(rawBalance);
+                        } else {
+                          // Raw amount, format it
+                          const formattedBalance = ethers.formatUnits(rawBalance, parseInt(userToken.decimals));
+                          setFromAmount(formattedBalance);
+                        }
                       } catch (error) {
                         console.error('Error formatting balance for MAX button:', error);
-                        setFromAmount(rawBalance); // Fallback to raw amount
+                        // Fallback: use raw amount directly
+                        setFromAmount(rawBalance);
                       }
                     }
                   }}
