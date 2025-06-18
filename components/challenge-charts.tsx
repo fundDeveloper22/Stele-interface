@@ -14,6 +14,7 @@ interface ChartDataPoint {
   formattedDate: string
   fullDate: string
   timeLabel: string
+  dateLabel: string
 }
 
 interface ChallengeChartsProps {
@@ -46,7 +47,7 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
         return {
           id: snapshot.id,
           investorCount: Number(snapshot.investorCount),
-          rewardAmountUSD: Number(snapshot.rewardAmountUSD) / 1e18, // Convert from wei to USD
+          rewardAmountUSD: Number(snapshot.rewardAmountUSD), // Convert from wei to USD
           formattedDate: date.toLocaleDateString('en-US', { 
             month: 'short', 
             day: 'numeric'
@@ -63,19 +64,32 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
             hour: 'numeric',
             minute: '2-digit',
             hour12: true
-          })
+          }),
+          dateLabel: date.toISOString().split('T')[0] // YYYY-MM-DD 형식
         }
       })
-      .sort((a, b) => a.id.localeCompare(b.id)) // Sort by timestamp (ascending)
+      .sort((a, b) => a.dateLabel.localeCompare(b.dateLabel)) // Sort by date (ascending)
 
     return processedData
   }, [data])
 
-  // Calculate current values for headers (use the most recent snapshot)
+  // Calculate current values for headers (use the most recent snapshot or challenge data)
   const currentRewardAmount = useMemo(() => {
-    if (!chartData.length) return 0
-    return chartData[chartData.length - 1]?.rewardAmountUSD || 0
-  }, [chartData])
+    // First try to get from the most recent snapshot
+    if (chartData.length > 0) {
+      const latestSnapshot = chartData[chartData.length - 1]?.rewardAmountUSD || 0
+      if (latestSnapshot > 0) {
+        return latestSnapshot
+      }
+    }
+    
+    // Fallback to challenge data if snapshot data is not available or is 0
+    if (challengeData?.challenge) {
+      return parseInt(challengeData.challenge.rewardAmountUSD)
+    }
+    
+    return 0
+  }, [chartData, challengeData])
 
   // Get challenge details for the info card
   const getChallengeDetails = () => {
@@ -117,7 +131,7 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
       startTime,
       endTime,
       isActive: challenge.isActive,
-      totalPrize: parseInt(challenge.rewardAmountUSD) / 1e18, // Convert from wei to USD
+      totalPrize: parseInt(challenge.rewardAmountUSD),
       challengePeriod: getChallengeTypeLabel(challenge.challengeType),
     }
   }
@@ -256,7 +270,7 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
             >
               <CartesianGrid strokeDasharray="3 3" stroke="transparent" vertical={false} />
               <XAxis 
-                dataKey="timeLabel" 
+                dataKey="dateLabel" 
                 stroke="#9CA3AF"
                 fontSize={12}
                 tick={{ fill: '#9CA3AF' }}
