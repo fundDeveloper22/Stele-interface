@@ -108,6 +108,32 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
 
   const disabledReason = getDisabledReason();
 
+  // Helper function to check if input amount exceeds available balance
+  const isAmountExceedsBalance = (): boolean => {
+    if (!fromAmount || !fromToken || parseFloat(fromAmount) <= 0) return false;
+    
+    const rawBalance = getFromTokenBalance(fromToken);
+    const userToken = userTokens.find(token => token.symbol === fromToken);
+    
+    if (!userToken || rawBalance === '0') return false;
+    
+    try {
+      let formattedBalance = 0;
+      if (rawBalance.includes('.')) {
+        // Already formatted
+        formattedBalance = parseFloat(rawBalance);
+      } else {
+        // Raw amount, format it
+        formattedBalance = parseFloat(ethers.formatUnits(rawBalance, parseInt(userToken.decimals)));
+      }
+      
+      return parseFloat(fromAmount) > formattedBalance;
+    } catch (error) {
+      console.error('Error checking balance:', error);
+      return false;
+    }
+  };
+
   const handleFromAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     // Allow only numbers and decimal point
@@ -490,7 +516,12 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                     placeholder="0.0"
                     value={fromAmount}
                     onChange={handleFromAmountChange}
-                    className="text-right text-lg bg-gray-800 border-gray-600 text-gray-100 placeholder:text-gray-500"
+                    className={cn(
+                      "text-right text-lg bg-gray-800 text-gray-100 placeholder:text-gray-500",
+                      isAmountExceedsBalance() 
+                        ? "border-red-500 focus:border-red-500" 
+                        : "border-gray-600"
+                    )}
                   />
                 </div>
                 <Button
@@ -601,6 +632,25 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
             </div>
           </div>
 
+          {/* Insufficient Balance Warning */}
+          {isAmountExceedsBalance() && (
+            <div className="p-4 bg-red-900/20 border border-red-700/50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <XCircle className="h-5 w-5 text-red-400" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-red-300">
+                    Insufficient Balance
+                  </h4>
+                  <p className="text-sm text-red-400 mt-1">
+                    You don't have enough {fromToken}. Available: {getFormattedTokenBalance(fromToken)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Data Ready Status Warning */}
           {!isDataReady && (
             <div className="p-4 bg-amber-900/20 border border-amber-700/50 rounded-lg">
@@ -628,7 +678,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                 <span>1 {fromToken} = {swapQuote.exchangeRate.toFixed(6)} {toToken}</span>
               </div>
               <div className="flex justify-between text-gray-300">
-                <span>Minimum Received</span>
+                <span>Estimated Received</span>
                 <span>{minimumReceived} {toToken}</span>
               </div>
             </div>
@@ -639,7 +689,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
             className="w-full" 
             size="lg"
             onClick={handleSwapTransaction}
-            disabled={!fromAmount || parseFloat(fromAmount) <= 0 || !fromToken || !toToken || !isDataReady || isSwapping}
+            disabled={!fromAmount || parseFloat(fromAmount) <= 0 || !fromToken || !toToken || !isDataReady || isSwapping || isAmountExceedsBalance()}
           >
             {isSwapping ? (
               <div className="flex items-center">
@@ -653,6 +703,11 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
               </div>
             ) : !fromAmount || parseFloat(fromAmount) <= 0 || !fromToken || !toToken ? (
               'Enter Amount to Swap'
+            ) : isAmountExceedsBalance() ? (
+              <div className="flex items-center">
+                <XCircle className="mr-2 h-4 w-4" />
+                Insufficient Balance
+              </div>
             ) : (
               'Swap Tokens'
             )}
