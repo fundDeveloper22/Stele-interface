@@ -152,6 +152,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee();
   const { data: challengeData, isLoading: isLoadingChallenge, error: challengeError } = useChallenge(challengeId);
   const { data: transactions = [], isLoading: isLoadingTransactions, error: transactionsError } = useTransactions(challengeId);
+  const { data: rankingData, isLoading: isLoadingRanking, error: rankingError } = useRanking(challengeId);
   
   // Check if current user has joined this challenge
   const { data: investorData, isLoading: isLoadingInvestor } = useInvestorData(
@@ -161,6 +162,60 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
 
   // Check if user has joined the challenge
   const hasJoinedChallenge = investorData?.investor !== undefined && investorData?.investor !== null;
+
+  // Check if current wallet is in top 5 ranking
+  const isInTop5Ranking = () => {
+    if (!walletAddress || !rankingData?.topUsers || rankingData.topUsers.length === 0) {
+      console.log('Debug - isInTop5Ranking: false (no wallet or ranking data)', {
+        walletAddress,
+        hasRankingData: !!rankingData?.topUsers,
+        rankingDataLength: rankingData?.topUsers?.length || 0
+      });
+      return false;
+    }
+    
+    // Check if current wallet address is in the top 5 users
+    const top5Users = rankingData.topUsers.slice(0, 5);
+    const isInTop5 = top5Users.some(user => user.toLowerCase() === walletAddress.toLowerCase());
+    
+    console.log('Debug - isInTop5Ranking check:', {
+      walletAddress: walletAddress,
+      top5Users: top5Users,
+      isInTop5: isInTop5
+    });
+    
+    return isInTop5;
+  };
+
+  // Check if challenge has ended
+  const isChallengeEnded = () => {
+    if (!isClient || !challengeData?.challenge) return false;
+    const challenge = challengeData.challenge;
+    const endTime = new Date(parseInt(challenge.endTime) * 1000);
+    const hasEnded = endTime <= currentTime;
+    console.log('Debug - isChallengeEnded:', {
+      endTime: endTime,
+      currentTime: currentTime,
+      hasEnded: hasEnded
+    });
+    return hasEnded;
+  };
+
+  // Check if Get Rewards button should be shown
+  const shouldShowGetRewards = () => {
+    const challengeEnded = isChallengeEnded();
+    const inTop5 = isInTop5Ranking();
+    const shouldShow = challengeEnded && inTop5;
+    
+    console.log('Debug - shouldShowGetRewards:', {
+      challengeEnded,
+      inTop5,
+      shouldShow,
+      walletAddress: walletAddress
+    });
+    
+    return shouldShow;
+  };
 
   useEffect(() => {
     // Get wallet address from localStorage
@@ -708,8 +763,8 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-100">{getChallengeTitle()}</h2>
         <div className="flex items-center gap-2">
-          {/* Get Rewards Button - Only shown when challenge is ended */}
-          {isClient && challengeDetails.endTime <= currentTime && (
+          {/* Get Rewards Button - Show when challenge is ended AND current wallet is in top 5 */}
+          {isClient && shouldShowGetRewards() && (
             <Button 
               variant="default" 
               size="sm" 
