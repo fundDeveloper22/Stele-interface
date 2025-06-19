@@ -43,7 +43,7 @@ const initializeWalletState = () => {
       updateGlobalState({
         address: savedAddress,
         isConnected: true,
-        network: (savedNetwork as 'solana' | 'ethereum' | 'base') || 'base'
+        network: (savedNetwork as 'solana' | 'ethereum' | 'base') || 'ethereum'
       })
     }
   }
@@ -77,11 +77,13 @@ const setupWalletEventListeners = () => {
             method: 'eth_chainId' 
           })
           
-          let network: 'base' | 'ethereum' = 'base'
-          if (chainId === '0x2105') {
-            network = 'base'
-          } else if (chainId === '0x1') {
+          let network: 'base' | 'ethereum' = 'ethereum'
+          if (chainId === '0x1') {
             network = 'ethereum'
+          } else if (chainId === '0x2105') {
+            network = 'base'
+          } else {
+            network = 'ethereum' // Default to ethereum
           }
           
           // Update localStorage and global state
@@ -111,11 +113,13 @@ const setupWalletEventListeners = () => {
       console.log('Chain changed:', chainId)
       
       if (globalWalletState.isConnected) {
-        let network: 'base' | 'ethereum' = 'base'
-        if (chainId === '0x2105') {
-          network = 'base'
-        } else if (chainId === '0x1') {
+        let network: 'base' | 'ethereum' = 'ethereum'
+        if (chainId === '0x1') {
           network = 'ethereum'
+        } else if (chainId === '0x2105') {
+          network = 'base'
+        } else {
+          network = 'ethereum' // Default to ethereum
         }
         
         // Update localStorage and global state
@@ -190,11 +194,13 @@ export function useWallet() {
             method: 'eth_chainId' 
           })
           
-          let network: 'base' | 'ethereum' = 'base'
-          if (chainId === '0x2105') { // Base mainnet
+          let network: 'base' | 'ethereum' = 'ethereum'
+          if (chainId === '0x1') { // Ethereum mainnet
+            network = 'ethereum'
+          } else if (chainId === '0x2105') { // Base mainnet
             network = 'base'
           } else {
-            network = 'ethereum'
+            network = 'ethereum' // Default to ethereum
           }
           
           // Update localStorage

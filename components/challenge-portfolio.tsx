@@ -9,12 +9,11 @@ import { useState, useEffect } from "react"
 import { ethers } from "ethers"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
-import { ChallengeTypeModal } from "@/components/challenge-type-modal"
 import { ChallengeCharts } from "@/components/challenge-charts"
 import { useRouter } from "next/navigation"
 import { 
-  BASE_CHAIN_ID, 
-  BASE_CHAIN_CONFIG, 
+  ETHEREUM_CHAIN_ID, 
+  ETHEREUM_CHAIN_CONFIG, 
   STELE_CONTRACT_ADDRESS,
   USDC_TOKEN_ADDRESS,
   USDC_DECIMALS
@@ -167,6 +166,41 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const [isClient, setIsClient] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee();
+
+  // Get appropriate explorer URL based on chain ID
+  const getExplorerUrl = (chainId: string, txHash: string) => {
+    switch (chainId) {
+      case '0x1': // Ethereum Mainnet
+        return `https://etherscan.io/tx/${txHash}`;
+      case '0x2105': // Base Mainnet
+        return `https://basescan.org/tx/${txHash}`;
+      case '0x89': // Polygon
+        return `https://polygonscan.com/tx/${txHash}`;
+      case '0xa': // Optimism
+        return `https://optimistic.etherscan.io/tx/${txHash}`;
+      case '0xa4b1': // Arbitrum One
+        return `https://arbiscan.io/tx/${txHash}`;
+      default:
+        return `https://etherscan.io/tx/${txHash}`; // Default to Ethereum
+    }
+  };
+
+  const getExplorerName = (chainId: string) => {
+    switch (chainId) {
+      case '0x1': // Ethereum Mainnet
+        return 'Etherscan';
+      case '0x2105': // Base Mainnet
+        return 'BaseScan';
+      case '0x89': // Polygon
+        return 'PolygonScan';
+      case '0xa': // Optimism
+        return 'Optimistic Etherscan';
+      case '0xa4b1': // Arbitrum One
+        return 'Arbiscan';
+      default:
+        return 'Block Explorer';
+    }
+  };
   const { data: challengeData, isLoading: isLoadingChallenge, error: challengeError } = useChallenge(challengeId);
   const { data: transactions = [], isLoading: isLoadingTransactions, error: transactionsError } = useTransactions(challengeId);
   const { data: rankingData, isLoading: isLoadingRanking, error: rankingError } = useRanking(challengeId);
@@ -365,30 +399,15 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
 
       const userAddress = accounts[0];
 
-      // Check if we are on Base network
+      // Get current network information
       const chainId = await window.phantom.ethereum.request({
         method: 'eth_chainId'
       });
 
-      if (chainId !== BASE_CHAIN_ID) { // Base Mainnet Chain ID
-        // Switch to Base network
-        try {
-          await window.phantom.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: BASE_CHAIN_ID }], // Base Mainnet
-          });
-        } catch (switchError: any) {
-          // This error code indicates that the chain has not been added to the wallet
-          if (switchError.code === 4902) {
-            await window.phantom.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [BASE_CHAIN_CONFIG],
-            });
-          } else {
-            throw switchError;
-          }
-        }
-      }
+      console.log('Current network chain ID:', chainId);
+      
+      // Use current network without switching
+      // No automatic network switching - use whatever network user is currently on
 
       if (!entryFee) {
         throw new Error("Entry fee not loaded yet. Please try again later.");
@@ -440,12 +459,15 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
             });
                         
             // Show toast notification for approve transaction submitted
+            const explorerName = getExplorerName(chainId);
+            const explorerUrl = getExplorerUrl(chainId, approveTx.hash);
+            
             toast({
               title: "Approval Submitted",
               description: "Your USDC approval transaction has been sent to the network.",
               action: (
-                <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${approveTx.hash}`, '_blank')}>
-                  View on BaseScan
+                <ToastAction altText={`View on ${explorerName}`} onClick={() => window.open(explorerUrl, '_blank')}>
+                  View on {explorerName}
                 </ToastAction>
               ),
             });
@@ -458,8 +480,8 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
               title: "Approval Confirmed",
               description: `You have successfully approved ${entryFee} USDC for Stele contract.`,
               action: (
-                <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${approveTx.hash}`, '_blank')}>
-                  View on BaseScan
+                <ToastAction altText={`View on ${explorerName}`} onClick={() => window.open(explorerUrl, '_blank')}>
+                  View on {explorerName}
                 </ToastAction>
               ),
             });
@@ -485,12 +507,15 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         });
                 
         // Show toast notification for transaction submitted
+        const joinExplorerName = getExplorerName(chainId);
+        const joinExplorerUrl = getExplorerUrl(chainId, tx.hash);
+        
         toast({
           title: "Transaction Submitted",
           description: "Your join challenge transaction has been sent to the network.",
           action: (
-            <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-              View on BaseScan
+            <ToastAction altText={`View on ${joinExplorerName}`} onClick={() => window.open(joinExplorerUrl, '_blank')}>
+              View on {joinExplorerName}
             </ToastAction>
           ),
         });
@@ -503,8 +528,8 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
           title: "Challenge Joined",
           description: "You have successfully joined the challenge!",
           action: (
-            <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-              View on BaseScan
+            <ToastAction altText={`View on ${joinExplorerName}`} onClick={() => window.open(joinExplorerUrl, '_blank')}>
+              View on {joinExplorerName}
             </ToastAction>
           ),
         });
@@ -563,30 +588,15 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         throw new Error("No accounts found. Please connect to Phantom wallet first.");
       }
 
-      // Check if we are on Base network
+      // Get current network information
       const chainId = await window.phantom.ethereum.request({
         method: 'eth_chainId'
       });
 
-      if (chainId !== BASE_CHAIN_ID) { // Base Mainnet Chain ID
-        // Switch to Base network
-        try {
-          await window.phantom.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: BASE_CHAIN_ID }], // Base Mainnet
-          });
-        } catch (switchError: any) {
-          // This error code indicates that the chain has not been added to the wallet
-          if (switchError.code === 4902) {
-            await window.phantom.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [BASE_CHAIN_CONFIG],
-            });
-          } else {
-            throw switchError;
-          }
-        }
-      }
+      console.log('Current network chain ID for create challenge:', chainId);
+      
+      // Use current network without switching
+      // No automatic network switching - use whatever network user is currently on
 
       // Create a Web3Provider using the Phantom ethereum provider
       const provider = new ethers.BrowserProvider(window.phantom.ethereum);
@@ -605,12 +615,15 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       const tx = await steleContract.createChallenge(challengeType);
       
       // Show toast notification for transaction submitted
+      const createExplorerName = getExplorerName(chainId);
+      const createExplorerUrl = getExplorerUrl(chainId, tx.hash);
+      
       toast({
         title: "Transaction Submitted",
         description: "Your challenge creation transaction has been sent to the network.",
         action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-            View on BaseScan
+          <ToastAction altText={`View on ${createExplorerName}`} onClick={() => window.open(createExplorerUrl, '_blank')}>
+            View on {createExplorerName}
           </ToastAction>
         ),
       });
@@ -623,8 +636,8 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         title: "Challenge Created",
         description: "Your challenge has been created successfully!",
         action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-            View on BaseScan
+          <ToastAction altText={`View on ${createExplorerName}`} onClick={() => window.open(createExplorerUrl, '_blank')}>
+            View on {createExplorerName}
           </ToastAction>
         ),
       });
@@ -670,30 +683,15 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         throw new Error("No accounts found. Please connect to Phantom wallet first.");
       }
 
-      // Check if we are on Base network
+      // Get current network information
       const chainId = await window.phantom.ethereum.request({
         method: 'eth_chainId'
       });
 
-      if (chainId !== BASE_CHAIN_ID) {
-        // Switch to Base network
-        try {
-          await window.phantom.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: BASE_CHAIN_ID }],
-          });
-        } catch (switchError: any) {
-          // This error code indicates that the chain has not been added to the wallet
-          if (switchError.code === 4902) {
-            await window.phantom.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [BASE_CHAIN_CONFIG],
-            });
-          } else {
-            throw switchError;
-          }
-        }
-      }
+      console.log('Current network chain ID for get rewards:', chainId);
+      
+      // Use current network without switching
+      // No automatic network switching - use whatever network user is currently on
 
       // Create a Web3Provider using the Phantom ethereum provider
       const provider = new ethers.BrowserProvider(window.phantom.ethereum);
@@ -712,12 +710,15 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       const tx = await steleContract.getRewards(challengeId);
       
       // Show toast notification for transaction submitted
+      const rewardExplorerName = getExplorerName(chainId);
+      const rewardExplorerUrl = getExplorerUrl(chainId, tx.hash);
+      
       toast({
         title: "Transaction Submitted",
         description: "Your reward claim transaction has been sent to the network.",
         action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-            View on BaseScan
+          <ToastAction altText={`View on ${rewardExplorerName}`} onClick={() => window.open(rewardExplorerUrl, '_blank')}>
+            View on {rewardExplorerName}
           </ToastAction>
         ),
       });
@@ -730,8 +731,8 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
         title: "Rewards Claimed!",
         description: "Your challenge rewards have been successfully claimed!",
         action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-            View on BaseScan
+          <ToastAction altText={`View on ${rewardExplorerName}`} onClick={() => window.open(rewardExplorerUrl, '_blank')}>
+            View on {rewardExplorerName}
           </ToastAction>
         ),
       });

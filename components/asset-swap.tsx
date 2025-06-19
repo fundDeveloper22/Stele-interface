@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { UserTokenInfo } from "@/app/hooks/useUserTokens"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
-import { STELE_CONTRACT_ADDRESS, BASE_CHAIN_ID, BASE_CHAIN_CONFIG } from "@/lib/constants"
+import { STELE_CONTRACT_ADDRESS, ETHEREUM_CHAIN_ID, ETHEREUM_CHAIN_CONFIG } from "@/lib/constants"
 import SteleABI from "@/app/abis/Stele.json"
 import { useParams } from "next/navigation"
 import { useInvestableTokensForSwap, getTokenAddressBySymbol, getTokenDecimalsBySymbol } from "@/app/hooks/useInvestableTokens"
@@ -172,7 +172,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
   }
 
   // Get available tokens
-  const availableFromTokens = userTokens.length > 0 ? userTokens.map(token => token.symbol) : (priceData?.tokens ? Object.keys(priceData.tokens) : ['ETH', 'USDC', 'USDT', 'WETH', 'BTC', 'cbBTC', 'WBTC']);
+  const availableFromTokens = userTokens.length > 0 ? userTokens.map(token => token.symbol) : (priceData?.tokens ? Object.keys(priceData.tokens) : ['ETH', 'USDC', 'USDT', 'WETH', 'WBTC']);
   const availableToTokens = investableTokens
     .map(token => token.symbol)
     .filter(symbol => symbol !== fromToken); // Filter out the selected fromToken
@@ -326,18 +326,18 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
         method: 'eth_chainId'
       });
 
-      if (chainId !== BASE_CHAIN_ID) {
-        // Switch to Base network
+      if (chainId !== ETHEREUM_CHAIN_ID) {
+        // Switch to Ethereum network
         try {
           await window.phantom.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: BASE_CHAIN_ID }],
+            params: [{ chainId: ETHEREUM_CHAIN_ID }],
           });
         } catch (switchError: any) {
           if (switchError.code === 4902) {
             await window.phantom.ethereum.request({
               method: 'wallet_addEthereumChain',
-              params: [BASE_CHAIN_CONFIG],
+              params: [ETHEREUM_CHAIN_CONFIG],
             });
           } else {
             throw switchError;
@@ -380,8 +380,8 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
         title: "Transaction Submitted",
         description: "Your swap transaction has been sent to the network.",
         action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-            View on BaseScan
+          <ToastAction altText="View on Etherscan" onClick={() => window.open(`https://etherscan.io/tx/${tx.hash}`, '_blank')}>
+            View on Etherscan
           </ToastAction>
         ),
       });
@@ -394,9 +394,9 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
           title: "Swap Successful",
           description: `Successfully swapped ${fromAmount} ${fromToken} for ${toToken}!`,
           action: (
-            <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${receipt.hash}`, '_blank')}>
-              View on BaseScan
-            </ToastAction>
+                      <ToastAction altText="View on Etherscan" onClick={() => window.open(`https://etherscan.io/tx/${receipt.hash}`, '_blank')}>
+            View on Etherscan
+          </ToastAction>
           ),
         });
 

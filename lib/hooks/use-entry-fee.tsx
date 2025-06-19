@@ -46,7 +46,7 @@ function useEntryFeeQuery() {
       
       // The contract returns a value that needs to be divided by 100 to get the actual USDC amount
       // For example: contract returns 1000 (raw) -> should be 0.01 USDC
-      const adjustedFee = fee / BigInt(100);
+      const adjustedFee = fee
       const formattedFee = ethers.formatUnits(adjustedFee, USDC_DECIMALS);
 
       return formattedFee

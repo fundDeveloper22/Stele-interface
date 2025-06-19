@@ -13,7 +13,6 @@ import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import { ethers } from "ethers"
 import { GOVERNANCE_CONTRACT_ADDRESS } from "@/lib/constants"
-import { ETHEREUM_CHAIN_ID, ETHEREUM_CHAIN_CONFIG } from "@/lib/constants"
 import GovernorABI from "@/app/abis/SteleGovernor.json"
 
 export default function CreateProposalPage() {
@@ -42,6 +41,41 @@ export default function CreateProposalPage() {
       setIsConnected(true)
     }
   }, [])
+
+  // Get appropriate explorer URL based on chain ID
+  const getExplorerUrl = (chainId: string, txHash: string) => {
+    switch (chainId) {
+      case '0x1': // Ethereum Mainnet
+        return `https://etherscan.io/tx/${txHash}`;
+      case '0x2105': // Base Mainnet
+        return `https://basescan.org/tx/${txHash}`;
+      case '0x89': // Polygon
+        return `https://polygonscan.com/tx/${txHash}`;
+      case '0xa': // Optimism
+        return `https://optimistic.etherscan.io/tx/${txHash}`;
+      case '0xa4b1': // Arbitrum One
+        return `https://arbiscan.io/tx/${txHash}`;
+      default:
+        return `https://etherscan.io/tx/${txHash}`; // Default to Ethereum
+    }
+  };
+
+  const getExplorerName = (chainId: string) => {
+    switch (chainId) {
+      case '0x1': // Ethereum Mainnet
+        return 'Etherscan';
+      case '0x2105': // Base Mainnet
+        return 'BaseScan';
+      case '0x89': // Polygon
+        return 'PolygonScan';
+      case '0xa': // Optimism
+        return 'Optimistic Etherscan';
+      case '0xa4b1': // Arbitrum One
+        return 'Arbiscan';
+      default:
+        return 'Block Explorer';
+    }
+  };
 
   // Create calldata from function signature and parameters
   const createCalldata = () => {
@@ -135,30 +169,15 @@ export default function CreateProposalPage() {
         throw new Error("No accounts found. Please connect to Phantom wallet first.");
       }
 
-      // Check if we are on Base network
+      // Get current network information
       const chainId = await window.phantom.ethereum.request({
         method: 'eth_chainId'
       });
 
-      if (chainId !== ETHEREUM_CHAIN_ID) { // Ethereum Mainnet Chain ID
-        // Switch to Ethereum network
-        try {
-          await window.phantom.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: ETHEREUM_CHAIN_ID }], // Ethereum Mainnet
-          });
-        } catch (switchError: any) {
-          // This error code indicates that the chain has not been added to the wallet
-          if (switchError.code === 4902) {
-            await window.phantom.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [ETHEREUM_CHAIN_CONFIG],
-            });
-          } else {
-            throw switchError;
-          }
-        }
-      }
+      console.log('Current network chain ID:', chainId);
+      
+      // Use current network without switching
+      // No automatic network switching - use whatever network user is currently on
 
       // Create a Web3Provider using the Phantom ethereum provider
       const provider = new ethers.BrowserProvider(window.phantom.ethereum);
@@ -206,15 +225,18 @@ export default function CreateProposalPage() {
         setTransactionHash(tx.hash);
         
         // Show toast notification for transaction submitted
+        const explorerName = getExplorerName(chainId);
+        const explorerUrl = getExplorerUrl(chainId, tx.hash);
+        
         toast({
           title: "Transaction Submitted",
           description: "Your proposal transaction has been sent to the network.",
           action: (
             <ToastAction 
-              altText="View on Etherscan" 
-              onClick={() => window.open(`https://etherscan.io/tx/${tx.hash}`, '_blank')}
+              altText={`View on ${explorerName}`} 
+              onClick={() => window.open(explorerUrl, '_blank')}
             >
-              View on Etherscan
+              View on {explorerName}
             </ToastAction>
           ),
         });
@@ -228,10 +250,10 @@ export default function CreateProposalPage() {
           description: "Your proposal has been submitted to the governance system",
           action: (
             <ToastAction 
-              altText="View on Etherscan" 
-              onClick={() => window.open(`https://etherscan.io/tx/${tx.hash}`, '_blank')}
+              altText={`View on ${explorerName}`} 
+              onClick={() => window.open(explorerUrl, '_blank')}
             >
-              View on Etherscan
+              View on {explorerName}
             </ToastAction>
           ),
         });
