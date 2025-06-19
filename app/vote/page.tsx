@@ -16,6 +16,7 @@ import { useWallet } from "@/app/hooks/useWallet"
 import ERC20VotesABI from "@/app/abis/ERC20Votes.json"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
+import { RPC_URL } from "@/lib/constants"
 
 // Interface for proposal data
 interface Proposal {
@@ -84,9 +85,7 @@ export default function VotePage() {
     
     setIsLoadingBlockInfo(true)
     try {
-      const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
-        ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
-        : 'https://mainnet.base.org'
+      const rpcUrl = RPC_URL
         
       const provider = new ethers.JsonRpcProvider(rpcUrl)
       const currentBlock = await provider.getBlock('latest')
@@ -647,12 +646,12 @@ export default function VotePage() {
         title: "Delegation Successful",
         description: "You have successfully delegated your tokens to yourself. Your voting power should now be available.",
         action: (
-          <ToastAction 
-            altText="View on BaseScan"
-            onClick={() => window.open(`https://basescan.org/tx/${receipt.hash}`, '_blank')}
-          >
-            View on BaseScan
-          </ToastAction>
+                      <ToastAction 
+              altText="View on Etherscan"
+              onClick={() => window.open(`https://etherscan.io/tx/${receipt.hash}`, '_blank')}
+            >
+              View on Etherscan
+            </ToastAction>
         ),
       })
 

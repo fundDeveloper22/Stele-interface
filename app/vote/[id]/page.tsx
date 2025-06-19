@@ -27,6 +27,7 @@ import ERC20ABI from "@/app/abis/ERC20.json"
 import { useProposalVoteResult, useProposalDetails } from "@/app/subgraph/Proposals"
 import { useQueryClient } from "@tanstack/react-query"
 import { useBlockNumber } from "@/app/hooks/useBlockNumber"
+import { RPC_URL } from "@/lib/constants"
 
 interface ProposalDetailPageProps {
   params: Promise<{
@@ -187,9 +188,7 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
       const currentConnectedAddress = accounts[0]
       
       // Connect to provider for read-only operations
-      const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
-        ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
-        : 'https://mainnet.base.org'
+      const rpcUrl = RPC_URL
         
       const provider = new ethers.JsonRpcProvider(rpcUrl)
       const governanceContract = new ethers.Contract(GOVERNANCE_CONTRACT_ADDRESS, GovernorABI.abi, provider)
@@ -232,7 +231,7 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
       let provider
       try {
         // Primary: Base public RPC
-        provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
+        provider = new ethers.JsonRpcProvider(RPC_URL)
         await provider.getBlockNumber() // Test connection
       } catch (primaryError) {
         // Fallback: Infura
@@ -548,7 +547,7 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
           action: (
             <ToastAction altText="View transaction">
               <a 
-                href={`https://basescan.org/tx/${receipt.hash}`} 
+                href={`https://etherscan.io/tx/${receipt.hash}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
               >
@@ -660,7 +659,7 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
           action: (
             <ToastAction altText="View transaction">
               <a 
-                href={`https://basescan.org/tx/${receipt.hash}`} 
+                href={`https://etherscan.io/tx/${receipt.hash}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
               >

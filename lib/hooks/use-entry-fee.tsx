@@ -10,7 +10,8 @@ import { ethers } from "ethers"
 import { 
   STELE_CONTRACT_ADDRESS, 
   USDC_DECIMALS,
-  BASE_CHAIN_ID
+  BASE_CHAIN_ID,  
+  RPC_URL
 } from "@/lib/constants"
 import SteleABI from "@/app/abis/Stele.json"
 
@@ -31,7 +32,7 @@ function useEntryFeeQuery() {
       await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500))
       
       // Create a read-only provider for Base
-      const provider = new ethers.JsonRpcProvider('https://mainnet.base.org')
+      const provider = new ethers.JsonRpcProvider(RPC_URL)
       
       // Create contract instance
       const steleContract = new ethers.Contract(

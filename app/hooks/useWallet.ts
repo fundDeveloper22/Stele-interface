@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { BASE_CHAIN_CONFIG, ETHEREUM_CHAIN_CONFIG } from '@/lib/constants'
 
 interface WalletState {
   address: string | null
@@ -292,17 +293,7 @@ export function useWallet() {
             if (switchError.code === 4902) {
               await window.phantom.ethereum.request({
                 method: 'wallet_addEthereumChain',
-                params: [{
-                  chainId: '0x2105',
-                  chainName: 'Base Mainnet',
-                  nativeCurrency: {
-                    name: 'Ethereum',
-                    symbol: 'ETH',
-                    decimals: 18
-                  },
-                  rpcUrls: ['https://mainnet.base.org'],
-                  blockExplorerUrls: ['https://basescan.org']
-                }],
+                params: [BASE_CHAIN_CONFIG],
               })
             } else {
               throw switchError
@@ -328,10 +319,21 @@ export function useWallet() {
         }
       } else if (targetNetwork === 'ethereum') {
         if (window.phantom?.ethereum) {
-          await window.phantom.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0x1' }], // Ethereum mainnet
-          })
+          try {
+            await window.phantom.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x1' }], // Ethereum mainnet
+            })
+          } catch (switchError: any) {
+            if (switchError.code === 4902) {
+              await window.phantom.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [ETHEREUM_CHAIN_CONFIG],
+              })
+            } else {
+              throw switchError
+            }
+          }
           
           const accounts = await window.phantom.ethereum.request({ 
             method: 'eth_requestAccounts' 

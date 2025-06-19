@@ -1,6 +1,7 @@
 'use client'
 import { useQuery } from '@tanstack/react-query'
 import { ethers } from 'ethers'
+import { RPC_URL } from '@/lib/constants'
 
 // Hook for getting current block number with global caching
 export function useBlockNumber() {
@@ -12,7 +13,7 @@ export function useBlockNumber() {
         await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 300))
         
         // Try Base public RPC first to avoid rate limits
-        const rpcUrl = 'https://mainnet.base.org'
+        const rpcUrl = RPC_URL
         const provider = new ethers.JsonRpcProvider(rpcUrl)
         const blockNumber = await provider.getBlockNumber()
         
@@ -27,7 +28,7 @@ export function useBlockNumber() {
         // Fallback to Infura if available
         if (process.env.NEXT_PUBLIC_INFURA_API_KEY) {
           try {
-            const infuraUrl = `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
+            const infuraUrl = RPC_URL
             const fallbackProvider = new ethers.JsonRpcProvider(infuraUrl)
             const blockNumber = await fallbackProvider.getBlockNumber()
             

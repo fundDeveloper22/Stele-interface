@@ -4,6 +4,7 @@ import { ethers } from 'ethers'
 import { STELE_TOKEN_ADDRESS, STELE_DECIMALS } from '@/lib/constants'
 import ERC20ABI from '@/app/abis/ERC20.json'
 import ERC20VotesABI from '@/app/abis/ERC20Votes.json'
+import { RPC_URL } from '@/lib/constants'
 
 // Hook for getting wallet token balance and delegation info
 export function useWalletTokenInfo(walletAddress: string | null) {
@@ -20,7 +21,7 @@ export function useWalletTokenInfo(walletAddress: string | null) {
 
       try {
         // Use Base public RPC to avoid rate limits
-        const rpcUrl = 'https://mainnet.base.org'
+        const rpcUrl = RPC_URL
         const provider = new ethers.JsonRpcProvider(rpcUrl)
         
         // Create contracts

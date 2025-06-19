@@ -13,7 +13,7 @@ import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import { ethers } from "ethers"
 import { GOVERNANCE_CONTRACT_ADDRESS } from "@/lib/constants"
-import { BASE_CHAIN_ID, BASE_CHAIN_CONFIG } from "@/lib/constants"
+import { ETHEREUM_CHAIN_ID, ETHEREUM_CHAIN_CONFIG } from "@/lib/constants"
 import GovernorABI from "@/app/abis/SteleGovernor.json"
 
 export default function CreateProposalPage() {
@@ -140,19 +140,19 @@ export default function CreateProposalPage() {
         method: 'eth_chainId'
       });
 
-      if (chainId !== BASE_CHAIN_ID) { // Base Mainnet Chain ID
-        // Switch to Base network
+      if (chainId !== ETHEREUM_CHAIN_ID) { // Ethereum Mainnet Chain ID
+        // Switch to Ethereum network
         try {
           await window.phantom.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: BASE_CHAIN_ID }], // Base Mainnet
+            params: [{ chainId: ETHEREUM_CHAIN_ID }], // Ethereum Mainnet
           });
         } catch (switchError: any) {
           // This error code indicates that the chain has not been added to the wallet
           if (switchError.code === 4902) {
             await window.phantom.ethereum.request({
               method: 'wallet_addEthereumChain',
-              params: [BASE_CHAIN_CONFIG],
+              params: [ETHEREUM_CHAIN_CONFIG],
             });
           } else {
             throw switchError;
@@ -211,10 +211,10 @@ export default function CreateProposalPage() {
           description: "Your proposal transaction has been sent to the network.",
           action: (
             <ToastAction 
-              altText="View on BaseScan" 
-              onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}
+              altText="View on Etherscan" 
+              onClick={() => window.open(`https://etherscan.io/tx/${tx.hash}`, '_blank')}
             >
-              View on BaseScan
+              View on Etherscan
             </ToastAction>
           ),
         });
@@ -228,10 +228,10 @@ export default function CreateProposalPage() {
           description: "Your proposal has been submitted to the governance system",
           action: (
             <ToastAction 
-              altText="View on BaseScan" 
-              onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}
+              altText="View on Etherscan" 
+              onClick={() => window.open(`https://etherscan.io/tx/${tx.hash}`, '_blank')}
             >
-              View on BaseScan
+              View on Etherscan
             </ToastAction>
           ),
         });
