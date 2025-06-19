@@ -295,7 +295,7 @@ export function useTransactions(challengeId: string) {
         if (data.registers && Array.isArray(data.registers)) {
           data.registers.forEach((register) => {
             
-            const performanceValue = parseFloat(ethers.formatUnits(register.performance, USDC_DECIMALS));            
+            const performanceValue = parseFloat(ethers.formatUnits(register.performance, USDC_DECIMALS));
             
             allTransactions.push({
               type: 'register',
