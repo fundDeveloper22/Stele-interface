@@ -31,7 +31,7 @@ export const ETHEREUM_BLOCK_TIME_MS = 12; // ~12 seconds per block
 // Mainnet
 
 // Contract Addresses
-export const STELE_CONTRACT_ADDRESS = "0xed43c99DD66601D388d226d894abB9EFd2a4b51C";
+export const STELE_CONTRACT_ADDRESS = "0xA14214598Bbe93dB512a08C2c45fD6a9487E63f0";
 export const STELE_TOKEN_ADDRESS = "0xB82f40c4b42960BA4387c5FaC5763a3e86a1BF3c"; // Stele Token for voting
 export const USDC_TOKEN_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // Mainnet USDC
 export const GOVERNANCE_CONTRACT_ADDRESS = "0x07632cB8376Cfed5Bad166513C2299226d78f442"; // Mainnet Governance
