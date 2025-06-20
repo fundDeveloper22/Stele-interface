@@ -88,7 +88,7 @@ export function InvestableTokens() {
               </TableHeader>
               <TableBody>
                 {tokens.map((token) => (
-                  <TableRow key={token.id} className="border-b border-gray-700 hover:bg-gray-800/30">
+                  <TableRow key={token.id} className="border-0 hover:bg-gray-800/30">
                     <TableCell className="font-medium text-gray-100">
                       {token.symbol}
                     </TableCell>

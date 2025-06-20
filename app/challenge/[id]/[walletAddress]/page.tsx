@@ -704,7 +704,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                             <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
                               <span className="text-sm text-gray-400 flex items-center gap-2">
                                 <Trophy className="h-4 w-4" />
-                                Prize Pool
+                                Prize
                               </span>
                               <span className="font-semibold text-yellow-400 text-lg">
                                 {challengeDetails.prize}

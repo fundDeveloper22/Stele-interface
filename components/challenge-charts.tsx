@@ -334,7 +334,7 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
               <DollarSign className="h-5 w-5 text-gray-400" />
               <span className="text-sm text-gray-400">Total Prize</span>
             </div>
-            <span className="text-xl font-bold text-green-400">
+            <span className="text-2xl font-bold text-yellow-400">
               ${challengeDetails.totalPrize >= 1000000 
                 ? `${(challengeDetails.totalPrize / 1000000).toFixed(1)}M` 
                 : challengeDetails.totalPrize >= 1000 
@@ -342,15 +342,6 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
                 : challengeDetails.totalPrize.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
               }
             </span>
-          </div>
-
-          {/* Challenge Period */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-400">Challenge Period</span>
-            </div>
-            <span className="text-sm font-medium text-gray-100">{challengeDetails.challengePeriod}</span>
           </div>
 
           {/* Participants */}

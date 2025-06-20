@@ -153,7 +153,7 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
 
     return (
       <tr 
-        className="border-b border-gray-700/50 hover:bg-gray-800/30 transition-colors cursor-pointer" 
+        className="hover:bg-gray-800/30 transition-colors cursor-pointer" 
         onClick={handleRowClick}
       >
         <td className="py-4 px-4">
@@ -310,13 +310,6 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-2">
-            <Link 
-              href="/portfolio"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Portfolio
-            </Link>
             <div>
               <h1 className="text-3xl font-bold text-gray-100">Portfolio Overview</h1>
               <p className="text-gray-400 font-mono">

@@ -575,7 +575,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
                   <TableHead className="text-gray-300 pl-14">Period</TableHead>
                   <TableHead className="text-gray-300 pl-2">Challenge ID</TableHead>
                   <TableHead className="text-gray-300 pl-4">Participants</TableHead>
-                  <TableHead className="text-gray-300 pl-6">Prize Pool</TableHead>
+                  <TableHead className="text-gray-300 pl-12">Prize</TableHead>
                   <TableHead className="text-gray-300 pl-14">Progress</TableHead>
                   <TableHead className="text-gray-300 pl-10">Status</TableHead>
                   <TableHead className="text-gray-300 pl-16">Action</TableHead>
@@ -585,7 +585,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
                 {challenges.map((challenge) => (
                   <TableRow 
                     key={challenge.id} 
-                    className="border-b border-gray-700 hover:bg-gray-800/50 cursor-pointer transition-colors"
+                    className="border-0 hover:bg-gray-800/50 cursor-pointer transition-colors"
                     onClick={() => window.location.href = `/challenge/${challenge.challengeId}`}
                   >
                     <TableCell className="font-medium text-gray-100 pl-10">
@@ -607,7 +607,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
                         <span>{challenge.participants}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium text-gray-100 pl-10">
+                    <TableCell className="font-medium text-yellow-400 pl-10">
                       {challenge.prize}
                     </TableCell>
                     <TableCell className="pl-10">
