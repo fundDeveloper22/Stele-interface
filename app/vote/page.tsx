@@ -79,6 +79,10 @@ export default function VotePage() {
   // State for current block info (for timestamp calculation)
   const [currentBlockInfo, setCurrentBlockInfo] = useState<{blockNumber: number, timestamp: number} | null>(null)
   const [isLoadingBlockInfo, setIsLoadingBlockInfo] = useState(false)
+  
+  // State for tracking recently created proposal
+  const [recentlyCreatedProposal, setRecentlyCreatedProposal] = useState<any>(null)
+  const [hasCheckedForNewProposal, setHasCheckedForNewProposal] = useState(false)
 
   // Get current block info from RPC (called only once)
   const getCurrentBlockInfo = async () => {
@@ -125,6 +129,104 @@ export default function VotePage() {
   useEffect(() => {
     getCurrentBlockInfo()
   }, [])
+
+  // Check for recently created proposal on page load
+  useEffect(() => {
+    const recentProposalData = localStorage.getItem('recentlyCreatedProposal');
+    if (recentProposalData) {
+      try {
+        const proposalInfo = JSON.parse(recentProposalData);
+        // Check if the proposal was created within the last 5 minutes
+        const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+        if (proposalInfo.timestamp > fiveMinutesAgo) {
+          setRecentlyCreatedProposal(proposalInfo);
+        } else {
+          // Remove old proposal data
+          localStorage.removeItem('recentlyCreatedProposal');
+        }
+      } catch (error) {
+        console.error('Error parsing recently created proposal data:', error);
+        localStorage.removeItem('recentlyCreatedProposal');
+      }
+    }
+  }, []);
+
+  // Check if the recently created proposal appears in the proposal list
+  useEffect(() => {
+    if (!recentlyCreatedProposal || hasCheckedForNewProposal) return;
+
+    const checkForNewProposal = () => {
+      // Check in all proposal data sources
+      const allProposalSources = [
+        proposalsData?.proposalCreateds || [],
+        activeProposalsData?.proposalCreateds || [],
+        actionableProposals?.proposals || [],
+        allProposalsByStatus?.proposals || []
+      ];
+
+      let found = false;
+      for (const proposalSource of allProposalSources) {
+        const foundProposal = proposalSource.find((proposal: any) => {
+          // Check by transaction hash or by title match
+          return proposal.transactionHash === recentlyCreatedProposal.transactionHash ||
+                 (proposal.description && proposal.description.includes(recentlyCreatedProposal.title));
+        });
+        
+        if (foundProposal) {
+          found = true;
+          break;
+        }
+      }
+
+      if (found) {
+        // Proposal found in the list, clean up and refresh page
+        localStorage.removeItem('recentlyCreatedProposal');
+        setHasCheckedForNewProposal(true);
+        setRecentlyCreatedProposal(null);
+        // Refresh the page to show the new proposal
+        window.location.reload();
+      }
+    };
+
+    // Start checking after proposal data is loaded
+    if (proposalsData || activeProposalsData || actionableProposals || allProposalsByStatus) {
+      checkForNewProposal();
+      
+      // If not found immediately, check every 30 seconds for up to 5 minutes
+      let attempts = 0;
+      const maxAttempts = 10; // 5 minutes with 30-second intervals
+      
+      const checkInterval = setInterval(() => {
+        attempts++;
+        checkForNewProposal();
+        
+        if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          // Clean up after max attempts
+          localStorage.removeItem('recentlyCreatedProposal');
+          setRecentlyCreatedProposal(null);
+        }
+      }, 30000); // Check every 30 seconds
+
+      return () => clearInterval(checkInterval);
+    }
+  }, [recentlyCreatedProposal, hasCheckedForNewProposal, proposalsData, activeProposalsData, actionableProposals, allProposalsByStatus]);
+
+  // Enhanced refetch when recently created proposal exists
+  useEffect(() => {
+    if (!recentlyCreatedProposal) return;
+
+    const interval = setInterval(() => {
+      // Refetch all proposal data
+      refetch();
+      refetchActive();
+      refetchActionable();
+      refetchAllByStatus();
+      refetchCompletedByStatus();
+    }, 15000); // Refetch every 15 seconds
+
+    return () => clearInterval(interval);
+  }, [recentlyCreatedProposal, refetch, refetchActive, refetchActionable, refetchAllByStatus, refetchCompletedByStatus]);
 
   // Parse proposal details from description
   const parseProposalDetails = (description: string) => {

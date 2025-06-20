@@ -225,8 +225,8 @@ export function useProposalsData() {
       await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200))
       return await request(SUBGRAPH_URL, getProposalsQuery(), {}, headers)
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    refetchInterval: false, // Disable automatic refetch
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 60 * 1000, // Refetch every 1 minute
     retry: 1,
   })
 }
@@ -264,8 +264,8 @@ export function useActiveProposalsData(currentBlockNumber?: number) {
       }
     },
     enabled: !!currentBlockNumber, // Only run when we have block number
-    refetchInterval: 5 * 60 * 1000, // Increase to 5 minutes
-    staleTime: 3 * 60 * 1000, // 3 minutes
+    refetchInterval: 60 * 1000, // Refetch every 1 minute
+    staleTime: 30 * 1000, // 30 seconds
     retry: 1, // Reduce retry attempts
   })
 }
@@ -328,8 +328,8 @@ export function useProposalsByStatus(
       
       return result
     },
-    refetchInterval: 5 * 60 * 1000, // Increase to 5 minutes
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchInterval: 60 * 1000, // Refetch every 1 minute
+    staleTime: 30 * 1000, // 30 seconds
     retry: 1,
   })
 }

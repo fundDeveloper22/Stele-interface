@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useQueryClient } from '@tanstack/react-query'
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -110,6 +111,7 @@ const PROPOSAL_TEMPLATES: ProposalTemplate[] = [
 
 export default function CreateProposalPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
@@ -445,25 +447,37 @@ export default function CreateProposalPage() {
           ),
         });
         
-        // Wait for transaction to be mined
-        const receipt = await tx.wait();
+        // Store the recently created proposal info for real-time update detection
+        const recentlyCreatedProposal = {
+          transactionHash: tx.hash,
+          title: title,
+          description: description,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('recentlyCreatedProposal', JSON.stringify(recentlyCreatedProposal));
         
-        // Show toast notification for transaction confirmed
-        toast({
-          title: "Proposal Created Successfully",
-          description: "Your proposal has been submitted to the governance system",
-          action: (
-            <ToastAction 
-              altText={`View on ${explorerName}`} 
-              onClick={() => window.open(explorerUrl, '_blank')}
-            >
-              View on {explorerName}
-            </ToastAction>
-          ),
-        });
-        
-        // Navigate to proposal list page
-        router.push("/vote");
+        // Continue processing transaction in background
+        try {
+          // Wait for transaction to be mined
+          const receipt = await tx.wait();
+          
+          // Show toast notification for transaction confirmed
+          toast({
+            title: "Proposal Created Successfully",
+            description: "Your proposal has been confirmed on the blockchain",
+            action: (
+              <ToastAction 
+                altText={`View on ${explorerName}`} 
+                onClick={() => window.open(explorerUrl, '_blank')}
+              >
+                View on {explorerName}
+              </ToastAction>
+            ),
+          });
+        } catch (confirmationError) {
+          console.error("Error waiting for transaction confirmation:", confirmationError);
+          // Still navigate to vote page even if confirmation fails
+        }
       } else {
         throw new Error("Invalid proposal parameters. Please check your inputs.");
       }
@@ -476,6 +490,22 @@ export default function CreateProposalPage() {
       });
     } finally {
       setIsSubmitting(false);
+      
+      // Navigate to vote page only if there's no error and we have stored proposal data
+      const storedProposal = localStorage.getItem('recentlyCreatedProposal');
+      if (storedProposal) {
+        // Wait 1 second after submitting state ends before navigating
+        setTimeout(async () => {
+          // Invalidate all proposal-related queries to refresh vote page data
+          await queryClient.invalidateQueries({ queryKey: ['proposals'] });
+          await queryClient.invalidateQueries({ queryKey: ['activeProposals'] });
+          await queryClient.invalidateQueries({ queryKey: ['proposalsByStatus'] });
+          await queryClient.invalidateQueries({ queryKey: ['multipleProposalVoteResults'] });
+          
+          // Navigate to vote page
+          router.push("/vote");
+        }, 1000);
+      }
     }
   }
   
