@@ -58,6 +58,12 @@
           "internalType": "uint256",
           "name": "entryFee",
           "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "maxAssets",
+          "type": "uint8"
         }
       ],
       "name": "Create",
@@ -409,6 +415,11 @@
           "internalType": "uint256",
           "name": "entryFee",
           "type": "uint256"
+        },
+        {
+          "internalType": "uint8",
+          "name": "maxAssets",
+          "type": "uint8"
         }
       ],
       "stateMutability": "view",
@@ -695,6 +706,19 @@
         }
       ],
       "name": "setEntryFee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint8",
+          "name": "_maxAssets",
+          "type": "uint8"
+        }
+      ],
+      "name": "setMaxAssets",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
