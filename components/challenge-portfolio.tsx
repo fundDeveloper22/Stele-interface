@@ -165,6 +165,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [hasJoinedLocally, setHasJoinedLocally] = useState(false);
   const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee();
 
   // Get appropriate explorer URL based on chain ID
@@ -206,13 +207,14 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const { data: rankingData, isLoading: isLoadingRanking, error: rankingError } = useRanking(challengeId);
   
   // Check if current user has joined this challenge
-  const { data: investorData, isLoading: isLoadingInvestor } = useInvestorData(
+  const { data: investorData, isLoading: isLoadingInvestor, refetch: refetchInvestorData } = useInvestorData(
     challengeId, 
     walletAddress || ""
   );
 
-  // Check if user has joined the challenge
-  const hasJoinedChallenge = investorData?.investor !== undefined && investorData?.investor !== null;
+  // Check if user has joined the challenge (combining local state with subgraph data)
+  const hasJoinedFromSubgraph = investorData?.investor !== undefined && investorData?.investor !== null;
+  const hasJoinedChallenge = hasJoinedLocally || hasJoinedFromSubgraph;
 
   // Check if current wallet is in top 5 ranking
   const isInTop5Ranking = () => {
@@ -533,6 +535,31 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
             </ToastAction>
           ),
         });
+
+        // Update local state immediately for instant UI feedback
+        setHasJoinedLocally(true);
+        
+        // Start refetching investor data to check for subgraph updates
+        let attempts = 0;
+        const maxAttempts = 10; // Try for 5 minutes (30s * 10)
+        const checkInterval = setInterval(async () => {
+          attempts++;
+          try {
+            const result = await refetchInvestorData();
+            if (result.data?.investor) {
+              // Subgraph has been updated, clear interval and refresh page
+              clearInterval(checkInterval);
+              window.location.reload();
+            }
+          } catch (error) {
+            console.log('Refetch attempt', attempts, 'failed:', error);
+          }
+          
+          // Stop trying after max attempts
+          if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+          }
+        }, 30000); // Check every 30 seconds
       } catch (joinError: any) {
         console.error("❌ Join challenge failed:", joinError);
         
@@ -561,101 +588,6 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       });
     } finally {
       setIsJoining(false);
-    }
-  };
-
-  // Handle Create Challenge with selected type
-  const handleCreateChallenge = async (challengeType: number) => {
-    setIsCreating(true);
-    
-    try {
-      // Check if Phantom wallet is installed
-      if (typeof window.phantom === 'undefined') {
-        throw new Error("Phantom wallet is not installed. Please install it from https://phantom.app/");
-      }
-
-      // Check if Ethereum provider is available
-      if (!window.phantom?.ethereum) {
-        throw new Error("Ethereum provider not found in Phantom wallet");
-      }
-
-      // Request account access
-      const accounts = await window.phantom.ethereum.request({
-        method: 'eth_requestAccounts'
-      });
-
-      if (!accounts || accounts.length === 0) {
-        throw new Error("No accounts found. Please connect to Phantom wallet first.");
-      }
-
-      // Get current network information
-      const chainId = await window.phantom.ethereum.request({
-        method: 'eth_chainId'
-      });
-
-      console.log('Current network chain ID for create challenge:', chainId);
-      
-      // Use current network without switching
-      // No automatic network switching - use whatever network user is currently on
-
-      // Create a Web3Provider using the Phantom ethereum provider
-      const provider = new ethers.BrowserProvider(window.phantom.ethereum);
-      
-      // Get the signer
-      const signer = await provider.getSigner();
-      
-      // Create contract instance
-      const steleContract = new ethers.Contract(
-        STELE_CONTRACT_ADDRESS,
-        SteleABI.abi,
-        signer
-      );
-
-      // Call createChallenge with the selected challenge type
-      const tx = await steleContract.createChallenge(challengeType);
-      
-      // Show toast notification for transaction submitted
-      const createExplorerName = getExplorerName(chainId);
-      const createExplorerUrl = getExplorerUrl(chainId, tx.hash);
-      
-      toast({
-        title: "Transaction Submitted",
-        description: "Your challenge creation transaction has been sent to the network.",
-        action: (
-          <ToastAction altText={`View on ${createExplorerName}`} onClick={() => window.open(createExplorerUrl, '_blank')}>
-            View on {createExplorerName}
-          </ToastAction>
-        ),
-      });
-      
-      // Wait for transaction to be mined
-      await tx.wait();
-      
-      // Show toast notification for transaction confirmed
-      toast({
-        title: "Challenge Created",
-        description: "Your challenge has been created successfully!",
-        action: (
-          <ToastAction altText={`View on ${createExplorerName}`} onClick={() => window.open(createExplorerUrl, '_blank')}>
-            View on {createExplorerName}
-          </ToastAction>
-        ),
-      });
-      
-    } catch (error: any) {
-      console.error("Error creating challenge:", error);
-      
-      // Show toast notification for error
-      toast({
-        variant: "destructive",
-        title: "Error Creating Challenge",
-        description: error.message || "An unknown error occurred",
-      });
-      
-      // Re-throw the error to be handled by the modal
-      throw error;
-    } finally {
-      setIsCreating(false);
     }
   };
 
