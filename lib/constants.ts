@@ -13,18 +13,35 @@ export const BASE_CHAIN_CONFIG = {
 };
 export const BASE_BLOCK_TIME_MS = 2; // 2 seconds per block
 
+// Ethereum Mainnet Information
+export const ETHEREUM_CHAIN_ID = '0x1'; // Ethereum mainnet chain ID (hexadecimal)
+export const ETHEREUM_CHAIN_CONFIG = {
+  chainId: ETHEREUM_CHAIN_ID,
+  chainName: 'Ethereum Mainnet',
+  nativeCurrency: {
+    name: 'Ethereum',
+    symbol: 'ETH',
+    decimals: 18
+  },
+  rpcUrls: ['https://mainnet.infura.io/v3/' + process.env.NEXT_PUBLIC_INFURA_API_KEY],
+  blockExplorerUrls: ['https://etherscan.io']
+};
+export const ETHEREUM_BLOCK_TIME_MS = 12; // ~12 seconds per block
+
+// Mainnet
+
 // Contract Addresses
-export const STELE_CONTRACT_ADDRESS = "0x9FCe4D3110ce3eE074b4B8c15374EAb3FE1Faa0d";
-export const STELE_TOKEN_ADDRESS = "0x8B1136AeBb8e0FA452AC0d67984B658A852d030f"; // Stele Token for voting
-export const USDC_TOKEN_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base Mainnet USDC
-export const GOVERNANCE_CONTRACT_ADDRESS = "0x28ff7A3B2d8C62e7E6f471638FDa6791176Ab7bD"; // Base Mainnet Governance
+export const STELE_CONTRACT_ADDRESS = "0xbC84eE790B6D4d590925DFC8a0bC80313ffe9CE9";
+export const STELE_TOKEN_ADDRESS = "0xB82f40c4b42960BA4387c5FaC5763a3e86a1BF3c"; // Stele Token for voting
+export const USDC_TOKEN_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // Mainnet USDC
+export const GOVERNANCE_CONTRACT_ADDRESS = "0x07632cB8376Cfed5Bad166513C2299226d78f442"; // Mainnet Governance
+export const RPC_URL = 'https://mainnet.infura.io/v3/' + process.env.NEXT_PUBLIC_INFURA_API_KEY;
 
 // Token decimals
 export const USDC_DECIMALS = 6;
 export const STELE_DECIMALS = 18;
 
-//subgraph
-export const SUBGRAPH_URL = 'https://api.studio.thegraph.com/query/111352/stele-base-8/version/latest'
+export const SUBGRAPH_URL = 'https://api.studio.thegraph.com/query/110372/stele/version/latest'
 export const headers = { Authorization: `Bearer ${process.env.NEXT_PUBLIC_THE_GRAPH_API_KEY}` }
 export const BYTE_ZERO = "0x00000000"
 

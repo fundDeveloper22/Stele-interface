@@ -5,16 +5,108 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Plus } from "lucide-react"
+import { ArrowLeft, Plus, Settings, DollarSign, Shield, Users } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import { ethers } from "ethers"
-import { GOVERNANCE_CONTRACT_ADDRESS } from "@/lib/constants"
-import { BASE_CHAIN_ID, BASE_CHAIN_CONFIG } from "@/lib/constants"
+import { GOVERNANCE_CONTRACT_ADDRESS, STELE_CONTRACT_ADDRESS } from "@/lib/constants"
 import GovernorABI from "@/app/abis/SteleGovernor.json"
+
+// Predefined governance proposal templates
+interface ProposalTemplate {
+  id: string
+  name: string
+  description: string
+  icon: React.ReactNode
+  targetContract: string
+  functionSignature: string
+  parameterTypes: string[]
+  parameterLabels: string[]
+  parameterPlaceholders: string[]
+  parameterDescriptions: string[]
+}
+
+const PROPOSAL_TEMPLATES: ProposalTemplate[] = [
+  {
+    id: 'set-token',
+    name: 'Set Investable Token',
+    description: 'Add or update an investable token in the system',
+    icon: <Settings className="h-5 w-5" />,
+    targetContract: STELE_CONTRACT_ADDRESS,
+    functionSignature: 'setToken(address)',
+    parameterTypes: ['address'],
+    parameterLabels: ['Token Address'],
+    parameterPlaceholders: ['0x...'],
+    parameterDescriptions: ['The contract address of the token to be added as an investable asset']
+  },
+  {
+    id: 'set-reward-ratio',
+    name: 'Set Reward Ratio',
+    description: 'Update the reward distribution ratios for different rankings',
+    icon: <DollarSign className="h-5 w-5" />,
+    targetContract: STELE_CONTRACT_ADDRESS,
+    functionSignature: 'setRewardRatio(uint256[5])',
+    parameterTypes: ['uint256', 'uint256', 'uint256', 'uint256', 'uint256'],
+    parameterLabels: ['1st Place (%)', '2nd Place (%)', '3rd Place (%)', '4th Place (%)', '5th Place (%)'],
+    parameterPlaceholders: ['50', '30', '15', '3', '2'],
+    parameterDescriptions: ['Percentage for 1st place', 'Percentage for 2nd place', 'Percentage for 3rd place', 'Percentage for 4th place', 'Percentage for 5th place']
+  },
+  {
+    id: 'set-entry-fee',
+    name: 'Set Entry Fee',
+    description: 'Update the entry fee for participating in challenges',
+    icon: <DollarSign className="h-5 w-5" />,
+    targetContract: STELE_CONTRACT_ADDRESS,
+    functionSignature: 'setEntryFee(uint256)',
+    parameterTypes: ['uint256'],
+    parameterLabels: ['Entry Fee'],
+    parameterPlaceholders: ['50000000'],
+    parameterDescriptions: ['The new entry fee in wei (for USDC, multiply by 1,000,000 for each dollar)']
+  },
+  {
+    id: 'set-max-assets',
+    name: 'Set Max Assets',
+    description: 'Update the maximum number of assets allowed in a portfolio',
+    icon: <Settings className="h-5 w-5" />,
+    targetContract: STELE_CONTRACT_ADDRESS,
+    functionSignature: 'setMaxAssets(uint8)',
+    parameterTypes: ['uint8'],
+    parameterLabels: ['Max Assets Count'],
+    parameterPlaceholders: ['10'],
+    parameterDescriptions: ['The maximum number of different tokens that can be held in a portfolio (1-255)']
+  },
+  {
+    id: 'set-seed-money',
+    name: 'Set Seed Money',
+    description: 'Update the initial investment amount for mock trading',
+    icon: <DollarSign className="h-5 w-5" />,
+    targetContract: STELE_CONTRACT_ADDRESS,
+    functionSignature: 'setSeedMoney(uint256)',
+    parameterTypes: ['uint256'],
+    parameterLabels: ['Seed Money Amount'],
+    parameterPlaceholders: ['10000000000'],
+    parameterDescriptions: ['The initial mock investment amount in wei (for USDC, multiply by 1,000,000 for each dollar)']
+  },
+
+
+
+  {
+    id: 'set-voting-period',
+    name: 'Set Voting Period',
+    description: 'Update the duration of the voting period for proposals',
+    icon: <Settings className="h-5 w-5" />,
+    targetContract: GOVERNANCE_CONTRACT_ADDRESS,
+    functionSignature: 'setVotingPeriod(uint256)',
+    parameterTypes: ['uint256'],
+    parameterLabels: ['Voting Period (blocks)'],
+    parameterPlaceholders: ['50400'],
+    parameterDescriptions: ['Number of blocks the voting period lasts (50400 blocks ≈ 7 days on Ethereum)']
+  }
+]
 
 export default function CreateProposalPage() {
   const router = useRouter()
@@ -29,7 +121,12 @@ export default function CreateProposalPage() {
   const [description, setDescription] = useState("")
   const [details, setDetails] = useState("")
   
-  // Smart contract call data (example)
+  // Template-based proposal state
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("")
+  const [isCustomProposal, setIsCustomProposal] = useState(false)
+  const [templateParameters, setTemplateParameters] = useState<string[]>([])
+  
+  // Legacy smart contract call data (for custom proposals)
   const [targetAddress, setTargetAddress] = useState("")
   const [functionSignature, setFunctionSignature] = useState("")
   const [functionParams, setFunctionParams] = useState("")
@@ -43,51 +140,171 @@ export default function CreateProposalPage() {
     }
   }, [])
 
-  // Create calldata from function signature and parameters
-  const createCalldata = () => {
-    if (!functionSignature || !targetAddress) return null;
+  // Get appropriate explorer URL based on chain ID
+  const getExplorerUrl = (chainId: string, txHash: string) => {
+    switch (chainId) {
+      case '0x1': // Ethereum Mainnet
+        return `https://etherscan.io/tx/${txHash}`;
+      case '0x2105': // Base Mainnet
+        return `https://basescan.org/tx/${txHash}`;
+      case '0x89': // Polygon
+        return `https://polygonscan.com/tx/${txHash}`;
+      case '0xa': // Optimism
+        return `https://optimistic.etherscan.io/tx/${txHash}`;
+      case '0xa4b1': // Arbitrum One
+        return `https://arbiscan.io/tx/${txHash}`;
+      default:
+        return `https://etherscan.io/tx/${txHash}`; // Default to Ethereum
+    }
+  };
 
-    try {
-      // Parse the function signature (e.g., "setRewardAmount(uint256)")
-      const funcName = functionSignature.split('(')[0];
-      const paramTypes = functionSignature
-        .split('(')[1]
-        .replace(')', '')
-        .split(',')
-        .filter(p => p.trim().length > 0);
+  const getExplorerName = (chainId: string) => {
+    switch (chainId) {
+      case '0x1': // Ethereum Mainnet
+        return 'Etherscan';
+      case '0x2105': // Base Mainnet
+        return 'BaseScan';
+      case '0x89': // Polygon
+        return 'PolygonScan';
+      case '0xa': // Optimism
+        return 'Optimistic Etherscan';
+      case '0xa4b1': // Arbitrum One
+        return 'Arbiscan';
+      default:
+        return 'Block Explorer';
+    }
+  };
 
-      // Parse the parameters
-      let params: any[] = [];
-      if (functionParams && paramTypes.length > 0) {
-        params = functionParams.split(',').map((p: string, i: number) => {
-          const paramType = paramTypes[i].trim();
-          const param = p.trim();
-
-          // Convert parameter based on type (basic handling for common types)
-          if (paramType.includes('uint')) {
-            return param.startsWith('0x') ? param : ethers.parseUnits(param, 0);
-          } else if (paramType.includes('bool')) {
-            return param.toLowerCase() === 'true';
-          } else {
-            return param; // string, address, etc.
-          }
-        });
+  // Handle template selection
+  const handleTemplateSelect = (templateId: string) => {
+    if (templateId === 'custom') {
+      setIsCustomProposal(true);
+      setSelectedTemplate('');
+      setTemplateParameters([]);
+    } else {
+      setIsCustomProposal(false);
+      setSelectedTemplate(templateId);
+      const template = PROPOSAL_TEMPLATES.find(t => t.id === templateId);
+      if (template) {
+        setTemplateParameters(new Array(template.parameterTypes.length).fill(''));
       }
+    }
+  };
 
-      // Create the function selector and encode parameters
-      const functionFragment = ethers.FunctionFragment.from(`function ${funcName}(${paramTypes.join(',')})`);
-      const iface = new ethers.Interface([functionFragment]);
-      const calldata = iface.encodeFunctionData(funcName, params);
+  // Update template parameter
+  const updateTemplateParameter = (index: number, value: string) => {
+    const newParams = [...templateParameters];
+    newParams[index] = value;
+    setTemplateParameters(newParams);
+  };
 
-      return calldata;
-    } catch (error) {
-      console.error("Error creating calldata:", error);
-      toast({
-        variant: "destructive",
-        title: "Invalid Function Data",
-        description: "Please check your function signature and parameters.",
-      });
-      return null;
+  // Create calldata from template or custom input
+  const createCalldata = () => {
+    if (isCustomProposal) {
+      // Legacy custom proposal logic
+      if (!functionSignature || !targetAddress) return null;
+
+      try {
+        const funcName = functionSignature.split('(')[0];
+        const paramTypes = functionSignature
+          .split('(')[1]
+          .replace(')', '')
+          .split(',')
+          .filter(p => p.trim().length > 0);
+
+        let params: any[] = [];
+        if (functionParams && paramTypes.length > 0) {
+          params = functionParams.split(',').map((p: string, i: number) => {
+            const paramType = paramTypes[i].trim();
+            const param = p.trim();
+
+            if (paramType.includes('uint')) {
+              return param.startsWith('0x') ? param : ethers.parseUnits(param, 0);
+            } else if (paramType.includes('bool')) {
+              return param.toLowerCase() === 'true';
+            } else {
+              return param;
+            }
+          });
+        }
+
+        const functionFragment = ethers.FunctionFragment.from(`function ${funcName}(${paramTypes.join(',')})`);
+        const iface = new ethers.Interface([functionFragment]);
+        const calldata = iface.encodeFunctionData(funcName, params);
+
+        return calldata;
+      } catch (error) {
+        console.error("Error creating calldata:", error);
+        toast({
+          variant: "destructive",
+          title: "Invalid Function Data",
+          description: "Please check your function signature and parameters.",
+        });
+        return null;
+      }
+    } else {
+      // Template-based proposal logic
+      const template = PROPOSAL_TEMPLATES.find(t => t.id === selectedTemplate);
+      if (!template) return null;
+
+      try {
+        const funcName = template.functionSignature.split('(')[0];
+        let paramTypes: string[];
+        
+        if (template.id === 'set-reward-ratio') {
+          // For setRewardRatio, we need the actual function signature with uint256[5]
+          paramTypes = ['uint256[5]'];
+        } else {
+          paramTypes = template.parameterTypes;
+        }
+
+        // Convert template parameters to proper types
+        let params: any[] = [];
+        
+        if (template.id === 'set-reward-ratio') {
+          // Special handling for setRewardRatio which needs an array of 5 uint256 values
+          const rewardRatios = templateParameters.slice(0, 5).map(param => {
+            const value = param.trim();
+            return value.startsWith('0x') ? value : ethers.parseUnits(value, 0);
+          });
+          params = [rewardRatios];
+        } else {
+          // Regular parameter handling
+          params = templateParameters.map((param, i) => {
+            const paramType = paramTypes[i];
+            const value = param.trim();
+
+                         if (paramType.includes('uint8')) {
+               // Handle uint8 specifically (0-255 range)
+               const numValue = parseInt(value);
+               if (numValue < 0 || numValue > 255) {
+                 throw new Error('uint8 value must be between 0 and 255');
+               }
+               return numValue;
+             } else if (paramType.includes('uint')) {
+               return value.startsWith('0x') ? value : ethers.parseUnits(value, 0);
+             } else if (paramType.includes('bool')) {
+              return value.toLowerCase() === 'true';
+            } else {
+              return value;
+            }
+          });
+        }
+
+        const functionFragment = ethers.FunctionFragment.from(`function ${funcName}(${paramTypes.join(',')})`);
+        const iface = new ethers.Interface([functionFragment]);
+        const calldata = iface.encodeFunctionData(funcName, params);
+
+        return calldata;
+      } catch (error) {
+        console.error("Error creating template calldata:", error);
+        toast({
+          variant: "destructive",
+          title: "Invalid Template Parameters",
+          description: "Please check your parameter values.",
+        });
+        return null;
+      }
     }
   };
   
@@ -135,30 +352,15 @@ export default function CreateProposalPage() {
         throw new Error("No accounts found. Please connect to Phantom wallet first.");
       }
 
-      // Check if we are on Base network
+      // Get current network information
       const chainId = await window.phantom.ethereum.request({
         method: 'eth_chainId'
       });
 
-      if (chainId !== BASE_CHAIN_ID) { // Base Mainnet Chain ID
-        // Switch to Base network
-        try {
-          await window.phantom.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: BASE_CHAIN_ID }], // Base Mainnet
-          });
-        } catch (switchError: any) {
-          // This error code indicates that the chain has not been added to the wallet
-          if (switchError.code === 4902) {
-            await window.phantom.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [BASE_CHAIN_CONFIG],
-            });
-          } else {
-            throw switchError;
-          }
-        }
-      }
+      console.log('Current network chain ID:', chainId);
+      
+      // Use current network without switching
+      // No automatic network switching - use whatever network user is currently on
 
       // Create a Web3Provider using the Phantom ethereum provider
       const provider = new ethers.BrowserProvider(window.phantom.ethereum);
@@ -174,20 +376,41 @@ export default function CreateProposalPage() {
       );
 
       // Prepare proposal parameters
-      const targets: string[] = targetAddress ? [targetAddress] : [];
-      const values: bigint[] = targetAddress ? [BigInt(0)] : []; // No ETH being sent
-      
+      let targets: string[] = [];
+      let values: bigint[] = [];
       let calldatas: string[] = [];
-      if (targetAddress && functionSignature) {
+
+      if (isCustomProposal) {
+        // Custom proposal logic
+        targets = targetAddress ? [targetAddress] : [];
+        values = targetAddress ? [BigInt(0)] : [];
+        
+        if (targetAddress && functionSignature) {
+          const calldata = createCalldata();
+          if (calldata) {
+            calldatas = [calldata];
+          } else {
+            throw new Error("Failed to create calldata. Please check function signature and parameters.");
+          }
+        } else if (targetAddress) {
+          calldatas = ['0x'];
+        }
+      } else if (selectedTemplate) {
+        // Template-based proposal logic
+        const template = PROPOSAL_TEMPLATES.find(t => t.id === selectedTemplate);
+        if (!template) {
+          throw new Error("Invalid template selected.");
+        }
+
+        targets = [template.targetContract];
+        values = [BigInt(0)];
+        
         const calldata = createCalldata();
         if (calldata) {
           calldatas = [calldata];
         } else {
-          throw new Error("Failed to create calldata. Please check function signature and parameters.");
+          throw new Error("Failed to create calldata from template. Please check your parameter values.");
         }
-      } else if (targetAddress) {
-        // If only target address is provided but no function data, use empty calldata
-        calldatas = ['0x'];
       }
       
       // Combine title and description for the proposal
@@ -206,15 +429,18 @@ export default function CreateProposalPage() {
         setTransactionHash(tx.hash);
         
         // Show toast notification for transaction submitted
+        const explorerName = getExplorerName(chainId);
+        const explorerUrl = getExplorerUrl(chainId, tx.hash);
+        
         toast({
           title: "Transaction Submitted",
           description: "Your proposal transaction has been sent to the network.",
           action: (
             <ToastAction 
-              altText="View on BaseScan" 
-              onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}
+              altText={`View on ${explorerName}`} 
+              onClick={() => window.open(explorerUrl, '_blank')}
             >
-              View on BaseScan
+              View on {explorerName}
             </ToastAction>
           ),
         });
@@ -228,10 +454,10 @@ export default function CreateProposalPage() {
           description: "Your proposal has been submitted to the governance system",
           action: (
             <ToastAction 
-              altText="View on BaseScan" 
-              onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}
+              altText={`View on ${explorerName}`} 
+              onClick={() => window.open(explorerUrl, '_blank')}
             >
-              View on BaseScan
+              View on {explorerName}
             </ToastAction>
           ),
         });
@@ -310,49 +536,108 @@ export default function CreateProposalPage() {
             </div>
             
             <div className="space-y-4 border border-gray-600 rounded-md p-4 bg-gray-800/30">
-              <h3 className="text-sm font-medium text-gray-200">Contract Interaction (Optional)</h3>
+              <h3 className="text-sm font-medium text-gray-200">Governance Action</h3>
               <div className="space-y-2">
-                <Label htmlFor="target" className="text-gray-200">Target Contract Address</Label>
-                <Input 
-                  id="target" 
-                  placeholder="0x..." 
-                  value={targetAddress}
-                  onChange={(e) => setTargetAddress(e.target.value)}
-                  disabled={isSubmitting}
-                  className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
-                />
+                <Label htmlFor="template" className="text-gray-200">Select Proposal Type</Label>
+                <Select onValueChange={handleTemplateSelect} disabled={isSubmitting}>
+                  <SelectTrigger className="bg-gray-800/50 border-gray-600 text-gray-100 focus:border-gray-500 focus:ring-gray-500/20">
+                    <SelectValue placeholder="Choose a governance action..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-600">
+                    {PROPOSAL_TEMPLATES.map((template) => (
+                      <SelectItem key={template.id} value={template.id} className="text-gray-100 focus:bg-gray-700">
+                        <div className="flex items-center gap-2">
+                          {template.icon}
+                          <div>
+                            <div className="font-medium">{template.name}</div>
+                            <div className="text-sm text-gray-400">{template.description}</div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom" className="text-gray-100 focus:bg-gray-700">
+                      <div className="flex items-center gap-2">
+                        <Settings className="h-5 w-5" />
+                        <div>
+                          <div className="font-medium">Custom Proposal</div>
+                          <div className="text-sm text-gray-400">Advanced: Define your own contract interaction</div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="function" className="text-gray-200">Function Signature</Label>
-                <Input 
-                  id="function" 
-                  placeholder="e.g. setRewardAmount(uint256)" 
-                  value={functionSignature}
-                  onChange={(e) => setFunctionSignature(e.target.value)}
-                  disabled={isSubmitting}
-                  className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="params" className="text-gray-200">Function Parameters (comma separated)</Label>
-                <Input 
-                  id="params" 
-                  placeholder="e.g. 150000000" 
-                  value={functionParams}
-                  onChange={(e) => setFunctionParams(e.target.value)}
-                  disabled={isSubmitting}
-                  className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
-                />
-              </div>
+
+              {/* Template Parameters */}
+              {selectedTemplate && !isCustomProposal && (
+                <div className="space-y-3">
+                  {PROPOSAL_TEMPLATES.find(t => t.id === selectedTemplate)?.parameterLabels.map((label, index) => {
+                    const template = PROPOSAL_TEMPLATES.find(t => t.id === selectedTemplate)!;
+                    return (
+                      <div key={index} className="space-y-2">
+                        <Label htmlFor={`param-${index}`} className="text-gray-200">{label}</Label>
+                        <Input 
+                          id={`param-${index}`}
+                          placeholder={template.parameterPlaceholders[index]}
+                          value={templateParameters[index] || ''}
+                          onChange={(e) => updateTemplateParameter(index, e.target.value)}
+                          disabled={isSubmitting}
+                          className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
+                        />
+                        <p className="text-xs text-gray-400">{template.parameterDescriptions[index]}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Custom Proposal Fields */}
+              {isCustomProposal && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="target" className="text-gray-200">Target Contract Address</Label>
+                    <Input 
+                      id="target" 
+                      placeholder="0x..." 
+                      value={targetAddress}
+                      onChange={(e) => setTargetAddress(e.target.value)}
+                      disabled={isSubmitting}
+                      className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="function" className="text-gray-200">Function Signature</Label>
+                    <Input 
+                      id="function" 
+                      placeholder="e.g. setRewardAmount(uint256)" 
+                      value={functionSignature}
+                      onChange={(e) => setFunctionSignature(e.target.value)}
+                      disabled={isSubmitting}
+                      className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="params" className="text-gray-200">Function Parameters (comma separated)</Label>
+                    <Input 
+                      id="params" 
+                      placeholder="e.g. 150000000" 
+                      value={functionParams}
+                      onChange={(e) => setFunctionParams(e.target.value)}
+                      disabled={isSubmitting}
+                      className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
           <CardFooter>
             <Button 
               className="w-full" 
               onClick={handleCreateProposal}
-              disabled={isSubmitting || !title || !description}
+              disabled={isSubmitting || !title || !description || (!isCustomProposal && !selectedTemplate)}
             >
               {isSubmitting ? (
                 "Submitting..."

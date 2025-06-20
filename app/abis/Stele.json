@@ -58,6 +58,12 @@
           "internalType": "uint256",
           "name": "entryFee",
           "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "maxAssets",
+          "type": "uint8"
         }
       ],
       "name": "Create",
@@ -409,6 +415,11 @@
           "internalType": "uint256",
           "name": "entryFee",
           "type": "uint256"
+        },
+        {
+          "internalType": "uint8",
+          "name": "maxAssets",
+          "type": "uint8"
         }
       ],
       "stateMutability": "view",
@@ -565,19 +576,6 @@
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "joinChallengeBonus",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
       "inputs": [
         {
           "internalType": "enum ChallengeType",
@@ -633,19 +631,6 @@
       "name": "register",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "registerBonus",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -721,6 +706,19 @@
         }
       ],
       "name": "setEntryFee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint8",
+          "name": "_maxAssets",
+          "type": "uint8"
+        }
+      ],
+      "name": "setMaxAssets",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

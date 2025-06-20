@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { UserTokenInfo } from "@/app/hooks/useUserTokens"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
-import { STELE_CONTRACT_ADDRESS, BASE_CHAIN_ID, BASE_CHAIN_CONFIG } from "@/lib/constants"
+import { STELE_CONTRACT_ADDRESS, ETHEREUM_CHAIN_ID, ETHEREUM_CHAIN_CONFIG } from "@/lib/constants"
 import SteleABI from "@/app/abis/Stele.json"
 import { useParams } from "next/navigation"
 import { useInvestableTokensForSwap, getTokenAddressBySymbol, getTokenDecimalsBySymbol } from "@/app/hooks/useInvestableTokens"
@@ -122,15 +122,32 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
     
     try {
       let formattedBalance = 0;
+
+      // Smart balance detection
       if (rawBalance.includes('.')) {
-        // Already formatted
+        // Already formatted (contains decimal point)
         formattedBalance = parseFloat(rawBalance);
       } else {
-        // Raw amount, format it
-        formattedBalance = parseFloat(ethers.formatUnits(rawBalance, parseInt(userToken.decimals)));
+        // Check if this looks like a reasonable formatted balance or raw wei amount
+        const rawValue = parseFloat(rawBalance);
+        const decimals = parseInt(userToken.decimals);
+        
+        // For USDC (6 decimals), if raw value is reasonable (e.g., 100), 
+        // it's likely already formatted. Raw USDC would be much larger (e.g., 100000000)
+        if (fromToken === 'USDC' && rawValue < 1000000) {
+          // Likely already formatted USDC
+          formattedBalance = rawValue;
+        } else if (rawValue < Math.pow(10, decimals)) {
+          // Value is too small to be raw wei amount, likely already formatted
+          formattedBalance = rawValue;
+        } else {
+          // Raw amount, format it
+          formattedBalance = parseFloat(ethers.formatUnits(rawBalance, decimals));
+        }
       }
       
-      return parseFloat(fromAmount) > formattedBalance;
+      const exceedsBalance = parseFloat(fromAmount) > formattedBalance;      
+      return exceedsBalance;
     } catch (error) {
       console.error('Error checking balance:', error);
       return false;
@@ -172,7 +189,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
   }
 
   // Get available tokens
-  const availableFromTokens = userTokens.length > 0 ? userTokens.map(token => token.symbol) : (priceData?.tokens ? Object.keys(priceData.tokens) : ['ETH', 'USDC', 'USDT', 'WETH', 'BTC', 'cbBTC', 'WBTC']);
+  const availableFromTokens = userTokens.length > 0 ? userTokens.map(token => token.symbol) : (priceData?.tokens ? Object.keys(priceData.tokens) : ['ETH', 'USDC', 'USDT', 'WETH', 'WBTC']);
   const availableToTokens = investableTokens
     .map(token => token.symbol)
     .filter(symbol => symbol !== fromToken); // Filter out the selected fromToken
@@ -191,7 +208,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
     if (userTokens.length > 0) {
       const userToken = userTokens.find(token => token.symbol === tokenSymbol);
       if (userToken) {
-        return formatTokenAmount(userToken.amount, userToken.decimals);
+        return userToken.amount;
       }
     }
     return '0'; // Default balance if no user tokens
@@ -267,28 +284,35 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
       return;
     }
 
-    // Check if user has sufficient balance
-    const rawBalance = getFromTokenBalance(fromToken);
-    const userToken = userTokens.find(token => token.symbol === fromToken);
-    
-    // Safe format function for balance comparison
-    let formattedBalance = 0;
-    try {
-      if (rawBalance.includes('.')) {
-        // Already formatted
-        formattedBalance = parseFloat(rawBalance);
-      } else if (userToken) {
-        // Raw amount, format it
-        formattedBalance = parseFloat(ethers.formatUnits(rawBalance, parseInt(userToken.decimals)));
-      } else {
+    // Check if user has sufficient balance - use same logic as isAmountExceedsBalance
+    if (isAmountExceedsBalance()) {
+      const rawBalance = getFromTokenBalance(fromToken);
+      const userToken = userTokens.find(token => token.symbol === fromToken);
+      
+      let formattedBalance = 0;
+      try {
+        if (rawBalance.includes('.')) {
+          formattedBalance = parseFloat(rawBalance);
+        } else if (userToken) {
+          const rawValue = parseFloat(rawBalance);
+          const decimals = parseInt(userToken.decimals);
+          
+          // Use same smart detection logic
+          if (fromToken === 'USDC' && rawValue < 1000000) {
+            formattedBalance = rawValue;
+          } else if (rawValue < Math.pow(10, decimals)) {
+            formattedBalance = rawValue;
+          } else {
+            formattedBalance = parseFloat(ethers.formatUnits(rawBalance, decimals));
+          }
+        } else {
+          formattedBalance = parseFloat(rawBalance);
+        }
+      } catch (error) {
+        console.error('Error formatting balance for toast:', error);
         formattedBalance = parseFloat(rawBalance);
       }
-    } catch (error) {
-      console.error('Error formatting balance for comparison:', error);
-      formattedBalance = parseFloat(rawBalance);
-    }
-    
-    if (parseFloat(fromAmount) > formattedBalance) {
+      
       toast({
         variant: "destructive",
         title: "Insufficient Balance",
@@ -326,18 +350,18 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
         method: 'eth_chainId'
       });
 
-      if (chainId !== BASE_CHAIN_ID) {
-        // Switch to Base network
+      if (chainId !== ETHEREUM_CHAIN_ID) {
+        // Switch to Ethereum network
         try {
           await window.phantom.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: BASE_CHAIN_ID }],
+            params: [{ chainId: ETHEREUM_CHAIN_ID }],
           });
         } catch (switchError: any) {
           if (switchError.code === 4902) {
             await window.phantom.ethereum.request({
               method: 'wallet_addEthereumChain',
-              params: [BASE_CHAIN_CONFIG],
+              params: [ETHEREUM_CHAIN_CONFIG],
             });
           } else {
             throw switchError;
@@ -380,8 +404,8 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
         title: "Transaction Submitted",
         description: "Your swap transaction has been sent to the network.",
         action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-            View on BaseScan
+          <ToastAction altText="View on Etherscan" onClick={() => window.open(`https://etherscan.io/tx/${tx.hash}`, '_blank')}>
+            View on Etherscan
           </ToastAction>
         ),
       });
@@ -394,9 +418,9 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
           title: "Swap Successful",
           description: `Successfully swapped ${fromAmount} ${fromToken} for ${toToken}!`,
           action: (
-            <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${receipt.hash}`, '_blank')}>
-              View on BaseScan
-            </ToastAction>
+                      <ToastAction altText="View on Etherscan" onClick={() => window.open(`https://etherscan.io/tx/${receipt.hash}`, '_blank')}>
+            View on Etherscan
+          </ToastAction>
           ),
         });
 
@@ -556,7 +580,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                           setFromAmount(rawBalance);
                         } else {
                           // Raw amount, format it
-                          const formattedBalance = ethers.formatUnits(rawBalance, parseInt(userToken.decimals));
+                          const formattedBalance = rawBalance;
                           setFromAmount(formattedBalance);
                         }
                       } catch (error) {

@@ -17,8 +17,8 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { ethers } from "ethers"
 import { 
-  BASE_CHAIN_ID, 
-  BASE_CHAIN_CONFIG, 
+  ETHEREUM_CHAIN_ID, 
+  ETHEREUM_CHAIN_CONFIG, 
   STELE_CONTRACT_ADDRESS,
   USDC_DECIMALS
 } from "@/lib/constants"
@@ -191,7 +191,7 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        {walletNetwork === 'base' && entryFee && (
+        {walletNetwork === 'ethereum' && entryFee && (
           <div className="hidden md:flex items-center justify-center bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-medium">
             <DollarSign className="h-3 w-3 mr-1" />
             Entry Fee : {isLoadingEntryFee ? 'Loading...' : `${entryFee} USDC`}

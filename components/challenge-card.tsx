@@ -9,8 +9,8 @@ import { ethers } from "ethers"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import { 
-  BASE_CHAIN_ID, 
-  BASE_CHAIN_CONFIG, 
+  ETHEREUM_CHAIN_ID, 
+  ETHEREUM_CHAIN_CONFIG, 
   STELE_CONTRACT_ADDRESS
 } from "@/lib/constants"
 import SteleABI from "@/app/abis/Stele.json"
@@ -102,19 +102,19 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
         method: 'eth_chainId'
       });
 
-      if (chainId !== BASE_CHAIN_ID) { // Base Mainnet Chain ID
-        // Switch to Base network
+      if (chainId !== ETHEREUM_CHAIN_ID) { // Ethereum Mainnet Chain ID
+        // Switch to Ethereum network
         try {
           await window.phantom.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: BASE_CHAIN_ID }], // Base Mainnet
+            params: [{ chainId: ETHEREUM_CHAIN_ID }], // Ethereum Mainnet
           });
         } catch (switchError: any) {
           // This error code indicates that the chain has not been added to the wallet
           if (switchError.code === 4902) {
             await window.phantom.ethereum.request({
               method: 'wallet_addEthereumChain',
-              params: [BASE_CHAIN_CONFIG],
+              params: [ETHEREUM_CHAIN_CONFIG],
             });
           } else {
             throw switchError;
@@ -146,8 +146,8 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
         title: "Transaction Submitted",
         description: "Your challenge creation transaction has been sent to the network.",
         action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-            View on BaseScan
+          <ToastAction altText="View on Etherscan" onClick={() => window.open(`https://etherscan.io/tx/${tx.hash}`, '_blank')}>
+            View on Etherscan
           </ToastAction>
         ),
       });
@@ -160,8 +160,8 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
         title: "Challenge Created",
         description: `Your ${type} has been created successfully!`,
         action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-            View on BaseScan
+          <ToastAction altText="View on Etherscan" onClick={() => window.open(`https://etherscan.io/tx/${tx.hash}`, '_blank')}>
+            View on Etherscan
           </ToastAction>
         ),
       });
@@ -226,10 +226,10 @@ export function ChallengeCard({ title, type, participants, timeLeft, prize, prog
           // View Challenge button is always visible
           const showViewChallenge = true;
           
-          // Create Challenge button is shown when isCompleted is true or current time has passed endTime
+          // Create Challenge button is shown when challengeId is "0" (not created yet), isCompleted is true, or current time has passed endTime
           const currentTime = new Date();
           const endTimeDate = new Date(Number(endTime) * 1000);
-          const showCreateChallenge = isCompleted || currentTime > endTimeDate;
+          const showCreateChallenge = challengeId === "0" || !challengeId || isCompleted || currentTime > endTimeDate;
 
           // When both buttons are visible
           if (showViewChallenge && showCreateChallenge) {

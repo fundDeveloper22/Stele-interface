@@ -13,8 +13,8 @@ import { ethers } from "ethers"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import { 
-  BASE_CHAIN_ID, 
-  BASE_CHAIN_CONFIG, 
+  ETHEREUM_CHAIN_ID, 
+  ETHEREUM_CHAIN_CONFIG, 
   STELE_CONTRACT_ADDRESS
 } from "@/lib/constants"
 import SteleABI from "@/app/abis/Stele.json"
@@ -161,19 +161,19 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
         method: 'eth_chainId'
       });
 
-      if (chainId !== BASE_CHAIN_ID) {
-        // Switch to Base network
+      if (chainId !== ETHEREUM_CHAIN_ID) {
+        // Switch to Ethereum network
         try {
           await window.phantom.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: BASE_CHAIN_ID }],
+            params: [{ chainId: ETHEREUM_CHAIN_ID }],
           });
         } catch (switchError: any) {
           // This error code indicates that the chain has not been added to the wallet
           if (switchError.code === 4902) {
             await window.phantom.ethereum.request({
               method: 'wallet_addEthereumChain',
-              params: [BASE_CHAIN_CONFIG],
+              params: [ETHEREUM_CHAIN_CONFIG],
             });
           } else {
             throw switchError;
@@ -459,19 +459,19 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
         method: 'eth_chainId'
       });
 
-      if (chainId !== BASE_CHAIN_ID) {
-        // Switch to Base network
+      if (chainId !== ETHEREUM_CHAIN_ID) {
+        // Switch to Ethereum network
         try {
           await window.phantom.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: BASE_CHAIN_ID }],
+            params: [{ chainId: ETHEREUM_CHAIN_ID }],
           });
         } catch (switchError: any) {
           // This error code indicates that the chain has not been added to the wallet
           if (switchError.code === 4902) {
             await window.phantom.ethereum.request({
               method: 'wallet_addEthereumChain',
-              params: [BASE_CHAIN_CONFIG],
+              params: [ETHEREUM_CHAIN_CONFIG],
             });
           } else {
             throw switchError;
@@ -545,6 +545,11 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
       return false;
     }
     
+    // Enable button if challengeId is "0" (means challenge not created yet)
+    if (challenge.challengeId === "0" || !challenge.challengeId) {
+      return true;
+    }
+    
     // Don't enable button if endTime is "0" (means challenge not started/created yet)
     if (!challenge.endTime || challenge.endTime === "0") {
       return false;
@@ -559,12 +564,6 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-100">Active Challenges</h2>
-        {showCreateButton && (
-          <ChallengeTypeModal 
-            onCreateChallenge={handleCreateChallenge}
-            isCreating={isCreating}
-          />
-        )}
       </div>
 
       <Card className="bg-gray-900/50 border-gray-700/50">

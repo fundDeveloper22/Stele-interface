@@ -13,6 +13,7 @@ export const getChallengeQuery = (challengeId: string) => gql`{
     investorCounter
     seedMoney
     entryFee
+    maxAssets
     rewardAmountUSD
     isActive
     topUsers
@@ -30,6 +31,7 @@ export interface ChallengeData {
     investorCounter: string
     seedMoney: string
     entryFee: string
+    maxAssets: string
     rewardAmountUSD: string
     isActive: boolean
     topUsers: string[]

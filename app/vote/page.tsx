@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Check, Clock, XCircle, Plus, FileText, Vote as VoteIcon, Loader2 } from "lucide-react"
 import { useProposalsData, useActiveProposalsData, useMultipleProposalVoteResults, useProposalsByStatus } from "@/app/subgraph/Proposals"
 import { BASE_BLOCK_TIME_MS, STELE_DECIMALS, STELE_TOKEN_ADDRESS } from "@/lib/constants"
@@ -16,6 +17,7 @@ import { useWallet } from "@/app/hooks/useWallet"
 import ERC20VotesABI from "@/app/abis/ERC20Votes.json"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
+import { RPC_URL } from "@/lib/constants"
 
 // Interface for proposal data
 interface Proposal {
@@ -84,9 +86,7 @@ export default function VotePage() {
     
     setIsLoadingBlockInfo(true)
     try {
-      const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
-        ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
-        : 'https://mainnet.base.org'
+      const rpcUrl = RPC_URL
         
       const provider = new ethers.JsonRpcProvider(rpcUrl)
       const currentBlock = await provider.getBlock('latest')
@@ -107,13 +107,16 @@ export default function VotePage() {
 
   // Calculate timestamp for any block number based on current block info
   const calculateBlockTimestamp = (targetBlockNumber: string): number => {
-    if (!currentBlockInfo) return 0
+    if (!currentBlockInfo) {
+      console.warn('No current block info available for timestamp calculation')
+      return Date.now() / 1000 // Return current time as fallback
+    }
     
     const targetBlock = parseInt(targetBlockNumber)
     const blockDifference = targetBlock - currentBlockInfo.blockNumber
     
-    // Base mainnet has ~2 second block time
-    const BLOCK_TIME_SECONDS = 2
+    // Use different block times based on network (default to 12 seconds for Ethereum)
+    const BLOCK_TIME_SECONDS = 12 // Ethereum mainnet average
     const estimatedTimestamp = currentBlockInfo.timestamp + (blockDifference * BLOCK_TIME_SECONDS)
     return estimatedTimestamp
   }
@@ -171,16 +174,27 @@ export default function VotePage() {
     const abstain = voteResult ? parseFloat(ethers.formatUnits(voteResult.abstainVotes, STELE_DECIMALS)) : 0
     
     // Calculate timestamps based on current block info
-    const startTimestamp = calculateBlockTimestamp(proposalData.voteStart)
-    const endTimestamp = calculateBlockTimestamp(proposalData.voteEnd)
+    let startTimestamp: number
+    let endTimestamp: number
+    
+    // Try to use actual timestamp data if available, otherwise calculate from blocks
+    if (proposalData.startTimestamp && proposalData.endTimestamp) {
+      startTimestamp = parseInt(proposalData.startTimestamp)
+      endTimestamp = parseInt(proposalData.endTimestamp)
+    } else if (proposalData.voteStart && proposalData.voteEnd) {
+      startTimestamp = calculateBlockTimestamp(proposalData.voteStart)
+      endTimestamp = calculateBlockTimestamp(proposalData.voteEnd)
+    } else {
+      // Fallback to current time
+      const now = Date.now() / 1000
+      startTimestamp = now - 86400 // 1 day ago
+      endTimestamp = now + 86400 // 1 day from now
+    }
     
     // Determine status based on time and vote results
     let status: 'pending' | 'active' | 'pending_queue' | 'queued' | 'executed' | 'canceled' | 'defeated'
     if (forceStatus) {
       status = forceStatus
-    } else if (!currentBlockInfo) {
-      // Fallback if no block info available
-      status = 'pending'
     } else {
       const now = Date.now() / 1000 // Current time in seconds
       
@@ -572,12 +586,27 @@ export default function VotePage() {
     )
   }
   
-  // Format date in a readable way
+  // Format date in a readable way with time
   const formatDate = (date: Date) => {
+    // Check if date is valid
+    if (!date || isNaN(date.getTime())) {
+      return 'Invalid Date'
+    }
+    
+    // Check if date is too far in future (likely calculation error)
+    const now = new Date()
+    const oneYearFromNow = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)
+    
+    if (date > oneYearFromNow) {
+      return 'TBD (Calculation Error)'
+    }
+    
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     })
   }
 
@@ -647,12 +676,12 @@ export default function VotePage() {
         title: "Delegation Successful",
         description: "You have successfully delegated your tokens to yourself. Your voting power should now be available.",
         action: (
-          <ToastAction 
-            altText="View on BaseScan"
-            onClick={() => window.open(`https://basescan.org/tx/${receipt.hash}`, '_blank')}
-          >
-            View on BaseScan
-          </ToastAction>
+                      <ToastAction 
+              altText="View on Etherscan"
+              onClick={() => window.open(`https://etherscan.io/tx/${receipt.hash}`, '_blank')}
+            >
+              View on Etherscan
+            </ToastAction>
         ),
       })
 
@@ -871,53 +900,72 @@ export default function VotePage() {
             <br />
             🚫 Only canceled proposals are excluded from this view
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {activeProposals.length > 0 ? (
-              activeProposals.map((proposal) => (
-                <Card key={proposal.id} className="flex flex-col bg-gray-900/50 border-gray-700/50">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg text-gray-100">{proposal.title}</CardTitle>
-                      <StatusBadge proposal={proposal} />
-                    </div>
-                    <CardDescription className="line-clamp-2 text-gray-400">{proposal.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-grow">
-                    <ProgressBar 
-                      votesFor={proposal.votesFor} 
-                      votesAgainst={proposal.votesAgainst} 
-                      abstain={proposal.abstain}
-                    />
-                    <div className="mt-4 text-sm space-y-1 text-gray-300">
-                      <p>Proposer: {proposal.proposer}</p>
-                      <p>Vote Start: {formatDate(proposal.startTime)}</p>
-                      <p>Vote End: {formatDate(proposal.endTime)}</p>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    {isVotingActive(proposal) ? (
-                      <Link href={createProposalUrl(proposal)} className="w-full">
-                        <Button className="w-full">
-                          <VoteIcon className="mr-2 h-4 w-4" />
-                          Cast Vote
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Link href={createProposalUrl(proposal)} className="w-full">
-                        <Button variant="outline" className="w-full bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
-                          <FileText className="mr-2 h-4 w-4" />
-                          View Details
-                        </Button>
-                      </Link>
-                    )}
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-3 text-center py-12 text-gray-400">
-                No active proposals found.
-              </div>
-            )}
+          <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-gray-300">Title</TableHead>
+                  <TableHead className="text-gray-300">Progress</TableHead>
+                  <TableHead className="text-gray-300">Proposer</TableHead>
+                  <TableHead className="text-gray-300">Vote Start</TableHead>
+                  <TableHead className="text-gray-300">Vote End</TableHead>
+                  <TableHead className="text-gray-300 text-center">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activeProposals.length > 0 ? (
+                  activeProposals.map((proposal) => (
+                    <TableRow key={proposal.id} className="border-gray-700/50 hover:bg-gray-800/50">
+                      <TableCell className="max-w-xs">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
+                          <StatusBadge proposal={proposal} />
+                        </div>
+                      </TableCell>
+                      <TableCell className="min-w-48">
+                        <ProgressBar 
+                          votesFor={proposal.votesFor} 
+                          votesAgainst={proposal.votesAgainst} 
+                          abstain={proposal.abstain}
+                        />
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-300">
+                        <span className="font-mono">{proposal.proposer}</span>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-300">
+                        {formatDate(proposal.startTime)}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-300">
+                        {formatDate(proposal.endTime)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {isVotingActive(proposal) ? (
+                          <Link href={createProposalUrl(proposal)}>
+                            <Button size="sm">
+                              <VoteIcon className="mr-2 h-4 w-4" />
+                              Cast Vote
+                            </Button>
+                          </Link>
+                        ) : (
+                          <Link href={createProposalUrl(proposal)}>
+                            <Button variant="outline" size="sm" className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
+                              <FileText className="mr-2 h-4 w-4" />
+                              View Details
+                            </Button>
+                          </Link>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-gray-400">
+                      No active proposals found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </TabsContent>
 
@@ -927,44 +975,63 @@ export default function VotePage() {
             <br />
             📋 These proposals have passed voting and been fully implemented
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {completedProposals.length > 0 ? (
-              completedProposals.map((proposal) => (
-                <Card key={proposal.id} className="flex flex-col bg-gray-900/50 border-gray-700/50">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg text-gray-100">{proposal.title}</CardTitle>
-                      <StatusBadge proposal={proposal} />
-                    </div>
-                    <CardDescription className="line-clamp-2 text-gray-400">{proposal.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-grow">
-                    <ProgressBar 
-                      votesFor={proposal.votesFor} 
-                      votesAgainst={proposal.votesAgainst} 
-                      abstain={proposal.abstain}
-                    />
-                    <div className="mt-4 text-sm space-y-1 text-gray-300">
-                      <p>Proposer: {proposal.proposer}</p>
-                      <p>Vote Start: {formatDate(proposal.startTime)}</p>
-                      <p>Vote End: {formatDate(proposal.endTime)}</p>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Link href={createProposalUrl(proposal)} className="w-full">
-                      <Button variant="outline" className="w-full bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
-                        <FileText className="mr-2 h-4 w-4" />
-                        View Details
-                      </Button>
-                    </Link>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-3 text-center py-12 text-gray-400">
-                No completed proposals found.
-              </div>
-            )}
+          <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-gray-300">Title</TableHead>
+                  <TableHead className="text-gray-300">Progress</TableHead>
+                  <TableHead className="text-gray-300">Proposer</TableHead>
+                  <TableHead className="text-gray-300">Vote Start</TableHead>
+                  <TableHead className="text-gray-300">Vote End</TableHead>
+                  <TableHead className="text-gray-300 text-center">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {completedProposals.length > 0 ? (
+                  completedProposals.map((proposal) => (
+                    <TableRow key={proposal.id} className="border-gray-700/50 hover:bg-gray-800/50">
+                      <TableCell className="max-w-xs">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
+                          <StatusBadge proposal={proposal} />
+                        </div>
+                      </TableCell>
+                      <TableCell className="min-w-48">
+                        <ProgressBar 
+                          votesFor={proposal.votesFor} 
+                          votesAgainst={proposal.votesAgainst} 
+                          abstain={proposal.abstain}
+                        />
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-300">
+                        <span className="font-mono">{proposal.proposer}</span>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-300">
+                        {formatDate(proposal.startTime)}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-300">
+                        {formatDate(proposal.endTime)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Link href={createProposalUrl(proposal)}>
+                          <Button variant="outline" size="sm" className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
+                            <FileText className="mr-2 h-4 w-4" />
+                            View Details
+                          </Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-gray-400">
+                      No completed proposals found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </TabsContent>
 
@@ -974,53 +1041,72 @@ export default function VotePage() {
             <br />
             🎯 Status reflects actual governance state with time-based validation
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {proposals.length > 0 ? (
-              proposals.map((proposal) => (
-                <Card key={proposal.id} className="flex flex-col bg-gray-900/50 border-gray-700/50">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg text-gray-100">{proposal.title}</CardTitle>
-                      <StatusBadge proposal={proposal} />
-                    </div>
-                    <CardDescription className="line-clamp-2 text-gray-400">{proposal.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-grow">
-                    <ProgressBar 
-                      votesFor={proposal.votesFor} 
-                      votesAgainst={proposal.votesAgainst} 
-                      abstain={proposal.abstain}
-                    />
-                    <div className="mt-4 text-sm space-y-1 text-gray-300">
-                      <p>Proposer: {proposal.proposer}</p>
-                      <p>Vote Start: {formatDate(proposal.startTime)}</p>
-                      <p>Vote End: {formatDate(proposal.endTime)}</p>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    {isVotingActive(proposal) ? (
-                      <Link href={createProposalUrl(proposal)} className="w-full">
-                        <Button className="w-full">
-                          <VoteIcon className="mr-2 h-4 w-4" />
-                          Cast Vote
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Link href={createProposalUrl(proposal)} className="w-full">
-                        <Button variant="outline" className="w-full bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
-                          <FileText className="mr-2 h-4 w-4" />
-                          View Details
-                        </Button>
-                      </Link>
-                    )}
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-3 text-center py-12 text-gray-400">
-                No proposals found.
-              </div>
-            )}
+          <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-gray-300">Title</TableHead>
+                  <TableHead className="text-gray-300">Progress</TableHead>
+                  <TableHead className="text-gray-300">Proposer</TableHead>
+                  <TableHead className="text-gray-300">Vote Start</TableHead>
+                  <TableHead className="text-gray-300">Vote End</TableHead>
+                  <TableHead className="text-gray-300 text-center">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {proposals.length > 0 ? (
+                  proposals.map((proposal) => (
+                    <TableRow key={proposal.id} className="border-gray-700/50 hover:bg-gray-800/50">
+                      <TableCell className="max-w-xs">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
+                          <StatusBadge proposal={proposal} />
+                        </div>
+                      </TableCell>
+                      <TableCell className="min-w-48">
+                        <ProgressBar 
+                          votesFor={proposal.votesFor} 
+                          votesAgainst={proposal.votesAgainst} 
+                          abstain={proposal.abstain}
+                        />
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-300">
+                        <span className="font-mono">{proposal.proposer}</span>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-300">
+                        {formatDate(proposal.startTime)}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-300">
+                        {formatDate(proposal.endTime)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {isVotingActive(proposal) ? (
+                          <Link href={createProposalUrl(proposal)}>
+                            <Button size="sm">
+                              <VoteIcon className="mr-2 h-4 w-4" />
+                              Cast Vote
+                            </Button>
+                          </Link>
+                        ) : (
+                          <Link href={createProposalUrl(proposal)}>
+                            <Button variant="outline" size="sm" className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
+                              <FileText className="mr-2 h-4 w-4" />
+                              View Details
+                            </Button>
+                          </Link>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-gray-400">
+                      No proposals found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </TabsContent>
       </Tabs>

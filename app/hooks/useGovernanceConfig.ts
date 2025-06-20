@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { ethers } from 'ethers'
-import { GOVERNANCE_CONTRACT_ADDRESS } from '@/lib/constants'
+import { GOVERNANCE_CONTRACT_ADDRESS, RPC_URL } from '@/lib/constants'
 import GovernorABI from '@/app/abis/SteleGovernor.json'
 
 interface GovernanceConfig {
@@ -18,9 +18,7 @@ export const useGovernanceConfig = () => {
       // Add delay to prevent overwhelming RPC
       await new Promise(resolve => setTimeout(resolve, Math.random() * 1500 + 1000))
 
-      const rpcUrl = process.env.NEXT_PUBLIC_INFURA_API_KEY 
-        ? `https://base-mainnet.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
-        : 'https://mainnet.base.org'
+      const rpcUrl = RPC_URL
         
       const provider = new ethers.JsonRpcProvider(rpcUrl)
       const governanceContract = new ethers.Contract(GOVERNANCE_CONTRACT_ADDRESS, GovernorABI.abi, provider)

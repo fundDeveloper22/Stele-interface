@@ -39,8 +39,8 @@ import { ethers } from "ethers"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import { 
-  BASE_CHAIN_ID, 
-  BASE_CHAIN_CONFIG, 
+  ETHEREUM_CHAIN_ID, 
+  ETHEREUM_CHAIN_CONFIG, 
   STELE_CONTRACT_ADDRESS,
   USDC_DECIMALS
 } from "@/lib/constants"
@@ -127,23 +127,6 @@ export default function InvestorPage({ params }: InvestorPageProps) {
     } catch (error) {
       // Fallback: treat as already formatted number
       return parseFloat(value)
-    }
-  }
-
-  // Helper function to format token amounts for display
-  const formatTokenAmount = (rawAmount: string, decimals: string): string => {
-    try {
-      const formatted = ethers.formatUnits(rawAmount, parseInt(decimals))
-      const num = parseFloat(formatted)
-      
-      // Format for better readability without K/M abbreviations
-      if (num >= 1) {
-        return num.toFixed(4)
-      } else {
-        return num.toFixed(6)
-      }
-    } catch (error) {
-      return rawAmount // Fallback to raw amount if formatting fails
     }
   }
 
@@ -258,6 +241,41 @@ export default function InvestorPage({ params }: InvestorPageProps) {
 
   const timeRemaining = getTimeRemaining();
 
+  // Get appropriate explorer URL based on chain ID
+  const getExplorerUrl = (chainId: string, txHash: string) => {
+    switch (chainId) {
+      case '0x1': // Ethereum Mainnet
+        return `https://etherscan.io/tx/${txHash}`;
+      case '0x2105': // Base Mainnet
+        return `https://basescan.org/tx/${txHash}`;
+      case '0x89': // Polygon
+        return `https://polygonscan.com/tx/${txHash}`;
+      case '0xa': // Optimism
+        return `https://optimistic.etherscan.io/tx/${txHash}`;
+      case '0xa4b1': // Arbitrum One
+        return `https://arbiscan.io/tx/${txHash}`;
+      default:
+        return `https://etherscan.io/tx/${txHash}`; // Default to Ethereum
+    }
+  };
+
+  const getExplorerName = (chainId: string) => {
+    switch (chainId) {
+      case '0x1': // Ethereum Mainnet
+        return 'Etherscan';
+      case '0x2105': // Base Mainnet
+        return 'BaseScan';
+      case '0x89': // Polygon
+        return 'PolygonScan';
+      case '0xa': // Optimism
+        return 'Optimistic Etherscan';
+      case '0xa4b1': // Arbitrum One
+        return 'Arbiscan';
+      default:
+        return 'Block Explorer';
+    }
+  };
+
   // Handle Register function
   const handleRegister = async () => {
     setIsRegistering(true);
@@ -288,30 +306,15 @@ export default function InvestorPage({ params }: InvestorPageProps) {
         throw new Error(`Please connect with the correct wallet address: ${walletAddress}`);
       }
 
-      // Check if we are on Base network
+      // Get current network information
       const chainId = await window.phantom.ethereum.request({
         method: 'eth_chainId'
       });
 
-      if (chainId !== BASE_CHAIN_ID) {
-        // Switch to Base network
-        try {
-          await window.phantom.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: BASE_CHAIN_ID }],
-          });
-        } catch (switchError: any) {
-          // This error code indicates that the chain has not been added to the wallet
-          if (switchError.code === 4902) {
-            await window.phantom.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [BASE_CHAIN_CONFIG],
-            });
-          } else {
-            throw switchError;
-          }
-        }
-      }
+      console.log('Current network chain ID for registration:', chainId);
+      
+      // Use current network without switching
+      // No automatic network switching - use whatever network user is currently on
 
       // Create a Web3Provider using the Phantom ethereum provider
       const provider = new ethers.BrowserProvider(window.phantom.ethereum);
@@ -330,12 +333,15 @@ export default function InvestorPage({ params }: InvestorPageProps) {
       const tx = await steleContract.register(challengeId);
       
       // Show toast notification for transaction submitted
+      const registerExplorerName = getExplorerName(chainId);
+      const registerExplorerUrl = getExplorerUrl(chainId, tx.hash);
+      
       toast({
         title: "Registration Submitted",
         description: "Your investor registration transaction has been sent to the network.",
         action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-            View on BaseScan
+          <ToastAction altText={`View on ${registerExplorerName}`} onClick={() => window.open(registerExplorerUrl, '_blank')}>
+            View on {registerExplorerName}
           </ToastAction>
         ),
       });
@@ -348,8 +354,8 @@ export default function InvestorPage({ params }: InvestorPageProps) {
         title: "Registration Complete!",
         description: "Your investor information has been successfully registered!",
         action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-            View on BaseScan
+          <ToastAction altText={`View on ${registerExplorerName}`} onClick={() => window.open(registerExplorerUrl, '_blank')}>
+            View on {registerExplorerName}
           </ToastAction>
         ),
       });
@@ -475,7 +481,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-gray-100">{formatTokenAmount(token.amount, token.decimals)}</p>
+                        <p className="font-medium text-gray-100">{token.amount}</p>
                         <p className="text-sm text-gray-400">{token.symbol}</p>
                       </div>
                     </div>
@@ -571,10 +577,10 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                           <div className="text-right">
                             <p className="font-medium text-gray-100">{transaction.amount || '-'}</p>
                             <button
-                              onClick={() => window.open(`https://basescan.org/tx/${transaction.transactionHash}`, '_blank')}
+                              onClick={() => window.open(`https://etherscan.io/tx/${transaction.transactionHash}`, '_blank')}
                               className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                             >
-                              View on BaseScan
+                              View on Etherscan
                             </button>
                           </div>
                         </div>
