@@ -130,23 +130,6 @@ export default function InvestorPage({ params }: InvestorPageProps) {
     }
   }
 
-  // Helper function to format token amounts for display
-  const formatTokenAmount = (rawAmount: string, decimals: string): string => {
-    try {
-      const formatted = ethers.formatUnits(rawAmount, parseInt(decimals))
-      const num = parseFloat(formatted)
-      
-      // Format for better readability without K/M abbreviations
-      if (num >= 1) {
-        return num.toFixed(4)
-      } else {
-        return num.toFixed(6)
-      }
-    } catch (error) {
-      return rawAmount // Fallback to raw amount if formatting fails
-    }
-  }
-
   // Calculate portfolio metrics using the actual data structure
   // Format the raw currentUSD amount using USDC_DECIMALS
   const currentValue = formatUSDValue(investor.currentUSD)
@@ -498,7 +481,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-gray-100">{formatTokenAmount(token.amount, token.decimals)}</p>
+                        <p className="font-medium text-gray-100">{token.amount}</p>
                         <p className="text-sm text-gray-400">{token.symbol}</p>
                       </div>
                     </div>
