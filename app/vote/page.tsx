@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { Check, Clock, XCircle, Plus, FileText, Vote as VoteIcon, Loader2 } from "lucide-react"
-import { useProposalsData, useActiveProposalsData, useMultipleProposalVoteResults, useProposalsByStatus } from "@/app/subgraph/Proposals"
+import { useProposalsData, useActiveProposalsData, useMultipleProposalVoteResults, useProposalsByStatus, useProposalsByStatusPaginated, useProposalsCountByStatus } from "@/app/subgraph/Proposals"
 import { BASE_BLOCK_TIME_MS, STELE_DECIMALS, STELE_TOKEN_ADDRESS } from "@/lib/constants"
 import { ethers } from "ethers"
 import { useGovernanceConfig } from "@/app/hooks/useGovernanceConfig"
@@ -56,26 +57,6 @@ export default function VotePage() {
   // Get wallet token info with global caching
   const { data: walletTokenInfo, isLoading: isLoadingWalletTokenInfo, refetch: refetchWalletTokenInfo } = useWalletTokenInfo(walletAddress)
 
-  // Fetch all proposals from subgraph
-  const { data: proposalsData, isLoading, error, refetch } = useProposalsData()
-  // Fetch active proposals from subgraph with cached block number
-  const { data: activeProposalsData, isLoading: isLoadingActive, error: errorActive, refetch: refetchActive } = useActiveProposalsData(blockInfo?.blockNumber)
-  // Fetch actionable proposals for Active tab (PENDING, ACTIVE, QUEUED, EXECUTED)
-  const { data: actionableProposals, isLoading: isLoadingActionable, error: errorActionable, refetch: refetchActionable } = useProposalsByStatus(['PENDING', 'ACTIVE', 'QUEUED', 'EXECUTED'])
-  // Fetch completed proposals for Completed tab (EXECUTED only)
-  const { data: completedProposalsByStatus, isLoading: isLoadingCompletedByStatus, error: errorCompletedByStatus, refetch: refetchCompletedByStatus } = useProposalsByStatus(['EXECUTED'])
-  // Fetch all proposals for All Proposals tab (all valid statuses)
-  const { data: allProposalsByStatus, isLoading: isLoadingAllByStatus, error: errorAllByStatus, refetch: refetchAllByStatus } = useProposalsByStatus(['PENDING', 'ACTIVE', 'QUEUED', 'EXECUTED', 'CANCELED'])
-  
-  // Get all proposal IDs for fetching vote results
-  const allProposalIds = [
-    ...(proposalsData?.proposalCreateds?.map(p => p.proposalId) || []),
-    ...(activeProposalsData?.proposalCreateds?.map(p => p.proposalId) || [])
-  ].filter((id, index, self) => self.indexOf(id) === index) // Remove duplicates
-  
-  // Fetch vote results for all proposals
-  const { data: voteResultsData, isLoading: isLoadingVoteResults } = useMultipleProposalVoteResults(allProposalIds)
-  
   // State for current block info (for timestamp calculation)
   const [currentBlockInfo, setCurrentBlockInfo] = useState<{blockNumber: number, timestamp: number} | null>(null)
   const [isLoadingBlockInfo, setIsLoadingBlockInfo] = useState(false)
@@ -83,6 +64,41 @@ export default function VotePage() {
   // State for tracking recently created proposal
   const [recentlyCreatedProposal, setRecentlyCreatedProposal] = useState<any>(null)
   const [hasCheckedForNewProposal, setHasCheckedForNewProposal] = useState(false)
+  
+  // Pagination state for each tab
+  const [activeProposalsPage, setActiveProposalsPage] = useState(1)
+  const [completedProposalsPage, setCompletedProposalsPage] = useState(1)
+  const [allProposalsPage, setAllProposalsPage] = useState(1)
+  const [currentTab, setCurrentTab] = useState("active")
+  const ITEMS_PER_PAGE = 10
+
+  // Fetch paginated proposals from subgraph
+  const { data: actionableProposals, isLoading: isLoadingActionable, error: errorActionable, refetch: refetchActionable } = useProposalsByStatusPaginated(['PENDING', 'ACTIVE', 'QUEUED', 'EXECUTED'], activeProposalsPage, ITEMS_PER_PAGE)
+  const { data: completedProposalsByStatus, isLoading: isLoadingCompletedByStatus, error: errorCompletedByStatus, refetch: refetchCompletedByStatus } = useProposalsByStatusPaginated(['EXECUTED'], completedProposalsPage, ITEMS_PER_PAGE)
+  const { data: allProposalsByStatus, isLoading: isLoadingAllByStatus, error: errorAllByStatus, refetch: refetchAllByStatus } = useProposalsByStatusPaginated(['PENDING', 'ACTIVE', 'QUEUED', 'EXECUTED', 'CANCELED'], allProposalsPage, ITEMS_PER_PAGE)
+  
+  // Fetch total counts for pagination
+  const { data: actionableCount } = useProposalsCountByStatus(['PENDING', 'ACTIVE', 'QUEUED', 'EXECUTED'])
+  const { data: completedCount } = useProposalsCountByStatus(['EXECUTED'])
+  const { data: allCount } = useProposalsCountByStatus(['PENDING', 'ACTIVE', 'QUEUED', 'EXECUTED', 'CANCELED'])
+  
+  // Get all proposal IDs for fetching vote results (from paginated data)
+  const allProposalIds = [
+    ...(actionableProposals?.proposals?.map(p => p.proposalId) || []),
+    ...(completedProposalsByStatus?.proposals?.map(p => p.proposalId) || []),
+    ...(allProposalsByStatus?.proposals?.map(p => p.proposalId) || [])
+  ].filter((id, index, self) => self.indexOf(id) === index) // Remove duplicates
+  
+  // Fetch vote results for all proposals
+  const { data: voteResultsData, isLoading: isLoadingVoteResults } = useMultipleProposalVoteResults(allProposalIds)
+
+  // Reset page to 1 when tab changes
+  const handleTabChange = (tab: string) => {
+    setCurrentTab(tab)
+    if (tab === "active") setActiveProposalsPage(1)
+    if (tab === "completed") setCompletedProposalsPage(1)
+    if (tab === "all") setAllProposalsPage(1)
+  }
 
   // Get current block info from RPC (called only once)
   const getCurrentBlockInfo = async () => {
@@ -158,9 +174,8 @@ export default function VotePage() {
     const checkForNewProposal = () => {
       // Check in all proposal data sources
       const allProposalSources = [
-        proposalsData?.proposalCreateds || [],
-        activeProposalsData?.proposalCreateds || [],
         actionableProposals?.proposals || [],
+        completedProposalsByStatus?.proposals || [],
         allProposalsByStatus?.proposals || []
       ];
 
@@ -189,7 +204,7 @@ export default function VotePage() {
     };
 
     // Start checking after proposal data is loaded
-    if (proposalsData || activeProposalsData || actionableProposals || allProposalsByStatus) {
+    if (actionableProposals || completedProposalsByStatus || allProposalsByStatus) {
       checkForNewProposal();
       
       // If not found immediately, check every 30 seconds for up to 5 minutes
@@ -210,7 +225,7 @@ export default function VotePage() {
 
       return () => clearInterval(checkInterval);
     }
-  }, [recentlyCreatedProposal, hasCheckedForNewProposal, proposalsData, activeProposalsData, actionableProposals, allProposalsByStatus]);
+  }, [recentlyCreatedProposal, hasCheckedForNewProposal, actionableProposals, completedProposalsByStatus, allProposalsByStatus]);
 
   // Enhanced refetch when recently created proposal exists
   useEffect(() => {
@@ -218,15 +233,13 @@ export default function VotePage() {
 
     const interval = setInterval(() => {
       // Refetch all proposal data
-      refetch();
-      refetchActive();
       refetchActionable();
       refetchAllByStatus();
       refetchCompletedByStatus();
     }, 15000); // Refetch every 15 seconds
 
     return () => clearInterval(interval);
-  }, [recentlyCreatedProposal, refetch, refetchActive, refetchActionable, refetchAllByStatus, refetchCompletedByStatus]);
+  }, [recentlyCreatedProposal, refetchActionable, refetchAllByStatus, refetchCompletedByStatus]);
 
   // Parse proposal details from description
   const parseProposalDetails = (description: string) => {
@@ -484,30 +497,18 @@ export default function VotePage() {
     }
   }
 
-  // Process all proposals data using useMemo
+  // Process all proposals data using useMemo (use paginated data)
   const processedProposals = useMemo(() => {
-    // Use status-based data if available, otherwise fall back to original data
     if (allProposalsByStatus?.proposals && allProposalsByStatus.proposals.length > 0) {
-      const processed = allProposalsByStatus.proposals
-        .map((proposal: any) => processStatusBasedProposalData(proposal))
-        .sort((a: any, b: any) => b.startTime.getTime() - a.startTime.getTime())
-      
-      return processed
+      return allProposalsByStatus.proposals.map((proposal: any) => processStatusBasedProposalData(proposal))
     }
-    
-    // Fallback to original data processing (with time-based status estimation)
-    if (!proposalsData?.proposalCreateds || !currentBlockInfo) return []
-    
-    return proposalsData.proposalCreateds
-      .map((proposal) => processProposalData(proposal))
-      .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
-  }, [allProposalsByStatus?.proposals, proposalsData?.proposalCreateds, voteResultsData?.proposalVoteResults, currentBlockInfo])
+    return []
+  }, [allProposalsByStatus?.proposals, voteResultsData?.proposalVoteResults])
 
-  // Process active proposals data using useMemo (prioritize status-based data if available)
+  // Process active proposals data using useMemo (use paginated data)
   const processedActiveProposals = useMemo(() => {
-    // Use actionable proposals data if available, otherwise fall back to original data
     if (actionableProposals?.proposals && actionableProposals.proposals.length > 0) {
-      const processed = actionableProposals.proposals
+      return actionableProposals.proposals
         .map((proposal: any) => processStatusBasedProposalData(proposal))
         .filter((proposal: any) => {
           // Show actionable proposals and defeated proposals (so users can see vote results)
@@ -515,40 +516,19 @@ export default function VotePage() {
           const visibleStatuses = ['pending', 'active', 'pending_queue', 'queued', 'executed', 'defeated']
           return visibleStatuses.includes(proposal.status)
         })
-        .sort((a: any, b: any) => b.startTime.getTime() - a.startTime.getTime())
-      
-      return processed
     }
-    
-    // Fallback to original data processing
-    if (!activeProposalsData?.proposalCreateds || !currentBlockInfo) return []
-    
-    return activeProposalsData.proposalCreateds
-      .map((proposal) => processProposalData(proposal))
-      .filter((proposal: any) => {
-        // Show actionable proposals and defeated proposals (so users can see vote results)
-        // Only exclude canceled proposals
-        const visibleStatuses = ['pending', 'active', 'pending_queue', 'queued', 'executed', 'defeated']
-        return visibleStatuses.includes(proposal.status)
-      })
-      .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())
-  }, [actionableProposals?.proposals, activeProposalsData?.proposalCreateds, voteResultsData?.proposalVoteResults, currentBlockInfo])
+    return []
+  }, [actionableProposals?.proposals, voteResultsData?.proposalVoteResults])
 
-  // Process completed proposals data using useMemo
+  // Process completed proposals data using useMemo (use paginated data)
   const processedCompletedProposals = useMemo(() => {
-    // Only use status-based data that contains actual EXECUTED proposals from subgraph
     if (completedProposalsByStatus?.proposals && completedProposalsByStatus.proposals.length > 0) {
-      const processed = completedProposalsByStatus.proposals
+      return completedProposalsByStatus.proposals
         .map((proposal: any) => processStatusBasedProposalData(proposal))
         .filter((proposal: any) => proposal.status === 'executed') // Only show executed proposals
-        .sort((a: any, b: any) => b.startTime.getTime() - a.startTime.getTime())
-      
-      return processed
     }
-    
-    // No fallback - only show proposals that are actually EXECUTED in subgraph
     return []
-  }, [completedProposalsByStatus?.proposals, currentBlockInfo])
+  }, [completedProposalsByStatus?.proposals, voteResultsData?.proposalVoteResults])
 
   // Update state when processed data changes
   useEffect(() => {
@@ -657,12 +637,12 @@ export default function VotePage() {
     // Avoid division by zero
     if (total === 0) {
       return (
-        <div className="w-full mt-2">
+        <div className="w-48 mt-2">
           <div className="flex w-full h-2 bg-gray-200 rounded-full overflow-hidden"></div>
           <div className="flex justify-between text-xs mt-1">
-            <span className="text-green-600">0% For</span>
-            <span className="text-red-600">0% Against</span>
-            <span className="text-gray-500">0% Abstain</span>
+            <span className="text-green-600">0%</span>
+            <span className="text-red-600">0%</span>
+            <span className="text-gray-500">0%</span>
           </div>
         </div>
       )
@@ -673,16 +653,16 @@ export default function VotePage() {
     const abstainPercentage = (abstain / total) * 100
 
     return (
-      <div className="w-full mt-2">
+      <div className="w-48 mt-2">
         <div className="flex w-full h-2 bg-gray-200 rounded-full overflow-hidden">
           <div className="bg-green-500" style={{ width: `${forPercentage}%` }}></div>
           <div className="bg-red-500" style={{ width: `${againstPercentage}%` }}></div>
           <div className="bg-gray-400" style={{ width: `${abstainPercentage}%` }}></div>
         </div>
         <div className="flex justify-between text-xs mt-1">
-          <span className="text-green-600">{Math.round(forPercentage)}% For</span>
-          <span className="text-red-600">{Math.round(againstPercentage)}% Against</span>
-          <span className="text-gray-500">{Math.round(abstainPercentage)}% Abstain</span>
+          <span className="text-green-600">{Math.round(forPercentage)}%</span>
+          <span className="text-red-600">{Math.round(againstPercentage)}%</span>
+          <span className="text-gray-500">{Math.round(abstainPercentage)}%</span>
         </div>
       </div>
     )
@@ -816,7 +796,97 @@ export default function VotePage() {
     }
   }
 
-  if (isLoading || isLoadingActive || isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus || isLoadingVoteResults || isLoadingBlockNumber || isLoadingGovernanceConfig || isLoadingWalletTokenInfo) {
+  // Pagination helper functions
+  const getPaginatedData = (data: Proposal[], page: number) => {
+    const startIndex = (page - 1) * ITEMS_PER_PAGE
+    const endIndex = startIndex + ITEMS_PER_PAGE
+    return data.slice(startIndex, endIndex)
+  }
+
+  const getTotalPages = (dataLength: number) => {
+    return Math.ceil(dataLength / ITEMS_PER_PAGE)
+  }
+
+  const generatePageNumbers = (currentPage: number, totalPages: number) => {
+    const pages = []
+    const maxVisiblePages = 5
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      const startPage = Math.max(1, currentPage - 2)
+      const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
+      
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i)
+      }
+    }
+    
+    return pages
+  }
+
+  // Use paginated data directly from server (no client-side pagination needed)
+  const paginatedActiveProposals = activeProposals
+  const paginatedCompletedProposals = completedProposals
+  const paginatedAllProposals = proposals
+
+  // Total pages based on server count data
+  const totalActivePages = getTotalPages(actionableCount?.proposals?.length || 0)
+  const totalCompletedPages = getTotalPages(completedCount?.proposals?.length || 0)
+  const totalAllPages = getTotalPages(allCount?.proposals?.length || 0)
+
+  // Pagination component
+  const PaginationComponent = ({ 
+    currentPage, 
+    totalPages, 
+    onPageChange 
+  }: { 
+    currentPage: number
+    totalPages: number
+    onPageChange: (page: number) => void 
+  }) => {
+    if (totalPages <= 1) return null
+
+    const pageNumbers = generatePageNumbers(currentPage, totalPages)
+
+    return (
+      <div className="flex justify-center mt-6">
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious 
+                onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-gray-800"}
+              />
+            </PaginationItem>
+            
+            {pageNumbers.map((page) => (
+              <PaginationItem key={page}>
+                <PaginationLink
+                  onClick={() => onPageChange(page)}
+                  isActive={currentPage === page}
+                  className="cursor-pointer hover:bg-gray-800"
+                >
+                  {page}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            
+            <PaginationItem>
+              <PaginationNext 
+                onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+                className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-gray-800"}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
+    )
+  }
+
+  if (isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus || isLoadingVoteResults || isLoadingBlockNumber || isLoadingGovernanceConfig || isLoadingWalletTokenInfo) {
     return (
       <div className="container mx-auto py-6 flex flex-col items-center justify-center min-h-[50vh]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
@@ -830,17 +900,15 @@ export default function VotePage() {
     )
   }
 
-  if ((error || errorActive || errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError) && proposals.length === 0 && activeProposals.length === 0 && completedProposals.length === 0) {
+  if ((errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError) && proposals.length === 0 && activeProposals.length === 0 && completedProposals.length === 0) {
     return (
       <div className="container mx-auto py-6">
         <div className="bg-red-900/20 border border-red-700/50 text-red-400 px-4 py-3 rounded-md">
           <p className="font-medium">Error loading data</p>
-          <p className="text-sm">{error?.message || 'Failed to load data'}</p>
+          <p className="text-sm">{errorActionable?.message || errorCompletedByStatus?.message || errorAllByStatus?.message || 'Failed to load data'}</p>
         </div>
         <div className="mt-4">
           <Button variant="outline" onClick={() => {
-            refetch()
-            refetchActive()
             refetchActionable()
             refetchCompletedByStatus()
             refetchAllByStatus()
@@ -856,12 +924,10 @@ export default function VotePage() {
         <h1 className="text-2xl font-bold text-gray-100">Governance</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => {
-            refetch()
-            refetchActive()
             refetchActionable()
             refetchCompletedByStatus()
             refetchAllByStatus()
-          }} disabled={isLoading || isLoadingActive || isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus} className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
+          }} disabled={isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus} className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
             <Clock className="mr-2 h-4 w-4" />
             Refresh
           </Button>
@@ -976,10 +1042,10 @@ export default function VotePage() {
         </Card>
       )}
 
-      {(error || errorActive || errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError) && (
+      {(errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError) && (
         <div className="bg-amber-900/20 border border-amber-700/50 text-amber-400 px-4 py-3 rounded-md mb-6">
           <p>Warning: {(() => {
-            const displayError = error || errorActive || errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError
+            const displayError = errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError
             return typeof displayError === 'string' ? displayError : displayError?.message || 'Failed to load data'
           })()}</p>
           <p className="text-sm">
@@ -989,7 +1055,7 @@ export default function VotePage() {
         </div>
       )}
 
-      <Tabs defaultValue="active" className="w-full">
+      <Tabs defaultValue="active" value={currentTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="active">Active</TabsTrigger>
           <TabsTrigger value="completed">Completed</TabsTrigger>
@@ -998,9 +1064,14 @@ export default function VotePage() {
 
         <TabsContent value="active" className="mt-4">
           <div className="mb-4 text-sm text-gray-400">
-            📋 Active and recent proposals: ⏳ PENDING • 🗳️ VOTING • ⏳ PENDING QUEUE • 🔄 QUEUED • ✨ EXECUTED • ❌ DEFEATED
+            📋 Active and recent proposals ({actionableCount?.proposals?.length || 0} total): ⏳ PENDING • 🗳️ VOTING • ⏳ PENDING QUEUE • 🔄 QUEUED • ✨ EXECUTED • ❌ DEFEATED
             <br />
             🚫 Only canceled proposals are excluded from this view
+            {(actionableCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
+              <span className="block mt-1">
+                Showing {((activeProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(activeProposalsPage * ITEMS_PER_PAGE, actionableCount?.proposals?.length || 0)} of {actionableCount?.proposals?.length || 0} proposals
+              </span>
+            )}
           </div>
           <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
             <Table>
@@ -1015,8 +1086,8 @@ export default function VotePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {activeProposals.length > 0 ? (
-                  activeProposals.map((proposal) => (
+                {paginatedActiveProposals.length > 0 ? (
+                  paginatedActiveProposals.map((proposal) => (
                     <TableRow 
                       key={proposal.id} 
                       className="border-gray-700/50 hover:bg-gray-800/50 cursor-pointer"
@@ -1027,7 +1098,7 @@ export default function VotePage() {
                           <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
                         </div>
                       </TableCell>
-                      <TableCell className="min-w-48">
+                      <TableCell className="min-w-52">
                         <ProgressBar 
                           votesFor={proposal.votesFor} 
                           votesAgainst={proposal.votesAgainst} 
@@ -1058,13 +1129,23 @@ export default function VotePage() {
               </TableBody>
             </Table>
           </div>
+          <PaginationComponent 
+            currentPage={activeProposalsPage}
+            totalPages={totalActivePages}
+            onPageChange={setActiveProposalsPage}
+          />
         </TabsContent>
 
         <TabsContent value="completed" className="mt-4">
           <div className="mb-4 text-sm text-gray-400">
-            ✨ Successfully executed proposals only
+            ✨ Successfully executed proposals only ({completedCount?.proposals?.length || 0} total)
             <br />
             📋 These proposals have passed voting and been fully implemented
+            {(completedCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
+              <span className="block mt-1">
+                Showing {((completedProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(completedProposalsPage * ITEMS_PER_PAGE, completedCount?.proposals?.length || 0)} of {completedCount?.proposals?.length || 0} proposals
+              </span>
+            )}
           </div>
           <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
             <Table>
@@ -1079,8 +1160,8 @@ export default function VotePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {completedProposals.length > 0 ? (
-                  completedProposals.map((proposal) => (
+                {paginatedCompletedProposals.length > 0 ? (
+                  paginatedCompletedProposals.map((proposal) => (
                     <TableRow 
                       key={proposal.id} 
                       className="border-gray-700/50 hover:bg-gray-800/50 cursor-pointer"
@@ -1091,7 +1172,7 @@ export default function VotePage() {
                           <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
                         </div>
                       </TableCell>
-                      <TableCell className="min-w-48">
+                      <TableCell className="min-w-52">
                         <ProgressBar 
                           votesFor={proposal.votesFor} 
                           votesAgainst={proposal.votesAgainst} 
@@ -1122,13 +1203,23 @@ export default function VotePage() {
               </TableBody>
             </Table>
           </div>
+          <PaginationComponent 
+            currentPage={completedProposalsPage}
+            totalPages={totalCompletedPages}
+            onPageChange={setCompletedProposalsPage}
+          />
         </TabsContent>
 
         <TabsContent value="all" className="mt-4">
           <div className="mb-4 text-sm text-gray-400">
-            📋 All proposals with accurate statuses: ⏳ PENDING • 🗳️ ACTIVE • ⏳ PENDING QUEUE • 🔄 QUEUED • ✨ EXECUTED • ❌ DEFEATED • 🚫 CANCELED
+            📋 All proposals with accurate statuses ({allCount?.proposals?.length || 0} total): ⏳ PENDING • 🗳️ ACTIVE • ⏳ PENDING QUEUE • 🔄 QUEUED • ✨ EXECUTED • ❌ DEFEATED • 🚫 CANCELED
             <br />
             🎯 Status reflects actual governance state with time-based validation
+            {(allCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
+              <span className="block mt-1">
+                Showing {((allProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(allProposalsPage * ITEMS_PER_PAGE, allCount?.proposals?.length || 0)} of {allCount?.proposals?.length || 0} proposals
+              </span>
+            )}
           </div>
           <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
             <Table>
@@ -1143,8 +1234,8 @@ export default function VotePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {proposals.length > 0 ? (
-                  proposals.map((proposal) => (
+                {paginatedAllProposals.length > 0 ? (
+                  paginatedAllProposals.map((proposal) => (
                     <TableRow 
                       key={proposal.id} 
                       className="border-gray-700/50 hover:bg-gray-800/50 cursor-pointer"
@@ -1155,7 +1246,7 @@ export default function VotePage() {
                           <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
                         </div>
                       </TableCell>
-                      <TableCell className="min-w-48">
+                      <TableCell className="min-w-52">
                         <ProgressBar 
                           votesFor={proposal.votesFor} 
                           votesAgainst={proposal.votesAgainst} 
@@ -1186,6 +1277,11 @@ export default function VotePage() {
               </TableBody>
             </Table>
           </div>
+          <PaginationComponent 
+            currentPage={allProposalsPage}
+            totalPages={totalAllPages}
+            onPageChange={setAllProposalsPage}
+          />
         </TabsContent>
       </Tabs>
     </div>
