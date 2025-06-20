@@ -118,10 +118,6 @@ export default function VotePage() {
     // Use different block times based on network (default to 12 seconds for Ethereum)
     const BLOCK_TIME_SECONDS = 12 // Ethereum mainnet average
     const estimatedTimestamp = currentBlockInfo.timestamp + (blockDifference * BLOCK_TIME_SECONDS)
-    
-    // Log for debugging
-    console.log(`Block calculation: current=${currentBlockInfo.blockNumber}, target=${targetBlock}, diff=${blockDifference}, estimated=${new Date(estimatedTimestamp * 1000)}`)
-    
     return estimatedTimestamp
   }
 
@@ -185,17 +181,14 @@ export default function VotePage() {
     if (proposalData.startTimestamp && proposalData.endTimestamp) {
       startTimestamp = parseInt(proposalData.startTimestamp)
       endTimestamp = parseInt(proposalData.endTimestamp)
-      console.log('Using actual timestamps from proposal data')
     } else if (proposalData.voteStart && proposalData.voteEnd) {
       startTimestamp = calculateBlockTimestamp(proposalData.voteStart)
       endTimestamp = calculateBlockTimestamp(proposalData.voteEnd)
-      console.log('Calculated timestamps from block numbers')
     } else {
       // Fallback to current time
       const now = Date.now() / 1000
       startTimestamp = now - 86400 // 1 day ago
       endTimestamp = now + 86400 // 1 day from now
-      console.warn('Using fallback timestamps')
     }
     
     // Determine status based on time and vote results
