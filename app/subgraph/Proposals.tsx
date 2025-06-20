@@ -334,6 +334,115 @@ export function useProposalsByStatus(
   })
 }
 
+// Paginated version of proposals by status
+export const getProposalsByStatusPaginatedQuery = () => gql`
+  query GetProposalsByStatusPaginated($statuses: [ProposalStatus!]!, $first: Int!, $skip: Int!) {
+    proposals(
+      where: { status_in: $statuses }
+      orderBy: createdAt
+      orderDirection: desc
+      first: $first
+      skip: $skip
+    ) {
+      id
+      proposalId
+      description
+      proposer
+      status
+      createdAt
+      queuedAt
+      executedAt
+      voteStart
+      voteEnd
+      values
+      voteResult {
+        forVotes
+        againstVotes
+        abstainVotes
+        totalVotes
+        forPercentage
+        againstPercentage
+        abstainPercentage
+      }
+    }
+  }
+`
+
+// Hook for paginated proposals by status
+export function useProposalsByStatusPaginated(
+  statuses: string[] = ['ACTIVE'],
+  page: number = 1,
+  pageSize: number = 10
+) {
+  const skip = (page - 1) * pageSize
+  
+  return useQuery<ProposalsByStatusResponse>({
+    queryKey: ['proposalsByStatusPaginated', statuses, page, pageSize],
+    queryFn: async () => {
+      const variables = {
+        statuses,
+        first: pageSize,
+        skip: skip
+      }
+      
+      // Add delay to prevent overwhelming requests
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200))
+      
+      const result = await request(
+        SUBGRAPH_URL, 
+        getProposalsByStatusPaginatedQuery(),
+        variables,
+        headers
+      ) as ProposalsByStatusResponse
+      
+      return result
+    },
+    refetchInterval: 60 * 1000, // Refetch every 1 minute
+    staleTime: 30 * 1000, // 30 seconds
+    retry: 1,
+  })
+}
+
+// Query to get total count of proposals by status
+export const getProposalsCountByStatusQuery = () => gql`
+  query GetProposalsCountByStatus($statuses: [ProposalStatus!]!) {
+    proposals(
+      where: { status_in: $statuses }
+    ) {
+      id
+    }
+  }
+`
+
+export interface ProposalsCountResponse {
+  proposals: Array<{ id: string }>
+}
+
+// Hook to get total count of proposals by status
+export function useProposalsCountByStatus(statuses: string[] = ['ACTIVE']) {
+  return useQuery<ProposalsCountResponse>({
+    queryKey: ['proposalsCountByStatus', statuses],
+    queryFn: async () => {
+      const variables = { statuses }
+      
+      // Add delay to prevent overwhelming requests
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 300 + 100))
+      
+      const result = await request(
+        SUBGRAPH_URL, 
+        getProposalsCountByStatusQuery(),
+        variables,
+        headers
+      ) as ProposalsCountResponse
+      
+      return result
+    },
+    refetchInterval: 2 * 60 * 1000, // Refetch every 2 minutes (less frequent)
+    staleTime: 60 * 1000, // 1 minute
+    retry: 1,
+  })
+}
+
 // New hook for proposal details
 export function useProposalDetails(proposalId: string) {
   return useQuery<ProposalDetailsResponse>({
