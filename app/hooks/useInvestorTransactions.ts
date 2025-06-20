@@ -36,7 +36,9 @@ const GET_INVESTOR_TRANSACTIONS_QUERY = `
       challengeId
       user
       fromAsset
+      fromAssetSymbol
       toAsset
+      toAssetSymbol
       fromAmount
       fromPriceUSD
       toPriceUSD
@@ -104,7 +106,9 @@ interface GraphQLResponse {
     challengeId: string
     user: string
     fromAsset: string
+    fromAssetSymbol: string
     toAsset: string
+    toAssetSymbol: string
     fromAmount: string
     fromPriceUSD: string
     toPriceUSD: string
@@ -168,17 +172,9 @@ export function useInvestorTransactions(challengeId: string, walletAddress: stri
         // Process swaps
         if (data.swaps && Array.isArray(data.swaps)) {
           data.swaps.forEach((swap) => {
-            // Get token symbols from addresses (simplified)
-            const getTokenSymbol = (address: string) => {
-              const addr = address.toLowerCase()
-              if (addr.includes('usdc') || addr === '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913') return 'USDC'
-              if (addr.includes('eth') || addr === '0x4200000000000000000000000000000000000006') return 'ETH'
-              if (addr.includes('dai')) return 'DAI'
-              return `${address.slice(0, 6)}...${address.slice(-4)}`
-            }
-
-            const fromSymbol = getTokenSymbol(swap.fromAsset)
-            const toSymbol = getTokenSymbol(swap.toAsset)
+            // Use symbol data from subgraph directly, fallback to address parsing if needed
+            const fromSymbol = swap.fromAssetSymbol || swap.fromAsset.slice(0, 6) + '...' + swap.fromAsset.slice(-4)
+            const toSymbol = swap.toAssetSymbol || swap.toAsset.slice(0, 6) + '...' + swap.toAsset.slice(-4)
 
             allTransactions.push({
               type: 'swap',
