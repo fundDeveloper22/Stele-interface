@@ -909,17 +909,20 @@ export default function VotePage() {
                   <TableHead className="text-gray-300">Proposer</TableHead>
                   <TableHead className="text-gray-300">Vote Start</TableHead>
                   <TableHead className="text-gray-300">Vote End</TableHead>
-                  <TableHead className="text-gray-300 text-center">Action</TableHead>
+                  <TableHead className="text-gray-300 text-center">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {activeProposals.length > 0 ? (
                   activeProposals.map((proposal) => (
-                    <TableRow key={proposal.id} className="border-gray-700/50 hover:bg-gray-800/50">
+                    <TableRow 
+                      key={proposal.id} 
+                      className="border-gray-700/50 hover:bg-gray-800/50 cursor-pointer"
+                      onClick={() => window.location.href = createProposalUrl(proposal)}
+                    >
                       <TableCell className="max-w-xs">
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
-                          <StatusBadge proposal={proposal} />
                         </div>
                       </TableCell>
                       <TableCell className="min-w-48">
@@ -939,21 +942,7 @@ export default function VotePage() {
                         {formatDate(proposal.endTime)}
                       </TableCell>
                       <TableCell className="text-center">
-                        {isVotingActive(proposal) ? (
-                          <Link href={createProposalUrl(proposal)}>
-                            <Button size="sm">
-                              <VoteIcon className="mr-2 h-4 w-4" />
-                              Cast Vote
-                            </Button>
-                          </Link>
-                        ) : (
-                          <Link href={createProposalUrl(proposal)}>
-                            <Button variant="outline" size="sm" className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
-                              <FileText className="mr-2 h-4 w-4" />
-                              View Details
-                            </Button>
-                          </Link>
-                        )}
+                        <StatusBadge proposal={proposal} />
                       </TableCell>
                     </TableRow>
                   ))
@@ -984,17 +973,20 @@ export default function VotePage() {
                   <TableHead className="text-gray-300">Proposer</TableHead>
                   <TableHead className="text-gray-300">Vote Start</TableHead>
                   <TableHead className="text-gray-300">Vote End</TableHead>
-                  <TableHead className="text-gray-300 text-center">Action</TableHead>
+                  <TableHead className="text-gray-300 text-center">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {completedProposals.length > 0 ? (
                   completedProposals.map((proposal) => (
-                    <TableRow key={proposal.id} className="border-gray-700/50 hover:bg-gray-800/50">
+                    <TableRow 
+                      key={proposal.id} 
+                      className="border-gray-700/50 hover:bg-gray-800/50 cursor-pointer"
+                      onClick={() => window.location.href = createProposalUrl(proposal)}
+                    >
                       <TableCell className="max-w-xs">
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
-                          <StatusBadge proposal={proposal} />
                         </div>
                       </TableCell>
                       <TableCell className="min-w-48">
@@ -1014,12 +1006,7 @@ export default function VotePage() {
                         {formatDate(proposal.endTime)}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Link href={createProposalUrl(proposal)}>
-                          <Button variant="outline" size="sm" className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
-                            <FileText className="mr-2 h-4 w-4" />
-                            View Details
-                          </Button>
-                        </Link>
+                        <StatusBadge proposal={proposal} />
                       </TableCell>
                     </TableRow>
                   ))
@@ -1050,17 +1037,20 @@ export default function VotePage() {
                   <TableHead className="text-gray-300">Proposer</TableHead>
                   <TableHead className="text-gray-300">Vote Start</TableHead>
                   <TableHead className="text-gray-300">Vote End</TableHead>
-                  <TableHead className="text-gray-300 text-center">Action</TableHead>
+                  <TableHead className="text-gray-300 text-center">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {proposals.length > 0 ? (
                   proposals.map((proposal) => (
-                    <TableRow key={proposal.id} className="border-gray-700/50 hover:bg-gray-800/50">
+                    <TableRow 
+                      key={proposal.id} 
+                      className="border-gray-700/50 hover:bg-gray-800/50 cursor-pointer"
+                      onClick={() => window.location.href = createProposalUrl(proposal)}
+                    >
                       <TableCell className="max-w-xs">
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
-                          <StatusBadge proposal={proposal} />
                         </div>
                       </TableCell>
                       <TableCell className="min-w-48">
@@ -1080,21 +1070,7 @@ export default function VotePage() {
                         {formatDate(proposal.endTime)}
                       </TableCell>
                       <TableCell className="text-center">
-                        {isVotingActive(proposal) ? (
-                          <Link href={createProposalUrl(proposal)}>
-                            <Button size="sm">
-                              <VoteIcon className="mr-2 h-4 w-4" />
-                              Cast Vote
-                            </Button>
-                          </Link>
-                        ) : (
-                          <Link href={createProposalUrl(proposal)}>
-                            <Button variant="outline" size="sm" className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
-                              <FileText className="mr-2 h-4 w-4" />
-                              View Details
-                            </Button>
-                          </Link>
-                        )}
+                        <StatusBadge proposal={proposal} />
                       </TableCell>
                     </TableRow>
                   ))
