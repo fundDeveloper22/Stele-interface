@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { Check, Clock, XCircle, Plus, FileText, Vote as VoteIcon, Loader2 } from "lucide-react"
 import { useProposalsData, useActiveProposalsData, useMultipleProposalVoteResults, useProposalsByStatus, useProposalsByStatusPaginated, useProposalsCountByStatus } from "@/app/subgraph/Proposals"
+import { useQueryClient } from '@tanstack/react-query'
 import { BASE_BLOCK_TIME_MS, STELE_DECIMALS, STELE_TOKEN_ADDRESS } from "@/lib/constants"
 import { ethers } from "ethers"
 import { useGovernanceConfig } from "@/app/hooks/useGovernanceConfig"
@@ -43,10 +44,14 @@ interface Proposal {
 export default function VotePage() {
   // Use global wallet hook instead of local state
   const { address: walletAddress, isConnected } = useWallet()
+  const queryClient = useQueryClient()
   const [isDelegating, setIsDelegating] = useState(false)
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [activeProposals, setActiveProposals] = useState<Proposal[]>([])
   const [completedProposals, setCompletedProposals] = useState<Proposal[]>([])
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [mountTimestamp, setMountTimestamp] = useState(Date.now())
   
   // Fetch governance configuration from smart contract
   const { config: governanceConfig, isLoading: isLoadingGovernanceConfig, error: governanceConfigError } = useGovernanceConfig()
@@ -145,6 +150,56 @@ export default function VotePage() {
   useEffect(() => {
     getCurrentBlockInfo()
   }, [])
+
+  // Force fresh data when component mounts (when user navigates to vote page)
+  useEffect(() => {
+    // Update mount timestamp to ensure fresh mount detection
+    const currentTimestamp = Date.now()
+    setMountTimestamp(currentTimestamp)
+        
+    // Always set loading to true when component mounts
+    setIsInitialLoading(true)
+    // Generate new refresh key to force fresh data
+    setRefreshKey(prev => prev + 1)
+    
+    const initializePageData = async () => {
+      try {        
+        // Clear all proposal-related cache to force fresh data
+        queryClient.removeQueries({ queryKey: ['proposalsByStatusPaginated'] })
+        queryClient.removeQueries({ queryKey: ['multipleProposalVoteResults'] })
+        queryClient.removeQueries({ queryKey: ['proposalsCountByStatus'] })
+        
+        // Also invalidate for good measure
+        await queryClient.invalidateQueries({ queryKey: ['proposalsByStatusPaginated'] })
+        await queryClient.invalidateQueries({ queryKey: ['multipleProposalVoteResults'] })
+        await queryClient.invalidateQueries({ queryKey: ['proposalsCountByStatus'] })
+                
+        // Show loading for minimum 1 second to ensure user sees the refresh
+        const minLoadingTime = new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // Small delay to ensure cache is cleared
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        // Refetch all proposal data
+        const refetchPromises = Promise.all([
+          refetchActionable(),
+          refetchCompletedByStatus(), 
+          refetchAllByStatus()
+        ])
+        
+        // Wait for both minimum loading time and data fetching
+        await Promise.all([minLoadingTime, refetchPromises])
+                
+      } catch (error) {
+        console.error('Error initializing page data:', error)
+      } finally {
+        setIsInitialLoading(false)
+      }
+    }
+
+    // Initialize page data on every mount
+    initializePageData()
+  }, []) // Empty dependency array to run on every mount
 
   // Check for recently created proposal on page load
   useEffect(() => {
@@ -796,6 +851,50 @@ export default function VotePage() {
     }
   }
 
+  // Manual refresh function for the refresh button
+  const handleRefresh = async () => {
+    setIsInitialLoading(true)
+    try {
+      // Clear all proposal-related cache to force fresh data
+      queryClient.removeQueries({ queryKey: ['proposalsByStatusPaginated'] })
+      queryClient.removeQueries({ queryKey: ['multipleProposalVoteResults'] })
+      queryClient.removeQueries({ queryKey: ['proposalsCountByStatus'] })
+      
+      // Also invalidate for good measure
+      await queryClient.invalidateQueries({ queryKey: ['proposalsByStatusPaginated'] })
+      await queryClient.invalidateQueries({ queryKey: ['multipleProposalVoteResults'] })
+      await queryClient.invalidateQueries({ queryKey: ['proposalsCountByStatus'] })
+      
+      // Show loading for minimum 0.5 seconds
+      const minLoadingTime = new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Refetch all proposal data
+      const refetchPromises = Promise.all([
+        refetchActionable(),
+        refetchCompletedByStatus(),
+        refetchAllByStatus()
+      ])
+      
+      // Wait for both minimum loading time and data fetching
+      await Promise.all([minLoadingTime, refetchPromises])
+      
+      toast({
+        title: "Success",
+        description: "Data refreshed successfully",
+        variant: "default",
+      })
+    } catch (error) {
+      console.error('Error refreshing data:', error)
+      toast({
+        title: "Error",
+        description: "Failed to refresh data",
+        variant: "destructive",
+      })
+    } finally {
+      setIsInitialLoading(false)
+    }
+  }
+
   // Pagination helper functions
   const getPaginatedData = (data: Proposal[], page: number) => {
     const startIndex = (page - 1) * ITEMS_PER_PAGE
@@ -886,12 +985,13 @@ export default function VotePage() {
     )
   }
 
-  if (isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus || isLoadingVoteResults || isLoadingBlockNumber || isLoadingGovernanceConfig || isLoadingWalletTokenInfo) {
+  if (isInitialLoading || isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus || isLoadingVoteResults || isLoadingBlockNumber || isLoadingGovernanceConfig || isLoadingWalletTokenInfo) {
     return (
       <div className="container mx-auto py-6 flex flex-col items-center justify-center min-h-[50vh]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
         <p className="text-muted-foreground">
-          {isLoadingBlockNumber ? 'Loading block information...' : 
+          {isInitialLoading ? 'Loading latest proposals and vote results...' :
+           isLoadingBlockNumber ? 'Loading block information...' : 
            isLoadingGovernanceConfig ? 'Loading governance configuration...' :
            isLoadingWalletTokenInfo ? 'Loading wallet token information...' :
            'Loading proposals and vote results...'}
@@ -923,13 +1023,23 @@ export default function VotePage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-100">Governance</h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => {
-            refetchActionable()
-            refetchCompletedByStatus()
-            refetchAllByStatus()
-          }} disabled={isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus} className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
-            <Clock className="mr-2 h-4 w-4" />
-            Refresh
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh}
+            disabled={isInitialLoading || isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus} 
+            className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
+          >
+            {isInitialLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <Clock className="mr-2 h-4 w-4" />
+                Refresh Data
+              </>
+            )}
           </Button>
           <Link href="/vote/create">
             <Button variant="outline" className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
