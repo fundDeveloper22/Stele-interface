@@ -527,9 +527,6 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
               <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
             </Button>
           </div>
-          <CardDescription className="text-gray-400">
-            Exchange your tokens with live pricing
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* From Token */}

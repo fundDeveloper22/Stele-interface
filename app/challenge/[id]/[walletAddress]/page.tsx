@@ -597,102 +597,103 @@ export default function InvestorPage({ params }: InvestorPageProps) {
           
           {/* Right Side - Portfolio Summary / Swap Assets */}
           <div className="lg:col-span-1">
-            {isSwapMode ? (
-              <AssetSwap userTokens={userTokens} />
-            ) : (
-              <div className="space-y-4">
-                {/* Portfolio Summary */}
-                <Card className="bg-gray-900 border-0 rounded-2xl">
-                  <CardContent className="p-8 space-y-8">
-                    {/* Progress */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-400">Progress</span>
-                        <span className="text-sm font-medium text-gray-300">
-                          {(() => {
-                            if (!challengeDetails || !isClient) return '0%';
+            <div className="space-y-4">
+              {/* Swap Assets (when swap mode is active) */}
+              {isSwapMode && (
+                <AssetSwap userTokens={userTokens} />
+              )}
+              
+              {/* Portfolio Summary (always visible) */}
+              <Card className="bg-gray-900 border-0 rounded-2xl">
+                <CardContent className="p-8 space-y-8">
+                  {/* Progress */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-400">Progress</span>
+                      <span className="text-sm font-medium text-gray-300">
+                        {(() => {
+                          if (!challengeDetails || !isClient) return '0%';
+                          
+                          const startTime = challengeDetails.startTime.getTime();
+                          const endTime = challengeDetails.endTime.getTime();
+                          const now = currentTime.getTime();
+                          
+                          if (now < startTime) return '0%';
+                          if (now >= endTime) return '100%';
+                          
+                          const totalDuration = endTime - startTime;
+                          const elapsed = now - startTime;
+                          const progress = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
+                          
+                          return `${progress.toFixed(0)}%`;
+                        })()}
+                      </span>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
+                        style={{ 
+                          width: `${(() => {
+                            if (!challengeDetails || !isClient) return 0;
                             
                             const startTime = challengeDetails.startTime.getTime();
                             const endTime = challengeDetails.endTime.getTime();
                             const now = currentTime.getTime();
                             
-                            if (now < startTime) return '0%';
-                            if (now >= endTime) return '100%';
+                            if (now < startTime) return 0;
+                            if (now >= endTime) return 100;
                             
                             const totalDuration = endTime - startTime;
                             const elapsed = now - startTime;
                             const progress = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
                             
-                            return `${progress.toFixed(0)}%`;
-                          })()}
-                        </span>
-                      </div>
-                      
-                      {/* Progress Bar */}
-                      <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
-                          style={{ 
-                            width: `${(() => {
-                              if (!challengeDetails || !isClient) return 0;
-                              
-                              const startTime = challengeDetails.startTime.getTime();
-                              const endTime = challengeDetails.endTime.getTime();
-                              const now = currentTime.getTime();
-                              
-                              if (now < startTime) return 0;
-                              if (now >= endTime) return 100;
-                              
-                              const totalDuration = endTime - startTime;
-                              const elapsed = now - startTime;
-                              const progress = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
-                              
-                              return progress;
-                            })()}%` 
-                          }}
-                        ></div>
-                      </div>
-                      
-                      {/* Time Info */}
-                      <div className="flex justify-between text-xs text-gray-500">
-                        <span>Started: {challengeDetails?.startTime.toLocaleDateString() || 'N/A'}</span>
-                        <span>Ends: {challengeDetails?.endTime.toLocaleDateString() || 'N/A'}</span>
-                      </div>
+                            return progress;
+                          })()}%` 
+                        }}
+                      ></div>
                     </div>
+                    
+                    {/* Time Info */}
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Started: {challengeDetails?.startTime.toLocaleDateString() || 'N/A'}</span>
+                      <span>Ends: {challengeDetails?.endTime.toLocaleDateString() || 'N/A'}</span>
+                    </div>
+                  </div>
 
-                    {/* Portfolio Value */}
-                    <div className="space-y-2">
-                      <span className="text-sm text-gray-400">Portfolio Value</span>
-                      <div className="text-4xl text-white">
-                        ${currentValue.toFixed(2)}
-                      </div>
+                  {/* Portfolio Value */}
+                  <div className="space-y-2">
+                    <span className="text-sm text-gray-400">Portfolio Value</span>
+                    <div className="text-4xl text-white">
+                      ${currentValue.toFixed(2)}
                     </div>
+                  </div>
 
-                    {/* Gain/Loss */}
-                    <div className="space-y-2">
-                      <span className="text-sm text-gray-400">Gain/Loss</span>
-                      <div className={`text-4xl font-bold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                        {isPositive ? '+' : ''}${gainLoss.toFixed(2)}
-                      </div>
-                      <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                        {isPositive ? '+' : ''}{gainLossPercentage.toFixed(2)}%
-                      </div>
+                  {/* Gain/Loss */}
+                  <div className="space-y-2">
+                    <span className="text-sm text-gray-400">Gain/Loss</span>
+                    <div className={`text-4xl font-bold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                      {isPositive ? '+' : ''}${gainLoss.toFixed(2)}
                     </div>
+                    <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                      {isPositive ? '+' : ''}{gainLossPercentage.toFixed(2)}%
+                    </div>
+                  </div>
 
-                    {/* Status */}
-                    <div className="space-y-2">
-                      <span className="text-sm text-gray-400">Status</span>
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${challengeData?.challenge?.isActive ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                        <span className={`text-lg font-medium ${challengeData?.challenge?.isActive ? 'text-green-400' : 'text-gray-400'}`}>
-                          {challengeData?.challenge?.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
+                  {/* Status */}
+                  <div className="space-y-2">
+                    <span className="text-sm text-gray-400">Status</span>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${challengeData?.challenge?.isActive ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+                      <span className={`text-lg font-medium ${challengeData?.challenge?.isActive ? 'text-green-400' : 'text-gray-400'}`}>
+                        {challengeData?.challenge?.isActive ? 'Active' : 'Inactive'}
+                      </span>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
