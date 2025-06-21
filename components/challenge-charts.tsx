@@ -315,7 +315,7 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
       </Card>
 
       {/* Challenge Info Card */}
-      <Card className="bg-gray-900/50 border-0 lg:col-span-1 rounded-2xl">
+      <Card className="bg-gray-900 border-0 lg:col-span-1 rounded-2xl">
         <CardContent className="p-8 space-y-8">
           {/* Progress */}
           <div className="space-y-3">

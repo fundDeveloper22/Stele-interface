@@ -35,7 +35,7 @@ export function DashboardClientComponents() {
   return (
     <Suspense fallback={<LoadingSkeleton />}>
       <ActiveChallenges showCreateButton={true} />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <InvestableTokens />
         <TokenStatsOverview />
       </div>

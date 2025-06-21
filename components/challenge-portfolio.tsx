@@ -87,8 +87,8 @@ function RankingSection({ challengeId }: { challengeId: string }) {
 
   return (
     <div>
-      <h2 className="text-3xl text-gray-100 mb-4">Ranking</h2>
-      <Card className="bg-gray-900/50 border-gray-700/50">
+      <h2 className="text-3xl text-gray-100 mb-8">Ranking</h2>
+      <Card className="bg-transparent border border-gray-700/50">
         <CardContent className="p-6">
           <div className="space-y-3">
             {isLoadingRanking ? (
@@ -779,8 +779,8 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Transactions */}
         <div>
-          <h2 className="text-3xl text-gray-100 mb-4">Recent Transactions</h2>
-          <Card className="bg-gray-900/50 border-gray-700/50">
+          <h2 className="text-3xl text-gray-100 mb-8">Recent Transactions</h2>
+          <Card className="bg-transparent border border-gray-700/50">
             <CardContent className="p-6">
               <div className="space-y-4">
                 {isLoadingTransactions ? (
@@ -847,7 +847,11 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
                     }
 
                     return (
-                      <div key={transaction.id} className="flex items-center justify-between py-3 px-3 last:border-b-0 mb-2">
+                      <div 
+                        key={transaction.id} 
+                        className="flex items-center justify-between py-3 px-3 last:border-b-0 mb-2 cursor-pointer hover:bg-gray-800/50 rounded-lg transition-colors"
+                        onClick={() => window.open(`https://basescan.org/tx/${transaction.transactionHash}`, '_blank')}
+                      >
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
                             {getTransactionIcon(transaction.type)}
@@ -862,12 +866,6 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
                         </div>
                         <div className="text-right">
                           <div className="font-medium text-gray-100">{transaction.amount || '-'}</div>
-                          <button
-                            onClick={() => window.open(`https://basescan.org/tx/${transaction.transactionHash}`, '_blank')}
-                            className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                          >
-                            View on BaseScan
-                          </button>
                         </div>
                       </div>
                     )

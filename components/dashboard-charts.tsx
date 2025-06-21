@@ -117,7 +117,7 @@ export function DashboardCharts() {
   if (isLoading) {
     return (
       <div className="mb-6">
-        <Card className="bg-gray-900/50 border-gray-700/50">
+        <Card className="bg-transparent border-0">
           <CardHeader>
             <div className="h-8 bg-gray-700 rounded animate-pulse"></div>
             <div className="h-4 bg-gray-700 rounded animate-pulse mt-2 w-2/3"></div>
@@ -133,7 +133,7 @@ export function DashboardCharts() {
   if (error || !data?.activeChallengesSnapshots || chartData.length === 0) {
     return (
       <div className="mb-6">
-        <Card className="bg-gray-900/50 border-gray-700/50">
+        <Card className="bg-transparent border-0">
           <CardHeader>
             <CardTitle className="text-4xl font-bold text-gray-100">-</CardTitle>
             <p className="text-sm text-gray-400">{currentDate}</p>
@@ -151,26 +151,32 @@ export function DashboardCharts() {
   return (
     <div className="mb-6">
       <Tabs defaultValue="participants" className="w-full">
-        <Card className="bg-gray-900/50 border-gray-700/50">
-          <CardHeader className="pb-6">
+        <Card className="bg-transparent border-0">
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <TabsList className="grid w-full grid-cols-2 bg-gray-800/50">
-                  <TabsTrigger value="participants" className="data-[state=active]:bg-gray-700">
-                    <Users className="h-4 w-4 mr-2" />
-                    Participants
-                  </TabsTrigger>
-                  <TabsTrigger value="rewards" className="data-[state=active]:bg-gray-700">
-                    <DollarSign className="h-4 w-4 mr-2" />
-                    Rewards
-                  </TabsTrigger>
-                </TabsList>
+                <TabsContent value="participants" className="m-0">
+                  <h3 className="text-2xl text-gray-100">Total Participants</h3>
+                </TabsContent>
+                <TabsContent value="rewards" className="m-0">
+                  <h3 className="text-2xl text-gray-100">Total Rewards</h3>
+                </TabsContent>
               </div>
+              <TabsList className="grid grid-cols-2 bg-gray-800/50">
+                <TabsTrigger value="participants" className="data-[state=active]:bg-gray-700">
+                  <Users className="h-4 w-4 mr-2" />
+                  Participants
+                </TabsTrigger>
+                <TabsTrigger value="rewards" className="data-[state=active]:bg-gray-700">
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Rewards
+                </TabsTrigger>
+              </TabsList>
             </div>
           </CardHeader>
           <CardContent>
             <TabsContent value="participants" className="mt-0">
-              <div className="mb-4">
+              <div className="mb-2">
                 <CardTitle className="text-4xl font-bold text-gray-100">
                   {totalParticipants >= 1000 ? `${(totalParticipants / 1000).toFixed(1)}K` : totalParticipants.toLocaleString()}
                 </CardTitle>
@@ -234,7 +240,7 @@ export function DashboardCharts() {
             </TabsContent>
 
             <TabsContent value="rewards" className="mt-0">
-              <div className="mb-4">
+              <div className="mb-2">
                 <CardTitle className="text-4xl font-bold text-gray-100">
                   ${totalRewards >= 1000000 ? `${(totalRewards / 1000000).toFixed(1)}M` : totalRewards >= 1000 ? `${(totalRewards / 1000).toFixed(1)}K` : totalRewards.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </CardTitle>

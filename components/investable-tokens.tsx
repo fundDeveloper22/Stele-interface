@@ -24,72 +24,79 @@ export function InvestableTokens() {
     })
   }
 
+  // Handle row click to open BaseScan
+  const handleRowClick = (tokenAddress: string) => {
+    window.open(`https://basescan.org/token/${tokenAddress}`, '_blank')
+  }
+
   if (isLoading) {
     return (
-      <Card className="bg-gray-900/50 border-gray-700/50">
-        <CardHeader>
-          <CardTitle className="text-gray-100">Investable Tokens</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-            <span className="ml-2 text-gray-400">Loading tokens...</span>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <h2 className="text-2xl text-gray-100">Investable Tokens</h2>
+        <Card className="bg-transparent border border-gray-700/50">
+          <CardContent className="p-0">
+            <div className="flex items-center justify-center py-8 px-6">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              <span className="ml-2 text-gray-400">Loading tokens...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <Card className="bg-gray-900/50 border-gray-700/50">
-        <CardHeader>
-          <CardTitle className="text-gray-100">Investable Tokens</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-red-400">Error loading tokens</p>
-            <p className="text-sm text-gray-500 mt-1">
-              {error instanceof Error ? error.message : 'Failed to load data'}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <h2 className="text-2xl text-gray-100">Investable Tokens</h2>
+        <Card className="bg-transparent border border-gray-700/50">
+          <CardContent className="p-0">
+            <div className="text-center py-8 px-6">
+              <p className="text-red-400">Error loading tokens</p>
+              <p className="text-sm text-gray-500 mt-1">
+                {error instanceof Error ? error.message : 'Failed to load data'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
   const tokens = tokensData?.investableTokens || []
 
   return (
-    <Card className="bg-gray-900/50 border-gray-700/50">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between text-gray-100">
-          Investable Tokens
-          <Badge variant="secondary" className="ml-2 bg-gray-700 text-gray-300">
-            {tokens.length} tokens
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <h2 className="text-2xl text-gray-100">Investable Tokens</h2>
+        <Badge variant="secondary" className="bg-gray-700 text-gray-300">
+          {tokens.length} tokens
+        </Badge>
+      </div>
+      <Card className="bg-transparent border border-gray-700/50">
+        <CardContent className="p-0">
         {tokens.length === 0 ? (
-          <div className="text-center py-8">
+          <div className="text-center py-8 px-6">
             <p className="text-gray-400">No investable tokens found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-b border-gray-700 hover:bg-gray-800/50">
-                  <TableHead className="text-gray-300">Symbol</TableHead>
+                <TableRow className="border-b border-gray-700 bg-gray-900/80 hover:bg-gray-800/50">
+                  <TableHead className="text-gray-300 pl-6">Symbol</TableHead>
                   <TableHead className="text-gray-300">Token Address</TableHead>
-                  <TableHead className="text-gray-300">Decimals</TableHead>
-                  <TableHead className="text-gray-300">Last Updated</TableHead>
+                  <TableHead className="text-gray-300 pr-6">Last Updated</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tokens.map((token) => (
-                  <TableRow key={token.id} className="border-0 hover:bg-gray-800/30">
-                    <TableCell className="font-medium text-gray-100">
+                  <TableRow 
+                    key={token.id} 
+                    className="border-0 hover:bg-gray-800/30 cursor-pointer transition-colors"
+                    onClick={() => handleRowClick(token.tokenAddress)}
+                  >
+                    <TableCell className="font-medium text-gray-100 pl-6">
                       {token.symbol}
                     </TableCell>
                     <TableCell>
@@ -97,10 +104,7 @@ export function InvestableTokens() {
                         {formatAddress(token.tokenAddress)}
                       </code>
                     </TableCell>
-                    <TableCell className="text-gray-300 pl-8">
-                      {token.decimals}
-                    </TableCell>
-                    <TableCell className="text-gray-400">
+                    <TableCell className="text-gray-400 pr-6">
                       {formatDate(token.updatedTimestamp)}
                     </TableCell>
                   </TableRow>
@@ -111,5 +115,6 @@ export function InvestableTokens() {
         )}
       </CardContent>
     </Card>
+    </div>
   )
 } 
