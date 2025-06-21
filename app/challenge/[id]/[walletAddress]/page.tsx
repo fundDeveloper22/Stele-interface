@@ -35,6 +35,7 @@ import { useInvestorData } from "@/app/subgraph/Account"
 import { useUserTokens } from "@/app/hooks/useUserTokens"
 import { useChallenge } from "@/app/hooks/useChallenge"
 import { useInvestorTransactions } from "@/app/hooks/useInvestorTransactions"
+import { useWallet } from "@/app/hooks/useWallet"
 import Link from "next/link"
 import { ethers } from "ethers"
 import { toast } from "@/components/ui/use-toast"
@@ -58,6 +59,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   const { id: challengeId, walletAddress } = use(params)
   
   // Use hooks
+  const { address: connectedAddress, isConnected } = useWallet()
   const { data: investorData, isLoading: isLoadingInvestor, error: investorError } = useInvestorData(challengeId, walletAddress)
   const { data: userTokens = [], isLoading: isLoadingTokens, error: tokensError } = useUserTokens(challengeId, walletAddress)
   const { data: challengeData, isLoading: isLoadingChallenge, error: challengeError } = useChallenge(challengeId)
@@ -400,46 +402,49 @@ export default function InvestorPage({ params }: InvestorPageProps) {
             </div>
           </div>
           <div className="space-y-4">            
-            {/* Swap and Register Buttons */}
-            <div className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setIsSwapMode(!isSwapMode)}
-                className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 border-pink-500/50"
-              >
-                {isSwapMode ? (
-                  <>
-                    <X className="mr-2 h-4 w-4" />
-                    Close
-                  </>
-                ) : (
-                  <>
-                    <Repeat className="mr-2 h-4 w-4" />
-                    Swap
-                  </>
-                )}
-              </Button>
-              <Button 
-                variant="default" 
-                size="sm" 
-                onClick={handleRegister}
-                disabled={isRegistering}
-                className="bg-blue-500 hover:bg-blue-600 text-white"
-              >
-                {isRegistering ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Registering...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Register
-                  </>
-                )}
-              </Button>
-            </div>
+            {/* Swap and Register Buttons - Only show if connected wallet matches investor address */}
+            {connectedAddress && walletAddress && 
+             connectedAddress.toLowerCase() === walletAddress.toLowerCase() && (
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsSwapMode(!isSwapMode)}
+                  className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 border-pink-500/50"
+                >
+                  {isSwapMode ? (
+                    <>
+                      <X className="mr-2 h-4 w-4" />
+                      Close
+                    </>
+                  ) : (
+                    <>
+                      <Repeat className="mr-2 h-4 w-4" />
+                      Swap
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={handleRegister}
+                  disabled={isRegistering}
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                >
+                  {isRegistering ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Registering...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Register
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
