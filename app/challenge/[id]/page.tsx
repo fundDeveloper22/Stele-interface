@@ -60,15 +60,20 @@ export default function ChallengePage({ params }: ChallengePageProps) {
   const router = useRouter()
   
   return (
-    <div className="container mx-auto py-6">
-      <div className="mb-6">
-        <Button variant="outline" size="sm" onClick={() => router.back()}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
+    <div className="container mx-auto p-6">
+      <div className="max-w-6xl mx-auto space-y-4">
+        <div className="mb-6">
+          <button 
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+        </div>
+        
+        <ChallengeContent challengeId={id} />
       </div>
-      
-      <ChallengeContent challengeId={id} />
     </div>
   )
 } 

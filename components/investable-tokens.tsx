@@ -24,9 +24,9 @@ export function InvestableTokens() {
     })
   }
 
-  // Handle row click to open BaseScan
+  // Handle row click to open Etherscan
   const handleRowClick = (tokenAddress: string) => {
-    window.open(`https://basescan.org/token/${tokenAddress}`, '_blank')
+    window.open(`https://etherscan.io/token/${tokenAddress}`, '_blank')
   }
 
   if (isLoading) {

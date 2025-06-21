@@ -87,7 +87,7 @@ function RankingSection({ challengeId }: { challengeId: string }) {
 
   return (
     <div>
-      <h2 className="text-3xl text-gray-100 mb-8">Ranking</h2>
+      <h2 className="text-3xl text-gray-100 mb-6">Ranking</h2>
       <Card className="bg-transparent border border-gray-700/50">
         <CardContent className="p-6">
           <div className="space-y-3">
@@ -699,7 +699,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl">
           <span className="text-gray-400">
@@ -776,10 +776,10 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       <ChallengeCharts challengeId={challengeId} />
 
       {/* Transactions and Ranking Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Transactions */}
         <div>
-          <h2 className="text-3xl text-gray-100 mb-8">Recent Transactions</h2>
+          <h2 className="text-3xl text-gray-100 mb-6">Recent Transactions</h2>
           <Card className="bg-transparent border border-gray-700/50">
             <CardContent className="p-6">
               <div className="space-y-4">

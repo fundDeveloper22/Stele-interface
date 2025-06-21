@@ -28,6 +28,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
   const [fromToken, setFromToken] = useState<string>("")
   const [toToken, setToToken] = useState<string>("USDC")
   const [isSwapping, setIsSwapping] = useState(false)
+  const [isHoveringFromToken, setIsHoveringFromToken] = useState(false)
 
   // Minimum swap amount in USD (greater than or equal to)
   const MINIMUM_SWAP_USD = 10.0;
@@ -193,6 +194,60 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
       }
       setFromAmount(value)
     }
+  }
+
+  // Get formatted balance as number for calculations
+  const getFormattedBalanceNumber = (tokenSymbol: string): number => {
+    if (!tokenSymbol) return 0;
+    
+    const rawBalance = getFromTokenBalance(tokenSymbol);
+    const userToken = userTokens.find(token => token.symbol === tokenSymbol);
+    
+    if (!userToken || rawBalance === '0') return 0;
+    
+    try {
+      let formattedBalance = 0;
+
+      // Smart balance detection (same logic as isAmountExceedsBalance)
+      if (rawBalance.includes('.')) {
+        // Already formatted (contains decimal point)
+        formattedBalance = parseFloat(rawBalance);
+      } else {
+        // Check if this looks like a reasonable formatted balance or raw wei amount
+        const rawValue = parseFloat(rawBalance);
+        const decimals = parseInt(userToken.decimals);
+        
+        // For USDC (6 decimals), if raw value is reasonable (e.g., 100), 
+        // it's likely already formatted. Raw USDC would be much larger (e.g., 100000000)
+        if (tokenSymbol === 'USDC' && rawValue < 1000000) {
+          // Likely already formatted USDC
+          formattedBalance = rawValue;
+        } else if (rawValue < Math.pow(10, decimals)) {
+          // Value is too small to be raw wei amount, likely already formatted
+          formattedBalance = rawValue;
+        } else {
+          // Raw amount, format it
+          formattedBalance = parseFloat(ethers.formatUnits(rawBalance, decimals));
+        }
+      }
+      
+      return formattedBalance;
+      
+    } catch (error) {
+      console.error('Error getting formatted balance:', error);
+      return 0;
+    }
+  };
+
+  // Handle percentage button click
+  const handlePercentageClick = (percentage: number) => {
+    if (!fromToken) return;
+    
+    const balance = getFormattedBalanceNumber(fromToken);
+    if (balance <= 0) return;
+    
+    const amount = balance * (percentage / 100);
+    setFromAmount(amount.toString());
   }
 
   // Get available tokens
@@ -524,7 +579,11 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
         <CardContent className="p-0 space-y-3">
           {/* From Token */}
           <div className="space-y-2">
-            <div className="p-4 bg-transparent border border-gray-600 rounded-2xl">
+            <div 
+              className="p-4 bg-transparent border border-gray-600 rounded-2xl relative"
+              onMouseEnter={() => setIsHoveringFromToken(true)}
+              onMouseLeave={() => setIsHoveringFromToken(false)}
+            >
               <div className="text-sm text-gray-400 mb-3">Sell</div>
               <div className="flex items-center justify-between min-h-[60px]">
                 <div className="flex-1 min-w-0 pr-4">
@@ -532,30 +591,81 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                     placeholder="0"
                     value={fromAmount}
                     onChange={handleFromAmountChange}
-                    className="bg-transparent border-0 text-white p-1 h-12 focus-visible:ring-0 w-full overflow-hidden text-ellipsis"
+                    className={`bg-transparent border-0 p-1 h-12 focus-visible:ring-0 w-full overflow-hidden text-ellipsis rounded-none outline-none ${
+                      fromAmount && (isBelowMinimumSwapAmount() || isAmountExceedsBalance()) 
+                        ? 'text-red-400' 
+                        : 'text-white'
+                    }`}
                     style={{ 
                       fontSize: fromAmount && fromAmount.length > 15 ? '1.25rem' : 
                                fromAmount && fromAmount.length > 12 ? '1.5rem' : '1.75rem', 
-                      lineHeight: '1' 
+                      lineHeight: '1',
+                      boxShadow: 'none',
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'textfield'
                     }}
                   />
                   <div className="text-sm text-gray-400 mt-1">
                     ${getSwapAmountUSD().toFixed(2)}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0 relative">
+                  {/* Percentage Badges - Show on hover */}
+                  {isHoveringFromToken && fromToken && getFormattedTokenBalance(fromToken) !== '0' && (
+                    <div className="absolute -top-10 right-0 flex gap-1 z-10">
+                      <Button
+                        onClick={() => handlePercentageClick(25)}
+                        className="bg-transparent border border-gray-600 hover:bg-gray-600/20 text-white text-xs px-2 py-1 h-6 rounded-full transition-all duration-200"
+                        size="sm"
+                      >
+                        25%
+                      </Button>
+                      <Button
+                        onClick={() => handlePercentageClick(50)}
+                        className="bg-transparent border border-gray-600 hover:bg-gray-600/20 text-white text-xs px-2 py-1 h-6 rounded-full transition-all duration-200"
+                        size="sm"
+                      >
+                        50%
+                      </Button>
+                      <Button
+                        onClick={() => handlePercentageClick(75)}
+                        className="bg-transparent border border-gray-600 hover:bg-gray-600/20 text-white text-xs px-2 py-1 h-6 rounded-full transition-all duration-200"
+                        size="sm"
+                      >
+                        75%
+                      </Button>
+                      <Button
+                        onClick={() => handlePercentageClick(100)}
+                        className="bg-transparent border border-gray-600 hover:bg-gray-600/20 text-white text-xs px-2 py-1 h-6 rounded-full transition-all duration-200"
+                        size="sm"
+                      >
+                        Max
+                      </Button>
+                    </div>
+                  )}
                   <div className="flex flex-col items-end">
                     <select
                       value={fromToken}
                       onChange={(e) => setFromToken(e.target.value)}
-                      className="bg-gray-700 text-white rounded-full px-4 py-2 border-0 text-sm font-medium"
+                      className="bg-transparent hover:bg-gray-600/20 border border-gray-600 text-white rounded-full px-4 py-2 text-sm font-medium appearance-none transition-all duration-200 cursor-pointer focus:outline-none focus:ring-0 focus:border-gray-600"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                        backgroundPosition: 'right 0.5rem center',
+                        backgroundRepeat: 'no-repeat',
+                        backgroundSize: '1.5em 1.5em',
+                        paddingRight: '2.5rem'
+                      }}
                     >
                       <option value="">Select</option>
                       {availableFromTokens.map((token) => (
                         <option key={token} value={token}>{token}</option>
                       ))}
                     </select>
-                    <div className="text-xs text-gray-400 mt-1">
+                    <div className={`text-xs mt-1 ${
+                      fromAmount && isAmountExceedsBalance() 
+                        ? 'text-red-400' 
+                        : 'text-gray-400'
+                    }`}>
                       {getFormattedTokenBalance(fromToken)} {fromToken}
                     </div>
                   </div>
@@ -605,7 +715,14 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                   <select
                     value={toToken}
                     onChange={(e) => setToToken(e.target.value)}
-                    className="bg-gray-700 text-white rounded-full px-4 py-2 border-0 text-sm font-medium"
+                    className="bg-transparent hover:bg-gray-600/20 border border-gray-600 text-white rounded-full px-4 py-2 text-sm font-medium appearance-none transition-all duration-200 cursor-pointer focus:outline-none focus:ring-0 focus:border-gray-600"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                      backgroundPosition: 'right 0.5rem center',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundSize: '1.5em 1.5em',
+                      paddingRight: '2.5rem'
+                    }}
                   >
                     {availableToTokens.map((token) => (
                       <option key={token} value={token}>{token}</option>
@@ -623,7 +740,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
             </div>
           )}
           <Button 
-            className="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold py-3 rounded-2xl mt-4" 
+            className="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold h-14 rounded-2xl mt-4" 
             size="lg"
             onClick={handleSwapTransaction}
             disabled={(() => {

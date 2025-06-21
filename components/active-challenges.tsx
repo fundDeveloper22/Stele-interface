@@ -417,158 +417,39 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
     }
   }
 
-  // Function to map challenge type string to number for contract call
-  const getChallengeTypeNumber = (type: string): number => {
-    switch (type.toLowerCase()) {
-      case "1 week challenge":
+  // Get challenge type number from challenge title
+  const getChallengeTypeFromTitle = (title: string): number => {
+    switch (title) {
+      case "1 week":
         return 0;
-      case "1 month challenge":
+      case "1 month":
         return 1;
-      case "3 months challenge":
+      case "3 months":
         return 2;
-      case "6 months challenge":
+      case "6 months":
         return 3;
-      case "1 year challenge":
+      case "1 year":
         return 4;
       default:
-        return 0; // Default to 1 week challenge
+        return 0;
     }
   };
 
-  // Handle Create Challenge for individual challenges
-  const handleCreateIndividualChallenge = async (challengeType: string) => {
-    setIsCreating(true);
-    
-    try {
-      // Check if Phantom wallet is installed
-      if (typeof window.phantom === 'undefined') {
-        throw new Error("Phantom wallet is not installed. Please install it from https://phantom.app/");
-      }
-
-      // Check if Ethereum provider is available
-      if (!window.phantom?.ethereum) {
-        throw new Error("Ethereum provider not found in Phantom wallet");
-      }
-
-      // Request account access
-      const accounts = await window.phantom.ethereum.request({
-        method: 'eth_requestAccounts'
-      });
-
-      if (!accounts || accounts.length === 0) {
-        throw new Error("No accounts found. Please connect to Phantom wallet first.");
-      }
-
-      // Check if we are on Base network
-      const chainId = await window.phantom.ethereum.request({
-        method: 'eth_chainId'
-      });
-
-      if (chainId !== ETHEREUM_CHAIN_ID) {
-        // Switch to Ethereum network
-        try {
-          await window.phantom.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: ETHEREUM_CHAIN_ID }],
-          });
-        } catch (switchError: any) {
-          // This error code indicates that the chain has not been added to the wallet
-          if (switchError.code === 4902) {
-            await window.phantom.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [ETHEREUM_CHAIN_CONFIG],
-            });
-          } else {
-            throw switchError;
-          }
-        }
-      }
-
-      // Create a Web3Provider using the Phantom ethereum provider
-      const provider = new ethers.BrowserProvider(window.phantom.ethereum);
-      
-      // Get the signer
-      const signer = await provider.getSigner();
-      
-      // Create contract instance
-      const steleContract = new ethers.Contract(
-        STELE_CONTRACT_ADDRESS,
-        SteleABI.abi,
-        signer
-      );
-
-      // Get the challenge type number
-      const challengeTypeNumber = getChallengeTypeNumber(challengeType);
-
-      // Call createChallenge with the challenge type
-      const tx = await steleContract.createChallenge(challengeTypeNumber);
-      
-      // Show toast notification for transaction submitted
-      toast({
-        title: "Transaction Submitted",
-        description: "Your challenge creation transaction has been sent to the network.",
-        action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-            View on BaseScan
-          </ToastAction>
-        ),
-      });
-      
-      // Wait for transaction to be mined
-      await tx.wait();
-      
-      // Show toast notification for transaction confirmed
-      toast({
-        title: "Challenge Created",
-        description: `Your ${challengeType} has been created successfully!`,
-        action: (
-          <ToastAction altText="View on BaseScan" onClick={() => window.open(`https://basescan.org/tx/${tx.hash}`, '_blank')}>
-            View on BaseScan
-          </ToastAction>
-        ),
-      });
-      
-    } catch (error: any) {
-      console.error("Error creating challenge:", error);
-      
-      // Show toast notification for error
-      toast({
-        variant: "destructive",
-        title: "Error Creating Challenge",
-        description: error.message || "An unknown error occurred",
-      });
-      
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  // Check if Create button should be enabled for a challenge
-  const shouldEnableCreateButton = (challenge: ChallengeCardProps) => {
-    // Don't enable button during initial loading or if data is not properly loaded
-    if (!isClient || !data?.activeChallenges) {
-      return false;
-    }
-    
-    // Enable button if challengeId is "0" (means challenge not created yet)
-    if (challenge.challengeId === "0" || !challenge.challengeId) {
-      return true;
-    }
-    
-    // Don't enable button if endTime is "0" (means challenge not started/created yet)
-    if (!challenge.endTime || challenge.endTime === "0") {
-      return false;
-    }
-    
-    const currentTime = new Date();
-    const endTimeDate = new Date(Number(challenge.endTime) * 1000);
-    return challenge.isCompleted || currentTime > endTimeDate;
-  };
+  // Prepare active challenges data for the modal
+  const activeChallengesData = challenges.map(challenge => ({
+    challengeType: getChallengeTypeFromTitle(challenge.title),
+    status: challenge.status
+  }));
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl text-gray-100">Active Challenges</h2>
+        <ChallengeTypeModal 
+          onCreateChallenge={handleCreateChallenge}
+          isCreating={isCreating}
+          activeChallenges={activeChallengesData}
+        />
       </div>
 
       <Card className="bg-transparent border border-gray-700/50">
@@ -577,12 +458,12 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-gray-700 bg-gray-900/80 hover:bg-gray-800/50">
-                  <TableHead className="text-gray-300 pl-16">Period</TableHead>
-                  <TableHead className="text-gray-300">Participants</TableHead>
-                  <TableHead className="text-gray-300">Prize</TableHead>
-                  <TableHead className="text-gray-300">Progress</TableHead>
-                  <TableHead className="text-gray-300">Status</TableHead>
-                  <TableHead className="text-gray-300 pr-6">Action</TableHead>
+                  <TableHead className="text-gray-300 pl-6 w-32">Period</TableHead>
+                  <TableHead className="text-gray-300 w-20">ID</TableHead>
+                  <TableHead className="text-gray-300 w-24">Users</TableHead>
+                  <TableHead className="text-gray-300 w-24">Prize</TableHead>
+                  <TableHead className="text-gray-300 w-32">Progress</TableHead>
+                  <TableHead className="text-gray-300 w-28 pr-6">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -593,11 +474,14 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
                     onClick={() => window.location.href = `/challenge/${challenge.challengeId}`}
                     title={`Challenge ID: ${challenge.challengeId}`}
                   >
-                    <TableCell className="font-medium text-gray-100 pl-16">
+                    <TableCell className="font-medium text-gray-100 pl-6">
                       <div className="flex items-center gap-2">
                         <Trophy className="h-4 w-4 text-yellow-500" />
                         {challenge.title}
                       </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-gray-300 text-sm">
+                      {challenge.challengeId}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-gray-300">
@@ -628,33 +512,8 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
                         <span className="text-xs text-gray-400">{Math.round(challenge.progress)}%</span>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {getStatusBadge(challenge.status)}
-                    </TableCell>
                     <TableCell className="pr-6">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className={`border-blue-600 ${
-                          shouldEnableCreateButton(challenge) 
-                            ? "bg-blue-800 text-blue-100 hover:bg-blue-700" 
-                            : "bg-gray-700 text-gray-400 border-gray-600 cursor-not-allowed"
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent row click when button is clicked
-                          handleCreateIndividualChallenge(challenge.type);
-                        }}
-                        disabled={!shouldEnableCreateButton(challenge) || isCreating}
-                      >
-                        {isCreating ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <>
-                            <Trophy className="h-3 w-3 mr-1" />
-                            Create
-                          </>
-                        )}
-                      </Button>
+                      {getStatusBadge(challenge.status)}
                     </TableCell>
                   </TableRow>
                 ))}

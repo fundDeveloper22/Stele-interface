@@ -16,7 +16,7 @@ import {
   RadioGroupItem
 } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { Loader2 } from "lucide-react"
+import { Loader2, Plus, Trophy } from "lucide-react"
 
 // Challenge type definitions
 const CHALLENGE_TYPES = [
@@ -50,14 +50,28 @@ const CHALLENGE_TYPES = [
 interface ChallengeTypeModalProps {
   onCreateChallenge: (challengeType: number) => Promise<void>;
   isCreating: boolean;
+  activeChallenges?: Array<{
+    challengeType: number;
+    status: "active" | "pending" | "completed" | "finished";
+  }>;
 }
 
-export function ChallengeTypeModal({ onCreateChallenge, isCreating }: ChallengeTypeModalProps) {
+export function ChallengeTypeModal({ onCreateChallenge, isCreating, activeChallenges = [] }: ChallengeTypeModalProps) {
   const [selectedType, setSelectedType] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
 
+  // Check if a challenge type is already active
+  const isTypeActive = (challengeType: number) => {
+    return activeChallenges.some(challenge => 
+      challenge.challengeType === challengeType && challenge.status === "active"
+    );
+  };
+
+  // Check if the selected type is active
+  const selectedTypeIsActive = selectedType !== null ? isTypeActive(selectedType) : false;
+
   const handleCreate = async () => {
-    if (selectedType !== null) {
+    if (selectedType !== null && !selectedTypeIsActive) {
       try {
         await onCreateChallenge(selectedType);
         // Close the modal when transaction is confirmed or rejected
@@ -72,8 +86,14 @@ export function ChallengeTypeModal({ onCreateChallenge, isCreating }: ChallengeT
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="default" size="sm">
+        <Button 
+          variant="default" 
+          size="default"
+          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+        >
+          <Plus className="mr-2 h-4 w-4" />
           Create Challenge
+          <Trophy className="ml-2 h-4 w-4" />
         </Button>
       </DialogTrigger>
       
@@ -91,27 +111,50 @@ export function ChallengeTypeModal({ onCreateChallenge, isCreating }: ChallengeT
             onValueChange={(value) => setSelectedType(parseInt(value))}
             className="space-y-3"
           >
-            {CHALLENGE_TYPES.map((type) => (
-              <div
-                key={type.id}
-                className={`flex items-start space-x-2 rounded-md border p-3 ${
-                  selectedType === type.id ? "border-primary bg-primary/5" : "border-border"
-                }`}
-              >
-                <RadioGroupItem value={type.id.toString()} id={`type-${type.id}`} className="mt-1" />
-                <div className="flex-1 space-y-1">
-                  <Label 
-                    htmlFor={`type-${type.id}`} 
-                    className="flex items-center justify-between cursor-pointer"
-                  >
-                    <span className="font-medium">{type.name}</span>
-                    <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                      {type.duration}
-                    </span>
-                  </Label>
+            {CHALLENGE_TYPES.map((type) => {
+              const typeIsActive = isTypeActive(type.id);
+              return (
+                <div
+                  key={type.id}
+                  className={`flex items-start space-x-2 rounded-md border p-3 ${
+                    selectedType === type.id 
+                      ? "border-primary bg-primary/5" 
+                      : typeIsActive 
+                      ? "border-muted bg-muted/20 opacity-50" 
+                      : "border-border"
+                  }`}
+                >
+                  <RadioGroupItem 
+                    value={type.id.toString()} 
+                    id={`type-${type.id}`} 
+                    className="mt-1"
+                    disabled={typeIsActive}
+                  />
+                  <div className="flex-1 space-y-1">
+                    <Label 
+                      htmlFor={`type-${type.id}`} 
+                      className={`flex items-center justify-between ${
+                        typeIsActive ? "cursor-not-allowed" : "cursor-pointer"
+                      }`}
+                    >
+                      <div className="flex flex-col">
+                        <span className={`font-medium ${typeIsActive ? "text-muted-foreground" : ""}`}>
+                          {type.name}
+                        </span>
+                        {typeIsActive && (
+                          <span className="text-xs text-orange-500 font-medium mt-1">
+                            Already Active
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                        {type.duration}
+                      </span>
+                    </Label>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </RadioGroup>
         </div>
         
@@ -121,14 +164,18 @@ export function ChallengeTypeModal({ onCreateChallenge, isCreating }: ChallengeT
           </Button>
           <Button 
             onClick={handleCreate} 
-            disabled={selectedType === null || isCreating}
+            disabled={selectedType === null || isCreating || selectedTypeIsActive}
           >
             {isCreating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Creating...
               </>
-            ) : "Create Challenge"}
+            ) : selectedTypeIsActive ? (
+              "Challenge Already Active"
+            ) : (
+              "Create Challenge"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

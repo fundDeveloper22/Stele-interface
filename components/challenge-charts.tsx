@@ -66,7 +66,7 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
             minute: '2-digit',
             hour12: true
           }),
-          dateLabel: date.toISOString().split('T')[0] // YYYY-MM-DD 형식
+          dateLabel: date.toISOString().split('T')[0] // YYYY-MM-DD format
         }
       })
       .sort((a, b) => a.dateLabel.localeCompare(b.dateLabel)) // Sort by date (ascending)
@@ -194,8 +194,8 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-2">
           <CardHeader>
             <div className="h-8 bg-gray-700 rounded animate-pulse"></div>
             <div className="h-4 bg-gray-700 rounded animate-pulse mt-2 w-2/3"></div>
@@ -219,8 +219,8 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
 
   if (error || !data?.challengeSnapshots || chartData.length === 0) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-4xl text-gray-100">$0</CardTitle>
             <p className="text-sm text-gray-400">{currentDate}</p>
@@ -246,9 +246,9 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-      {/* Total Rewards Chart - Takes 3 columns */}
-      <Card className="bg-transparent border-0 lg:col-span-3">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      {/* Total Rewards Chart - Takes 2 columns */}
+      <Card className="bg-transparent border-0 lg:col-span-2">
         <CardHeader className="pb-6">
           <CardTitle className="text-4xl text-gray-100">
             ${currentRewardAmount >= 1000000 ? `${(currentRewardAmount / 1000000).toFixed(1)}M` : currentRewardAmount >= 1000 ? `${(currentRewardAmount / 1000).toFixed(1)}K` : currentRewardAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
