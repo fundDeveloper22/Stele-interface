@@ -60,7 +60,7 @@ export default function ChallengePage({ params }: ChallengePageProps) {
   const router = useRouter()
   
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 py-20">
       <div className="max-w-6xl mx-auto space-y-4">
         <div className="mb-6">
           <button 

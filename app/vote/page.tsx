@@ -987,7 +987,7 @@ export default function VotePage() {
 
   if (isInitialLoading || isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus || isLoadingVoteResults || isLoadingBlockNumber || isLoadingGovernanceConfig || isLoadingWalletTokenInfo) {
     return (
-      <div className="container mx-auto py-6 flex flex-col items-center justify-center min-h-[50vh]">
+      <div className="container mx-auto px-20 py-16 flex flex-col items-center justify-center min-h-[50vh]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
         <p className="text-muted-foreground">
           {isInitialLoading ? 'Loading latest proposals and vote results...' :
@@ -1002,7 +1002,7 @@ export default function VotePage() {
 
   if ((errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError) && proposals.length === 0 && activeProposals.length === 0 && completedProposals.length === 0) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="container mx-auto px-20 py-16">
         <div className="bg-red-900/20 border border-red-700/50 text-red-400 px-4 py-3 rounded-md">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{errorActionable?.message || errorCompletedByStatus?.message || errorAllByStatus?.message || 'Failed to load data'}</p>
@@ -1019,9 +1019,9 @@ export default function VotePage() {
   }
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto px-20 py-16">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-100">Governance</h1>
+        <h1 className="text-3xl text-gray-100">Governance</h1>
         <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
@@ -1052,7 +1052,7 @@ export default function VotePage() {
 
       {/* Wallet Token Info Card */}
       {isConnected && (
-        <Card className="mb-6 bg-gray-900/50 border-gray-700/50">
+        <Card className="mb-6 bg-gray-900/50 border-0">
           {/* Delegate Button - Show prominently when user has tokens but is not delegated */}
           {!isLoadingWalletTokenInfo && walletTokenInfo && 
            Number(walletTokenInfo.formattedBalance) > 0 && 
@@ -1173,26 +1173,15 @@ export default function VotePage() {
         </TabsList>
 
         <TabsContent value="active" className="mt-4">
-          <div className="mb-4 text-sm text-gray-400">
-            📋 Active and recent proposals ({actionableCount?.proposals?.length || 0} total): ⏳ PENDING • 🗳️ VOTING • ⏳ PENDING QUEUE • 🔄 QUEUED • ✨ EXECUTED • ❌ DEFEATED
-            <br />
-            🚫 Only canceled proposals are excluded from this view
-            {(actionableCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
-              <span className="block mt-1">
-                Showing {((activeProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(activeProposalsPage * ITEMS_PER_PAGE, actionableCount?.proposals?.length || 0)} of {actionableCount?.proposals?.length || 0} proposals
-              </span>
-            )}
-          </div>
-          <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
+          <div className="rounded-lg border border-gray-700/50 bg-transparent">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="text-gray-300">Title</TableHead>
-                  <TableHead className="text-gray-300">Progress</TableHead>
-                  <TableHead className="text-gray-300">Proposer</TableHead>
-                  <TableHead className="text-gray-300">Vote Start</TableHead>
-                  <TableHead className="text-gray-300">Vote End</TableHead>
-                  <TableHead className="text-gray-300 text-center">Status</TableHead>
+                <TableRow className="bg-gray-800/50 hover:bg-gray-800/50">
+                  <TableHead className="text-gray-300 pl-12">Title</TableHead>
+                  <TableHead className="text-gray-300 pl-20">Progress</TableHead>
+                  <TableHead className="text-gray-300 pl-14">Vote Start</TableHead>
+                  <TableHead className="text-gray-300 pl-14">Vote End</TableHead>
+                  <TableHead className="text-gray-300 text-center pl-6">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1200,31 +1189,28 @@ export default function VotePage() {
                   paginatedActiveProposals.map((proposal) => (
                     <TableRow 
                       key={proposal.id} 
-                      className="border-gray-700/50 hover:bg-gray-800/50 cursor-pointer"
+                      className="border-0 hover:bg-gray-800/30 cursor-pointer"
                       onClick={() => window.location.href = createProposalUrl(proposal)}
                     >
-                      <TableCell className="max-w-xs">
+                      <TableCell className="max-w-xs py-6">
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
                         </div>
                       </TableCell>
-                      <TableCell className="min-w-52">
+                      <TableCell className="min-w-52 py-6">
                         <ProgressBar 
                           votesFor={proposal.votesFor} 
                           votesAgainst={proposal.votesAgainst} 
                           abstain={proposal.abstain}
                         />
                       </TableCell>
-                      <TableCell className="text-sm text-gray-300">
-                        <span className="font-mono">{proposal.proposer}</span>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-300">
+                      <TableCell className="text-sm text-gray-300 py-6">
                         {formatDate(proposal.startTime)}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-300">
+                      <TableCell className="text-sm text-gray-300 py-6">
                         {formatDate(proposal.endTime)}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center py-6">
                         <StatusBadge proposal={proposal} />
                       </TableCell>
                     </TableRow>
@@ -1244,29 +1230,27 @@ export default function VotePage() {
             totalPages={totalActivePages}
             onPageChange={setActiveProposalsPage}
           />
+          <div className="mt-4 text-sm text-gray-400 border-t border-gray-700/50 pt-4">
+            <div className="flex justify-between items-center">
+              {(actionableCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
+                <div>
+                  Showing {((activeProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(activeProposalsPage * ITEMS_PER_PAGE, actionableCount?.proposals?.length || 0)} of {actionableCount?.proposals?.length || 0} proposals
+                </div>
+              )}
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="completed" className="mt-4">
-          <div className="mb-4 text-sm text-gray-400">
-            ✨ Successfully executed proposals only ({completedCount?.proposals?.length || 0} total)
-            <br />
-            📋 These proposals have passed voting and been fully implemented
-            {(completedCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
-              <span className="block mt-1">
-                Showing {((completedProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(completedProposalsPage * ITEMS_PER_PAGE, completedCount?.proposals?.length || 0)} of {completedCount?.proposals?.length || 0} proposals
-              </span>
-            )}
-          </div>
-          <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
+          <div className="rounded-lg border border-gray-700/50 bg-transparent">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="text-gray-300">Title</TableHead>
-                  <TableHead className="text-gray-300">Progress</TableHead>
-                  <TableHead className="text-gray-300">Proposer</TableHead>
-                  <TableHead className="text-gray-300">Vote Start</TableHead>
-                  <TableHead className="text-gray-300">Vote End</TableHead>
-                  <TableHead className="text-gray-300 text-center">Status</TableHead>
+                <TableRow className="bg-gray-800/50 hover:bg-gray-800/50">
+                  <TableHead className="text-gray-300 rounded-tl-lg pl-12">Title</TableHead>
+                  <TableHead className="text-gray-300 pl-20">Progress</TableHead>
+                  <TableHead className="text-gray-300 pl-14">Vote Start</TableHead>
+                  <TableHead className="text-gray-300 pl-14">Vote End</TableHead>
+                  <TableHead className="text-gray-300 text-center rounded-tr-lg pl-6">Status</TableHead>                
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1274,38 +1258,35 @@ export default function VotePage() {
                   paginatedCompletedProposals.map((proposal) => (
                     <TableRow 
                       key={proposal.id} 
-                      className="border-gray-700/50 hover:bg-gray-800/50 cursor-pointer"
+                      className="border-0 hover:bg-gray-800/30 cursor-pointer"
                       onClick={() => window.location.href = createProposalUrl(proposal)}
                     >
-                      <TableCell className="max-w-xs">
+                      <TableCell className="max-w-xs py-6">
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
                         </div>
                       </TableCell>
-                      <TableCell className="min-w-52">
+                      <TableCell className="min-w-52 py-6">
                         <ProgressBar 
                           votesFor={proposal.votesFor} 
                           votesAgainst={proposal.votesAgainst} 
                           abstain={proposal.abstain}
                         />
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-300">
-                        <span className="font-mono">{proposal.proposer}</span>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-300">
+                      </TableCell> 
+                      <TableCell className="text-sm text-gray-300 py-6">
                         {formatDate(proposal.startTime)}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-300">
+                      <TableCell className="text-sm text-gray-300 py-6">
                         {formatDate(proposal.endTime)}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center py-6">
                         <StatusBadge proposal={proposal} />
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-gray-400">
+                    <TableCell colSpan={5} className="text-center py-12 text-gray-400">
                       No completed proposals found.
                     </TableCell>
                   </TableRow>
@@ -1318,29 +1299,27 @@ export default function VotePage() {
             totalPages={totalCompletedPages}
             onPageChange={setCompletedProposalsPage}
           />
+          <div className="mt-4 text-sm text-gray-400 border-t border-gray-700/50 pt-4">
+            <div className="flex justify-between items-center mb-2">
+              {(completedCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
+                <div>
+                  Showing {((completedProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(completedProposalsPage * ITEMS_PER_PAGE, completedCount?.proposals?.length || 0)} of {completedCount?.proposals?.length || 0} proposals
+                </div>
+              )}
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="all" className="mt-4">
-          <div className="mb-4 text-sm text-gray-400">
-            📋 All proposals with accurate statuses ({allCount?.proposals?.length || 0} total): ⏳ PENDING • 🗳️ ACTIVE • ⏳ PENDING QUEUE • 🔄 QUEUED • ✨ EXECUTED • ❌ DEFEATED • 🚫 CANCELED
-            <br />
-            🎯 Status reflects actual governance state with time-based validation
-            {(allCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
-              <span className="block mt-1">
-                Showing {((allProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(allProposalsPage * ITEMS_PER_PAGE, allCount?.proposals?.length || 0)} of {allCount?.proposals?.length || 0} proposals
-              </span>
-            )}
-          </div>
-          <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
+          <div className="rounded-lg border border-gray-700/50 bg-transparent">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="text-gray-300">Title</TableHead>
-                  <TableHead className="text-gray-300">Progress</TableHead>
-                  <TableHead className="text-gray-300">Proposer</TableHead>
-                  <TableHead className="text-gray-300">Vote Start</TableHead>
-                  <TableHead className="text-gray-300">Vote End</TableHead>
-                  <TableHead className="text-gray-300 text-center">Status</TableHead>
+                <TableRow className="bg-gray-800/50 hover:bg-gray-800/50">
+                  <TableHead className="text-gray-300 rounded-tl-lg pl-12">Title</TableHead>
+                  <TableHead className="text-gray-300 pl-20">Progress</TableHead>
+                  <TableHead className="text-gray-300 pl-14">Vote Start</TableHead>
+                  <TableHead className="text-gray-300 pl-14">Vote End</TableHead>
+                  <TableHead className="text-gray-300 text-center rounded-tr-lg pl-6">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1348,31 +1327,28 @@ export default function VotePage() {
                   paginatedAllProposals.map((proposal) => (
                     <TableRow 
                       key={proposal.id} 
-                      className="border-gray-700/50 hover:bg-gray-800/50 cursor-pointer"
+                      className="border-0 hover:bg-gray-800/30 cursor-pointer"
                       onClick={() => window.location.href = createProposalUrl(proposal)}
                     >
-                      <TableCell className="max-w-xs">
+                      <TableCell className="max-w-xs py-6">
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
                         </div>
                       </TableCell>
-                      <TableCell className="min-w-52">
+                      <TableCell className="min-w-52 py-6">
                         <ProgressBar 
                           votesFor={proposal.votesFor} 
                           votesAgainst={proposal.votesAgainst} 
                           abstain={proposal.abstain}
                         />
                       </TableCell>
-                      <TableCell className="text-sm text-gray-300">
-                        <span className="font-mono">{proposal.proposer}</span>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-300">
+                      <TableCell className="text-sm text-gray-300 py-6">
                         {formatDate(proposal.startTime)}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-300">
+                      <TableCell className="text-sm text-gray-300 py-6">
                         {formatDate(proposal.endTime)}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center py-6">
                         <StatusBadge proposal={proposal} />
                       </TableCell>
                     </TableRow>
@@ -1392,6 +1368,15 @@ export default function VotePage() {
             totalPages={totalAllPages}
             onPageChange={setAllProposalsPage}
           />
+          <div className="mt-4 text-sm text-gray-400 border-t border-gray-700/50 pt-4">
+            <div className="flex justify-between items-center mb-2">
+              {(allCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
+                <div>
+                  Showing {((allProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(allProposalsPage * ITEMS_PER_PAGE, allCount?.proposals?.length || 0)} of {allCount?.proposals?.length || 0} proposals
+                </div>
+              )}
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

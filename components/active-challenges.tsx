@@ -444,7 +444,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl text-gray-100">Active Challenges</h2>
+        <h2 className="text-3xl text-gray-100">Active Challenges</h2>
         <ChallengeTypeModal 
           onCreateChallenge={handleCreateChallenge}
           isCreating={isCreating}
@@ -458,7 +458,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-gray-700 bg-gray-900/80 hover:bg-gray-800/50">
-                  <TableHead className="text-gray-300 pl-6 w-32">Period</TableHead>
+                  <TableHead className="text-gray-300 pl-14 w-32">Type</TableHead>
                   <TableHead className="text-gray-300 w-20">ID</TableHead>
                   <TableHead className="text-gray-300 w-24">Users</TableHead>
                   <TableHead className="text-gray-300 w-24">Prize</TableHead>
@@ -474,25 +474,25 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
                     onClick={() => window.location.href = `/challenge/${challenge.challengeId}`}
                     title={`Challenge ID: ${challenge.challengeId}`}
                   >
-                    <TableCell className="font-medium text-gray-100 pl-6">
+                    <TableCell className="font-medium text-gray-100 pl-12 py-6">
                       <div className="flex items-center gap-2">
                         <Trophy className="h-4 w-4 text-yellow-500" />
                         {challenge.title}
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-gray-300 text-sm">
+                    <TableCell className="font-mono text-gray-300 text-sm py-6">
                       {challenge.challengeId}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-6">
                       <div className="flex items-center gap-1 text-gray-300">
                         <Users className="h-3 w-3" />
                         <span>{challenge.participants}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium text-yellow-400">
+                    <TableCell className="font-medium text-yellow-400 py-6">
                       {challenge.prize}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-6">
                       <div className="flex items-center gap-2">
                         <TooltipProvider>
                           <Tooltip>
@@ -512,7 +512,7 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
                         <span className="text-xs text-gray-400">{Math.round(challenge.progress)}%</span>
                       </div>
                     </TableCell>
-                    <TableCell className="pr-6">
+                    <TableCell className="pr-6 py-6">
                       {getStatusBadge(challenge.status)}
                     </TableCell>
                   </TableRow>

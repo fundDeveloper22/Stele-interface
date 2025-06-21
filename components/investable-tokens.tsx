@@ -32,7 +32,7 @@ export function InvestableTokens() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h2 className="text-2xl text-gray-100">Investable Tokens</h2>
+        <h2 className="text-3xl text-gray-100">Investable Tokens</h2>
         <Card className="bg-transparent border border-gray-700/50">
           <CardContent className="p-0">
             <div className="flex items-center justify-center py-8 px-6">
@@ -48,7 +48,7 @@ export function InvestableTokens() {
   if (error) {
     return (
       <div className="space-y-6">
-        <h2 className="text-2xl text-gray-100">Investable Tokens</h2>
+        <h2 className="text-3xl text-gray-100">Investable Tokens</h2>
         <Card className="bg-transparent border border-gray-700/50">
           <CardContent className="p-0">
             <div className="text-center py-8 px-6">
@@ -68,7 +68,7 @@ export function InvestableTokens() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <h2 className="text-2xl text-gray-100">Investable Tokens</h2>
+        <h2 className="text-3xl text-gray-100">Investable Tokens</h2>
         <Badge variant="secondary" className="bg-gray-700 text-gray-300">
           {tokens.length} tokens
         </Badge>
@@ -96,15 +96,15 @@ export function InvestableTokens() {
                     className="border-0 hover:bg-gray-800/30 cursor-pointer transition-colors"
                     onClick={() => handleRowClick(token.tokenAddress)}
                   >
-                    <TableCell className="font-medium text-gray-100 pl-6">
+                    <TableCell className="font-medium text-gray-100 pl-6 py-6">
                       {token.symbol}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-6">
                       <code className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">
                         {formatAddress(token.tokenAddress)}
                       </code>
                     </TableCell>
-                    <TableCell className="text-gray-400 pr-6">
+                    <TableCell className="text-gray-400 pr-6 py-6">
                       {formatDate(token.updatedTimestamp)}
                     </TableCell>
                   </TableRow>

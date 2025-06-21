@@ -135,7 +135,7 @@ export function DashboardCharts() {
       <div className="mb-6">
         <Card className="bg-transparent border-0">
           <CardHeader>
-            <CardTitle className="text-4xl font-bold text-gray-100">-</CardTitle>
+            <CardTitle className="text-4xl text-gray-100">-</CardTitle>
             <p className="text-sm text-gray-400">{currentDate}</p>
           </CardHeader>
           <CardContent>
@@ -156,7 +156,7 @@ export function DashboardCharts() {
             <div className="flex items-center justify-between">
               <div>
                 <TabsContent value="participants" className="m-0">
-                  <h3 className="text-2xl text-gray-100">Total Participants</h3>
+                  <h3 className="text-3xl text-gray-100">Total Participants</h3>
                 </TabsContent>
                 <TabsContent value="rewards" className="m-0">
                   <h3 className="text-2xl text-gray-100">Total Rewards</h3>
@@ -177,7 +177,7 @@ export function DashboardCharts() {
           <CardContent>
             <TabsContent value="participants" className="mt-0">
               <div className="mb-2">
-                <CardTitle className="text-4xl font-bold text-gray-100">
+                <CardTitle className="text-4xl text-gray-100">
                   {totalParticipants >= 1000 ? `${(totalParticipants / 1000).toFixed(1)}K` : totalParticipants.toLocaleString()}
                 </CardTitle>
                 <p className="text-sm text-gray-400">{currentDate}</p>
@@ -241,7 +241,7 @@ export function DashboardCharts() {
 
             <TabsContent value="rewards" className="mt-0">
               <div className="mb-2">
-                <CardTitle className="text-4xl font-bold text-gray-100">
+                <CardTitle className="text-4xl text-gray-100">
                   ${totalRewards >= 1000000 ? `${(totalRewards / 1000000).toFixed(1)}M` : totalRewards >= 1000 ? `${(totalRewards / 1000).toFixed(1)}K` : totalRewards.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </CardTitle>
                 <p className="text-sm text-gray-400">{currentDate}</p>
