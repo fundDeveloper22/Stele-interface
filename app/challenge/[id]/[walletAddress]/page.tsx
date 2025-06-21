@@ -392,28 +392,14 @@ export default function InvestorPage({ params }: InvestorPageProps) {
             </Link>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold text-gray-100">Investor Account</h1>
+                <h1 className="text-3xl font-bold text-gray-100">Investor</h1>
                 <p className="text-gray-400">
                   {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
                 </p>
               </div>
             </div>
           </div>
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
-                {challengeData?.challenge?.isActive ? "Active" : "Inactive"}
-              </Badge>
-              <Badge variant="outline">
-                {getChallengeTitle()}
-              </Badge>
-              {challengeDetails && (
-                <Badge variant="outline">
-                  {challengeDetails.participants} participants
-                </Badge>
-              )}
-            </div>
-            
+          <div className="space-y-4">            
             {/* Swap and Register Buttons */}
             <div className="flex justify-end gap-2">
               <Button 
@@ -457,338 +443,256 @@ export default function InvestorPage({ params }: InvestorPageProps) {
           </div>
         </div>
 
-        {/* Investor Charts */}
-        <InvestorCharts 
-          challengeId={challengeId} 
-          investor={walletAddress} 
-          investorData={investorData}
-          swapMode={isSwapMode}
-          userTokens={userTokens}
-        />
-
-        {/* Tabbed Content Section */}
+        {/* Main Content Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Side - Tabbed Content */}
-          <div className="lg:col-span-2">
+          {/* Left Side - Charts + Tabs */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Investor Charts */}
+            <InvestorCharts 
+              challengeId={challengeId} 
+              investor={walletAddress} 
+              investorData={investorData}
+            />
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="portfolio" className="flex items-center gap-2">
                   <BarChart3 className="h-4 w-4" />
                   Portfolio
-                </TabsTrigger>
-                <TabsTrigger value="swap" className="flex items-center gap-2">
-                  <Repeat className="h-4 w-4" />
-                  Swap
                 </TabsTrigger>
                 <TabsTrigger value="transactions" className="flex items-center gap-2">
                   <Activity className="h-4 w-4" />
                   Transactions
                 </TabsTrigger>
-                <TabsTrigger value="stats" className="flex items-center gap-2">
-                  <Star className="h-4 w-4" />
-                  Stats
-                </TabsTrigger>
               </TabsList>
-
-          <TabsContent value="portfolio" className="space-y-4">
-            <Card className="bg-gray-900/50 border-gray-700/50">
-              <CardHeader>
-                <CardTitle className="text-gray-100">Token Holdings</CardTitle>
-                <CardDescription className="text-gray-400">Your current cryptocurrency portfolio</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {userTokens.map((token, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 rounded-lg border border-gray-700">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                          {token.symbol.slice(0, 2)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-100">{token.symbol}</p>
-                          <p className="text-sm text-gray-400">{token.address.slice(0, 8)}...{token.address.slice(-6)}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium text-gray-100">{token.amount}</p>
-                        <p className="text-sm text-gray-400">{token.symbol}</p>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {userTokens.length === 0 && (
-                    <div className="text-center py-8 text-gray-400">
-                      <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No tokens found in this portfolio</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="swap" className="space-y-4">
-            <AssetSwap userTokens={userTokens} />
-          </TabsContent>
-
-          <TabsContent value="transactions" className="space-y-4">
-            <Card className="bg-gray-900/50 border-gray-700/50">
-              <CardHeader>
-                <CardTitle className="text-gray-100">Recent Transactions</CardTitle>
-                <CardDescription className="text-gray-400">Your trading and activity history</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {isLoadingTransactions ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                      <span className="ml-2 text-gray-400">Loading transactions...</span>
-                    </div>
-                  ) : transactionsError ? (
-                    <div className="text-center py-8 text-red-400">
-                      <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p className="font-medium">Error loading transactions</p>
-                      <p className="text-sm text-gray-400 mt-2">Please try again later</p>
-                    </div>
-                  ) : investorTransactions.length > 0 ? (
-                    investorTransactions.map((transaction) => {
-                      const getTransactionIcon = (type: string) => {
-                        switch (type) {
-                          case 'join':
-                            return <User className="h-4 w-4 text-white" />
-                          case 'swap':
-                            return <Repeat className="h-4 w-4 text-white" />
-                          case 'register':
-                            return <BarChart3 className="h-4 w-4 text-white" />
-                          case 'reward':
-                            return <Trophy className="h-4 w-4 text-white" />
-                          default:
-                            return <Activity className="h-4 w-4 text-white" />
-                        }
-                      }
-
-                      const getIconColor = (type: string) => {
-                        switch (type) {
-                          case 'join':
-                            return 'bg-blue-500'
-                          case 'swap':
-                            return 'bg-green-500'
-                          case 'register':
-                            return 'bg-orange-500'
-                          case 'reward':
-                            return 'bg-yellow-500'
-                          default:
-                            return 'bg-gray-500'
-                        }
-                      }
-
-                      const formatTimestamp = (timestamp: number) => {
-                        return new Date(timestamp * 1000).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })
-                      }
-
-                      return (
-                        <div key={transaction.id} className="flex items-center justify-between p-4 rounded-lg border border-gray-700">
+              <TabsContent value="portfolio" className="space-y-4">
+                <Card className="bg-transparent border border-gray-700/50">
+                  <CardHeader>
+                    <CardTitle className="text-gray-100">Token Holdings</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {userTokens.map((token, index) => (
+                        <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-transparent border-0">
                           <div className="flex items-center gap-3">
-                            <div className={`h-10 w-10 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
-                              {getTransactionIcon(transaction.type)}
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                              {token.symbol.slice(0, 2)}
                             </div>
                             <div>
-                              <p className="font-medium text-gray-100">{transaction.details}</p>
-                              <p className="text-sm text-gray-400">{formatTimestamp(transaction.timestamp)}</p>
+                              <p className="font-medium text-gray-100">{token.symbol}</p>
+                              <p className="text-sm text-gray-400">{token.address.slice(0, 8)}...{token.address.slice(-6)}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-medium text-gray-100">{transaction.amount || '-'}</p>
-                            <button
-                              onClick={() => window.open(`https://etherscan.io/tx/${transaction.transactionHash}`, '_blank')}
-                              className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                            >
-                              View on Etherscan
-                            </button>
+                            <p className="font-medium text-gray-100">{token.amount}</p>
                           </div>
                         </div>
-                      )
-                    })
-                  ) : (
-                    <div className="text-center py-8 text-gray-400">
-                      <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No transactions found for this investor</p>
-                      <p className="text-sm mt-2">Transaction history will appear here once you start trading</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="stats" className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              <Card className="bg-gray-900/50 border-gray-700/50">
-                <CardHeader className="pb-6">
-                  <CardTitle className="text-xl font-bold text-gray-100 flex items-center gap-2">
-                    <Trophy className="h-6 w-6 text-yellow-400" />
-                    Challenge Statistics
-                  </CardTitle>
-                  <CardDescription className="text-gray-400">
-                    Overview of challenge details and your participation
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Challenge Info */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-100 mb-4 flex items-center gap-2">
-                        <Target className="h-5 w-5 text-blue-400" />
-                        Challenge Info
-                      </h3>
+                      ))}
                       
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
-                          <span className="text-sm text-gray-400 flex items-center gap-2">
-                            <Star className="h-4 w-4" />
-                            Challenge Type
-                          </span>
-                          <Badge variant="outline" className="font-medium">
-                            {getChallengeTitle()}
-                          </Badge>
+                      {userTokens.length === 0 && (
+                        <div className="text-center py-8 text-gray-400">
+                          <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No tokens found in this portfolio</p>
                         </div>
-                        
-                        <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
-                          <span className="text-sm text-gray-400 flex items-center gap-2">
-                            <BarChart3 className="h-4 w-4" />
-                            Challenge ID
-                          </span>
-                          <span className="font-medium text-gray-100">#{challengeData?.challenge?.challengeId || challengeId}</span>
-                        </div>
-                        
-                        <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
-                          <span className="text-sm text-gray-400 flex items-center gap-2">
-                            <User className="h-4 w-4" />
-                            Participants
-                          </span>
-                          <span className="font-medium text-gray-100">
-                            {challengeDetails ? challengeDetails.participants : 'Loading...'}
-                          </span>
-                        </div>
-                        
-                        <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
-                          <span className="text-sm text-gray-400 flex items-center gap-2">
-                            <Badge 
-                              variant={challengeData?.challenge?.isActive ? "default" : "secondary"}
-                              className="h-4 w-4 rounded-full p-0"
-                            />
-                            Status
-                          </span>
-                          <Badge variant={challengeData?.challenge?.isActive ? "default" : "secondary"}>
-                            {challengeData?.challenge?.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </div>
-                      </div>
+                      )}
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-                    {/* Timeline & Rewards */}
+              <TabsContent value="transactions" className="space-y-4">
+                <Card className="bg-transparent border border-gray-700/50">
+                  <CardHeader>
+                    <CardTitle className="text-gray-100">Recent Transactions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-100 mb-4 flex items-center gap-2">
-                        <Clock className="h-5 w-5 text-green-400" />
-                        Timeline & Rewards
-                      </h3>
-                      
-                      <div className="space-y-3">
-                        {challengeDetails ? (
-                          <>
-                            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
-                              <span className="text-sm text-gray-400 flex items-center gap-2">
-                                <Clock className="h-4 w-4" />
-                                Start Date
-                              </span>
-                              <span className="font-medium text-gray-100">
-                                {challengeDetails.startTime.toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })}
-                              </span>
+                      {isLoadingTransactions ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                          <span className="ml-2 text-gray-400">Loading transactions...</span>
+                        </div>
+                      ) : transactionsError ? (
+                        <div className="text-center py-8 text-red-400">
+                          <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p className="font-medium">Error loading transactions</p>
+                          <p className="text-sm text-gray-400 mt-2">Please try again later</p>
+                        </div>
+                      ) : investorTransactions.length > 0 ? (
+                        investorTransactions.map((transaction) => {
+                          const getTransactionIcon = (type: string) => {
+                            switch (type) {
+                              case 'join':
+                                return <User className="h-4 w-4 text-white" />
+                              case 'swap':
+                                return <Repeat className="h-4 w-4 text-white" />
+                              case 'register':
+                                return <BarChart3 className="h-4 w-4 text-white" />
+                              case 'reward':
+                                return <Trophy className="h-4 w-4 text-white" />
+                              default:
+                                return <Activity className="h-4 w-4 text-white" />
+                            }
+                          }
+
+                          const getIconColor = (type: string) => {
+                            switch (type) {
+                              case 'join':
+                                return 'bg-blue-500'
+                              case 'swap':
+                                return 'bg-green-500'
+                              case 'register':
+                                return 'bg-orange-500'
+                              case 'reward':
+                                return 'bg-yellow-500'
+                              default:
+                                return 'bg-gray-500'
+                            }
+                          }
+
+                          const formatTimestamp = (timestamp: number) => {
+                            return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
+                          }
+
+                          return (
+                            <div 
+                              key={transaction.id} 
+                              className="flex items-center justify-between p-4 rounded-lg bg-transparent border-0 cursor-pointer hover:bg-gray-800/20 transition-colors"
+                              onClick={() => window.open(`https://etherscan.io/tx/${transaction.transactionHash}`, '_blank')}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`h-10 w-10 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
+                                  {getTransactionIcon(transaction.type)}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-gray-100">{transaction.details}</p>
+                                  <p className="text-sm text-gray-400">{formatTimestamp(transaction.timestamp)}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-medium text-gray-100">{transaction.amount || '-'}</p>
+                              </div>
                             </div>
-                            
-                            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
-                              <span className="text-sm text-gray-400 flex items-center gap-2">
-                                <Clock className="h-4 w-4" />
-                                End Date
-                              </span>
-                              <span className="font-medium text-gray-100">
-                                {challengeDetails.endTime.toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })}
-                              </span>
-                            </div>
-                            
-                            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
-                              <span className="text-sm text-gray-400 flex items-center gap-2">
-                                <Trophy className="h-4 w-4" />
-                                Prize
-                              </span>
-                              <span className="font-semibold text-yellow-400 text-lg">
-                                {challengeDetails.prize}
-                              </span>
-                            </div>
-                            
-                            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
-                              <span className="text-sm text-gray-400 flex items-center gap-2">
-                                <DollarSign className="h-4 w-4" />
-                                Entry Fee
-                              </span>
-                              <span className="font-medium text-gray-100">
-                                {challengeDetails.entryFee}
-                              </span>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
-                              <span className="text-sm text-gray-400 flex items-center gap-2">
-                                <Clock className="h-4 w-4" />
-                                Start Date
-                              </span>
-                              <span className="font-medium text-gray-100">
-                                {new Date(Number(investor.createdAtTimestamp) * 1000).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })}
-                              </span>
-                            </div>
-                            
-                            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50">
-                              <span className="text-sm text-gray-400 flex items-center gap-2">
-                                <Activity className="h-4 w-4" />
-                                Last Update
-                              </span>
-                              <span className="font-medium text-gray-100">
-                                {new Date(Number(investor.updatedAtTimestamp) * 1000).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                      </div>
+                          )
+                        })
+                      ) : (
+                        <div className="text-center py-8 text-gray-400">
+                          <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No transactions found for this investor</p>
+                          <p className="text-sm mt-2">Transaction history will appear here once you start trading</p>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
             </Tabs>
+          </div>
+          
+          {/* Right Side - Portfolio Summary / Swap Assets */}
+          <div className="lg:col-span-1">
+            {isSwapMode ? (
+              <AssetSwap userTokens={userTokens} />
+            ) : (
+              <div className="space-y-4">
+                {/* Portfolio Summary */}
+                <Card className="bg-gray-900 border-0 rounded-2xl">
+                  <CardContent className="p-8 space-y-8">
+                    {/* Progress */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-400">Progress</span>
+                        <span className="text-sm font-medium text-gray-300">
+                          {(() => {
+                            if (!challengeDetails || !isClient) return '0%';
+                            
+                            const startTime = challengeDetails.startTime.getTime();
+                            const endTime = challengeDetails.endTime.getTime();
+                            const now = currentTime.getTime();
+                            
+                            if (now < startTime) return '0%';
+                            if (now >= endTime) return '100%';
+                            
+                            const totalDuration = endTime - startTime;
+                            const elapsed = now - startTime;
+                            const progress = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
+                            
+                            return `${progress.toFixed(0)}%`;
+                          })()}
+                        </span>
+                      </div>
+                      
+                      {/* Progress Bar */}
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
+                          style={{ 
+                            width: `${(() => {
+                              if (!challengeDetails || !isClient) return 0;
+                              
+                              const startTime = challengeDetails.startTime.getTime();
+                              const endTime = challengeDetails.endTime.getTime();
+                              const now = currentTime.getTime();
+                              
+                              if (now < startTime) return 0;
+                              if (now >= endTime) return 100;
+                              
+                              const totalDuration = endTime - startTime;
+                              const elapsed = now - startTime;
+                              const progress = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
+                              
+                              return progress;
+                            })()}%` 
+                          }}
+                        ></div>
+                      </div>
+                      
+                      {/* Time Info */}
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>Started: {challengeDetails?.startTime.toLocaleDateString() || 'N/A'}</span>
+                        <span>Ends: {challengeDetails?.endTime.toLocaleDateString() || 'N/A'}</span>
+                      </div>
+                    </div>
+
+                    {/* Portfolio Value */}
+                    <div className="space-y-2">
+                      <span className="text-sm text-gray-400">Portfolio Value</span>
+                      <div className="text-4xl text-white">
+                        ${currentValue.toFixed(2)}
+                      </div>
+                    </div>
+
+                    {/* Gain/Loss */}
+                    <div className="space-y-2">
+                      <span className="text-sm text-gray-400">Gain/Loss</span>
+                      <div className={`text-4xl font-bold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                        {isPositive ? '+' : ''}${gainLoss.toFixed(2)}
+                      </div>
+                      <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                        {isPositive ? '+' : ''}{gainLossPercentage.toFixed(2)}%
+                      </div>
+                    </div>
+
+                    {/* Status */}
+                    <div className="space-y-2">
+                      <span className="text-sm text-gray-400">Status</span>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${challengeData?.challenge?.isActive ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+                        <span className={`text-lg font-medium ${challengeData?.challenge?.isActive ? 'text-green-400' : 'text-gray-400'}`}>
+                          {challengeData?.challenge?.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </div>
       </div>
