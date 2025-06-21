@@ -46,7 +46,7 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
   if (isLoading) {
     return (
       <div className={cn("space-y-6", className)}>
-        <h2 className="text-xl font-bold text-gray-100">Total Ranking</h2>
+        <h2 className="text-3xl text-gray-100">Total Ranking</h2>
         <Card className="bg-transparent border border-gray-700/50">
           <CardContent>
             <div className="flex items-center justify-center py-8">
@@ -62,7 +62,7 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
   if (error) {
     return (
       <div className={cn("space-y-6", className)}>
-        <h2 className="text-2xl text-gray-100">Total Ranking</h2>
+        <h2 className="text-3xl text-gray-100">Total Ranking</h2>
         <Card className="bg-transparent border border-gray-700/50">
           <CardContent>
             <div className="text-center py-8">
@@ -82,8 +82,8 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
   return (
     <div className={cn("space-y-6", className)}>
       <div className="flex items-center gap-2">
-        <Trophy className="h-5 w-5 text-gray-100" />
-        <h2 className="text-2xl text-gray-100">Total Ranking</h2>
+        <Trophy className="h-6 w-6 text-gray-100" />
+        <h2 className="text-3xl text-gray-100">Total Ranking</h2>
         <Badge variant="secondary" className="ml-2 bg-gray-700 text-gray-300">
           {rankings.length} participants
         </Badge>

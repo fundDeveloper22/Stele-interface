@@ -987,7 +987,7 @@ export default function VotePage() {
 
   if (isInitialLoading || isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus || isLoadingVoteResults || isLoadingBlockNumber || isLoadingGovernanceConfig || isLoadingWalletTokenInfo) {
     return (
-      <div className="container mx-auto py-6 flex flex-col items-center justify-center min-h-[50vh]">
+      <div className="container mx-auto px-20 py-16 flex flex-col items-center justify-center min-h-[50vh]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
         <p className="text-muted-foreground">
           {isInitialLoading ? 'Loading latest proposals and vote results...' :
@@ -1002,7 +1002,7 @@ export default function VotePage() {
 
   if ((errorActionable || errorCompletedByStatus || errorAllByStatus || governanceConfigError) && proposals.length === 0 && activeProposals.length === 0 && completedProposals.length === 0) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="container mx-auto px-20 py-16">
         <div className="bg-red-900/20 border border-red-700/50 text-red-400 px-4 py-3 rounded-md">
           <p className="font-medium">Error loading data</p>
           <p className="text-sm">{errorActionable?.message || errorCompletedByStatus?.message || errorAllByStatus?.message || 'Failed to load data'}</p>
@@ -1019,9 +1019,9 @@ export default function VotePage() {
   }
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto px-20 py-16">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-100">Governance</h1>
+        <h1 className="text-3xl text-gray-100">Governance</h1>
         <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
@@ -1179,7 +1179,6 @@ export default function VotePage() {
                 <TableRow>
                   <TableHead className="text-gray-300">Title</TableHead>
                   <TableHead className="text-gray-300">Progress</TableHead>
-                  <TableHead className="text-gray-300">Proposer</TableHead>
                   <TableHead className="text-gray-300">Vote Start</TableHead>
                   <TableHead className="text-gray-300">Vote End</TableHead>
                   <TableHead className="text-gray-300 text-center">Status</TableHead>
@@ -1204,9 +1203,6 @@ export default function VotePage() {
                           votesAgainst={proposal.votesAgainst} 
                           abstain={proposal.abstain}
                         />
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-300">
-                        <span className="font-mono">{proposal.proposer}</span>
                       </TableCell>
                       <TableCell className="text-sm text-gray-300">
                         {formatDate(proposal.startTime)}
@@ -1253,7 +1249,6 @@ export default function VotePage() {
                   <TableHead className="text-gray-300">Title</TableHead>
                   <TableHead className="text-gray-300">Progress</TableHead>
                   <TableHead className="text-gray-300">Proposer</TableHead>
-                  <TableHead className="text-gray-300">Vote Start</TableHead>
                   <TableHead className="text-gray-300">Vote End</TableHead>
                   <TableHead className="text-gray-300 text-center">Status</TableHead>
                 </TableRow>
@@ -1282,9 +1277,6 @@ export default function VotePage() {
                         <span className="font-mono">{proposal.proposer}</span>
                       </TableCell>
                       <TableCell className="text-sm text-gray-300">
-                        {formatDate(proposal.startTime)}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-300">
                         {formatDate(proposal.endTime)}
                       </TableCell>
                       <TableCell className="text-center">
@@ -1294,7 +1286,7 @@ export default function VotePage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-gray-400">
+                    <TableCell colSpan={5} className="text-center py-12 text-gray-400">
                       No completed proposals found.
                     </TableCell>
                   </TableRow>
@@ -1326,7 +1318,6 @@ export default function VotePage() {
                   <TableHead className="text-gray-300">Title</TableHead>
                   <TableHead className="text-gray-300">Progress</TableHead>
                   <TableHead className="text-gray-300">Proposer</TableHead>
-                  <TableHead className="text-gray-300">Vote Start</TableHead>
                   <TableHead className="text-gray-300">Vote End</TableHead>
                   <TableHead className="text-gray-300 text-center">Status</TableHead>
                 </TableRow>

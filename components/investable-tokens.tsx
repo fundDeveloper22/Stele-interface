@@ -32,7 +32,7 @@ export function InvestableTokens() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h2 className="text-2xl text-gray-100">Investable Tokens</h2>
+        <h2 className="text-3xl text-gray-100">Investable Tokens</h2>
         <Card className="bg-transparent border border-gray-700/50">
           <CardContent className="p-0">
             <div className="flex items-center justify-center py-8 px-6">
@@ -48,7 +48,7 @@ export function InvestableTokens() {
   if (error) {
     return (
       <div className="space-y-6">
-        <h2 className="text-2xl text-gray-100">Investable Tokens</h2>
+        <h2 className="text-3xl text-gray-100">Investable Tokens</h2>
         <Card className="bg-transparent border border-gray-700/50">
           <CardContent className="p-0">
             <div className="text-center py-8 px-6">
@@ -68,7 +68,7 @@ export function InvestableTokens() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <h2 className="text-2xl text-gray-100">Investable Tokens</h2>
+        <h2 className="text-3xl text-gray-100">Investable Tokens</h2>
         <Badge variant="secondary" className="bg-gray-700 text-gray-300">
           {tokens.length} tokens
         </Badge>

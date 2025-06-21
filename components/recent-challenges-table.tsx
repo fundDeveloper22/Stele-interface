@@ -129,10 +129,9 @@ export function RecentChallengesTable() {
   return (
     <Card className="bg-transparent border-0">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-gray-100">
-          <Trophy className="h-5 w-5" />
+        <h2 className="text-3xl text-gray-100">
           Total Challenges
-        </CardTitle>
+        </h2>
       </CardHeader>
       <CardContent>
         <div className="rounded-md border border-gray-700">
@@ -166,11 +165,15 @@ export function RecentChallengesTable() {
                       className="border-0 hover:bg-gray-800/50 cursor-pointer transition-colors"
                       onClick={() => window.location.href = `/challenge/${challenge.challengeId}`}
                     >
-                      <TableCell className="font-medium pl-12 py-6">
-                        {challenge.challengeId.slice(0, 8)}
+                      <TableCell className="pl-12 py-6">
+                        <div className="text-sm text-gray-400">
+                          {challenge.challengeId.slice(0, 8)}
+                        </div>
                       </TableCell>
                       <TableCell className="pl-6 py-6">
-                        {getChallengeTypeName(challenge.challengeType)}
+                        <span className="font-medium text-gray-100 text-base">
+                          {getChallengeTypeName(challenge.challengeType)}
+                        </span>
                       </TableCell>
                       <TableCell className="pl-10 py-6">
                         <div className="flex items-center gap-1 text-gray-300">

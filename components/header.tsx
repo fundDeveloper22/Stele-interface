@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { ethers } from "ethers"
 import { 
   ETHEREUM_CHAIN_ID, 
@@ -34,6 +34,7 @@ export function Header() {
   const [isConnecting, setIsConnecting] = useState(false)
   const [balance, setBalance] = useState<string>('0')
   const [isLoadingBalance, setIsLoadingBalance] = useState(false)
+  const [challengesDropdownOpen, setChallengesDropdownOpen] = useState(false)
   
   // Get entry fee from context
   const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee()
@@ -125,6 +126,8 @@ export function Header() {
     }
   }, [walletAddress, walletNetwork]);
 
+
+
   const { symbol, name } = getNetworkInfo();
 
   return (
@@ -147,30 +150,42 @@ export function Header() {
               <span>Dashboard</span>
             </div>
           </Link>
-          <Link href={"/portfolio"} className="mr-6">
+          <div 
+            className="mr-6 relative"
+            onMouseEnter={() => setChallengesDropdownOpen(true)}
+            onMouseLeave={() => setChallengesDropdownOpen(false)}
+          >
             <div 
               className={cn(
-                "flex flex-row items-center font-medium text-base transition-colors",
-                pathname.includes("/portfolio") 
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <span>My Portfolio</span>
-            </div>
-          </Link>
-          <Link href={"/challenges"} className="mr-6">
-            <div 
-              className={cn(
-                "flex flex-row items-center font-medium text-base transition-colors",
-                pathname.includes("/challenges") || pathname.includes("/challenge/") 
+                "flex flex-row items-center font-medium text-base transition-colors cursor-pointer",
+                pathname.includes("/challenges") || pathname.includes("/challenge/") || pathname.includes("/portfolio")
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
               <span>Challenges</span>
             </div>
-          </Link>
+            {challengesDropdownOpen && (
+              <div className="absolute top-full left-0 -mt-1 w-52 z-50 pt-2">
+                {/* Invisible bridge area */}
+                <div className="h-1 w-full"></div>
+                <div className="space-y-2 p-2 bg-background border border-gray-600 rounded-2xl shadow-xl">
+                  <Link 
+                    href="/portfolio"
+                    className="block px-4 py-3 text-base text-white bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-2xl transition-all duration-200 font-medium shadow-lg"
+                  >
+                    My Portfolios
+                  </Link>
+                  <Link 
+                    href="/challenges"
+                    className="block px-4 py-3 text-base text-white bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-2xl transition-all duration-200 font-medium shadow-lg"
+                  >
+                    Total Challenges
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
           <Link href={"/vote"} className="mr-6">
             <div 
               className={cn(

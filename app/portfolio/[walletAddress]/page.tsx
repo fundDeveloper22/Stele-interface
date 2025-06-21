@@ -292,8 +292,8 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
   // Handle loading state
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <div className="container mx-auto px-6 py-20">
+        <div className="max-w-6xl mx-auto space-y-6">
           {/* Header Loading */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="space-y-2">
@@ -383,8 +383,8 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="container mx-auto px-6 py-20">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-2">
