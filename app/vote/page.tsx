@@ -1052,7 +1052,7 @@ export default function VotePage() {
 
       {/* Wallet Token Info Card */}
       {isConnected && (
-        <Card className="mb-6 bg-gray-900/50 border-gray-700/50">
+        <Card className="mb-6 bg-gray-900/50 border-0">
           {/* Delegate Button - Show prominently when user has tokens but is not delegated */}
           {!isLoadingWalletTokenInfo && walletTokenInfo && 
            Number(walletTokenInfo.formattedBalance) > 0 && 
@@ -1173,15 +1173,15 @@ export default function VotePage() {
         </TabsList>
 
         <TabsContent value="active" className="mt-4">
-          <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
+          <div className="rounded-lg border border-gray-700/50 bg-transparent">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="text-gray-300">Title</TableHead>
-                  <TableHead className="text-gray-300">Progress</TableHead>
-                  <TableHead className="text-gray-300">Vote Start</TableHead>
-                  <TableHead className="text-gray-300">Vote End</TableHead>
-                  <TableHead className="text-gray-300 text-center">Status</TableHead>
+                <TableRow className="bg-gray-800/50 hover:bg-gray-800/50">
+                  <TableHead className="text-gray-300 pl-12">Title</TableHead>
+                  <TableHead className="text-gray-300 pl-20">Progress</TableHead>
+                  <TableHead className="text-gray-300 pl-14">Vote Start</TableHead>
+                  <TableHead className="text-gray-300 pl-14">Vote End</TableHead>
+                  <TableHead className="text-gray-300 text-center pl-6">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1189,28 +1189,28 @@ export default function VotePage() {
                   paginatedActiveProposals.map((proposal) => (
                     <TableRow 
                       key={proposal.id} 
-                      className="border-gray-700/50 hover:bg-gray-800/50 cursor-pointer"
+                      className="border-0 hover:bg-gray-800/30 cursor-pointer"
                       onClick={() => window.location.href = createProposalUrl(proposal)}
                     >
-                      <TableCell className="max-w-xs">
+                      <TableCell className="max-w-xs py-6">
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
                         </div>
                       </TableCell>
-                      <TableCell className="min-w-52">
+                      <TableCell className="min-w-52 py-6">
                         <ProgressBar 
                           votesFor={proposal.votesFor} 
                           votesAgainst={proposal.votesAgainst} 
                           abstain={proposal.abstain}
                         />
                       </TableCell>
-                      <TableCell className="text-sm text-gray-300">
+                      <TableCell className="text-sm text-gray-300 py-6">
                         {formatDate(proposal.startTime)}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-300">
+                      <TableCell className="text-sm text-gray-300 py-6">
                         {formatDate(proposal.endTime)}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center py-6">
                         <StatusBadge proposal={proposal} />
                       </TableCell>
                     </TableRow>
@@ -1242,15 +1242,15 @@ export default function VotePage() {
         </TabsContent>
 
         <TabsContent value="completed" className="mt-4">
-          <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
+          <div className="rounded-lg border border-gray-700/50 bg-transparent">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="text-gray-300">Title</TableHead>
-                  <TableHead className="text-gray-300">Progress</TableHead>
-                  <TableHead className="text-gray-300">Proposer</TableHead>
-                  <TableHead className="text-gray-300">Vote End</TableHead>
-                  <TableHead className="text-gray-300 text-center">Status</TableHead>
+                <TableRow className="bg-gray-800/50 hover:bg-gray-800/50">
+                  <TableHead className="text-gray-300 rounded-tl-lg pl-12">Title</TableHead>
+                  <TableHead className="text-gray-300 pl-20">Progress</TableHead>
+                  <TableHead className="text-gray-300 pl-14">Vote Start</TableHead>
+                  <TableHead className="text-gray-300 pl-14">Vote End</TableHead>
+                  <TableHead className="text-gray-300 text-center rounded-tr-lg pl-6">Status</TableHead>                
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1258,28 +1258,28 @@ export default function VotePage() {
                   paginatedCompletedProposals.map((proposal) => (
                     <TableRow 
                       key={proposal.id} 
-                      className="border-gray-700/50 hover:bg-gray-800/50 cursor-pointer"
+                      className="border-0 hover:bg-gray-800/30 cursor-pointer"
                       onClick={() => window.location.href = createProposalUrl(proposal)}
                     >
-                      <TableCell className="max-w-xs">
+                      <TableCell className="max-w-xs py-6">
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
                         </div>
                       </TableCell>
-                      <TableCell className="min-w-52">
+                      <TableCell className="min-w-52 py-6">
                         <ProgressBar 
                           votesFor={proposal.votesFor} 
                           votesAgainst={proposal.votesAgainst} 
                           abstain={proposal.abstain}
                         />
+                      </TableCell> 
+                      <TableCell className="text-sm text-gray-300 py-6">
+                        {formatDate(proposal.startTime)}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-300">
-                        <span className="font-mono">{proposal.proposer}</span>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-300">
+                      <TableCell className="text-sm text-gray-300 py-6">
                         {formatDate(proposal.endTime)}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center py-6">
                         <StatusBadge proposal={proposal} />
                       </TableCell>
                     </TableRow>
@@ -1311,15 +1311,15 @@ export default function VotePage() {
         </TabsContent>
 
         <TabsContent value="all" className="mt-4">
-          <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
+          <div className="rounded-lg border border-gray-700/50 bg-transparent">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="text-gray-300">Title</TableHead>
-                  <TableHead className="text-gray-300">Progress</TableHead>
-                  <TableHead className="text-gray-300">Proposer</TableHead>
-                  <TableHead className="text-gray-300">Vote End</TableHead>
-                  <TableHead className="text-gray-300 text-center">Status</TableHead>
+                <TableRow className="bg-gray-800/50 hover:bg-gray-800/50">
+                  <TableHead className="text-gray-300 rounded-tl-lg pl-12">Title</TableHead>
+                  <TableHead className="text-gray-300 pl-20">Progress</TableHead>
+                  <TableHead className="text-gray-300 pl-14">Vote Start</TableHead>
+                  <TableHead className="text-gray-300 pl-14">Vote End</TableHead>
+                  <TableHead className="text-gray-300 text-center rounded-tr-lg pl-6">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1327,31 +1327,28 @@ export default function VotePage() {
                   paginatedAllProposals.map((proposal) => (
                     <TableRow 
                       key={proposal.id} 
-                      className="border-gray-700/50 hover:bg-gray-800/50 cursor-pointer"
+                      className="border-0 hover:bg-gray-800/30 cursor-pointer"
                       onClick={() => window.location.href = createProposalUrl(proposal)}
                     >
-                      <TableCell className="max-w-xs">
+                      <TableCell className="max-w-xs py-6">
                         <div className="flex items-center gap-2">
                           <h3 className="font-medium text-gray-100 truncate">{proposal.title}</h3>
                         </div>
                       </TableCell>
-                      <TableCell className="min-w-52">
+                      <TableCell className="min-w-52 py-6">
                         <ProgressBar 
                           votesFor={proposal.votesFor} 
                           votesAgainst={proposal.votesAgainst} 
                           abstain={proposal.abstain}
                         />
                       </TableCell>
-                      <TableCell className="text-sm text-gray-300">
-                        <span className="font-mono">{proposal.proposer}</span>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-300">
+                      <TableCell className="text-sm text-gray-300 py-6">
                         {formatDate(proposal.startTime)}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-300">
+                      <TableCell className="text-sm text-gray-300 py-6">
                         {formatDate(proposal.endTime)}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center py-6">
                         <StatusBadge proposal={proposal} />
                       </TableCell>
                     </TableRow>
