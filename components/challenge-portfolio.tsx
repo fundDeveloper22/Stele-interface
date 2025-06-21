@@ -86,74 +86,74 @@ function RankingSection({ challengeId }: { challengeId: string }) {
   };
 
   return (
-    <Card className="bg-gray-900/50 border-gray-700/50">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base text-gray-100">Ranking</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {isLoadingRanking ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-              <span className="ml-2 text-gray-400">Loading rankings...</span>
-            </div>
-          ) : rankingError ? (
-            <div className="text-center py-8 text-red-400">
-              <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="font-medium">Error loading rankings</p>
-              <p className="text-sm text-gray-500 mt-2">{rankingError.message}</p>
-            </div>
-          ) : rankingData && rankingData.topUsers.length > 0 ? (
-            rankingData.topUsers.map((user, index) => {
-              const rank = index + 1;
-              const profitRatio = rankingData.profitRatios[index];
-              const formattedAddress = formatAddress(user);
-              const isEmptySlot = !formattedAddress;
+    <div>
+      <h2 className="text-3xl text-gray-100 mb-4">Ranking</h2>
+      <Card className="bg-gray-900/50 border-gray-700/50">
+        <CardContent className="p-6">
+          <div className="space-y-3">
+            {isLoadingRanking ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                <span className="ml-2 text-gray-400">Loading rankings...</span>
+              </div>
+            ) : rankingError ? (
+              <div className="text-center py-8 text-red-400">
+                <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="font-medium">Error loading rankings</p>
+                <p className="text-sm text-gray-500 mt-2">{rankingError.message}</p>
+              </div>
+            ) : rankingData && rankingData.topUsers.length > 0 ? (
+              rankingData.topUsers.map((user, index) => {
+                const rank = index + 1;
+                const profitRatio = rankingData.profitRatios[index];
+                const formattedAddress = formatAddress(user);
+                const isEmptySlot = !formattedAddress;
 
-              return (
-                <div 
-                  key={`${user}-${rank}`} 
-                  className={`flex items-center justify-between p-3 rounded-lg border ${getRankColor(rank)}`}
-                >
-                  <div className="flex items-center gap-3">
-                    {getRankIcon(rank)}
-                    <div>
-                      <div className="font-medium">
-                        {isEmptySlot ? (
-                          <span className="text-gray-500 italic">Empty</span>
-                        ) : (
-                          formattedAddress
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-400">
-                        Rank #{rank}
+                return (
+                  <div 
+                    key={`${user}-${rank}`} 
+                    className={`flex items-center justify-between p-3 rounded-lg border ${getRankColor(rank)}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {getRankIcon(rank)}
+                      <div>
+                        <div className="font-medium">
+                          {isEmptySlot ? (
+                            <span className="text-gray-500 italic">Empty</span>
+                          ) : (
+                            formattedAddress
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-400">
+                          Rank #{rank}
+                        </div>
                       </div>
                     </div>
+                    <div className="text-right">
+                      <div className="font-bold text-lg">{formatProfitRatio(profitRatio, user)}</div>
+                      <div className="text-xs text-gray-400">Profit Ratio</div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-bold text-lg">{formatProfitRatio(profitRatio, user)}</div>
-                    <div className="text-xs text-gray-400">Profit Ratio</div>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="text-center py-8 text-gray-400">
-              <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No ranking data available</p>
-              <p className="text-sm mt-1">Rankings will appear once users start trading</p>
+                );
+              })
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No ranking data available</p>
+                <p className="text-sm mt-1">Rankings will appear once users start trading</p>
+              </div>
+            )}
+          </div>
+          {rankingData && (
+            <div className="mt-4 pt-4 border-t border-gray-700">
+              <div className="text-xs text-gray-500 text-center">
+                Last updated: {new Date(parseInt(rankingData.updatedAtTimestamp) * 1000).toLocaleString()}
+              </div>
             </div>
           )}
-        </div>
-        {rankingData && (
-          <div className="mt-4 pt-4 border-t border-gray-700">
-            <div className="text-xs text-gray-500 text-center">
-              Last updated: {new Date(parseInt(rankingData.updatedAtTimestamp) * 1000).toLocaleString()}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -313,37 +313,51 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const getChallengeTitle = () => {
     if (challengeData?.challenge) {
       const challengeType = challengeData.challenge.challengeType;
+      let baseTitle = '';
       switch(challengeType) {
         case 0:
-          return '1 Week Challenge';
+          baseTitle = '1 Week Challenge';
+          break;
         case 1:
-          return '1 Month Challenge';
+          baseTitle = '1 Month Challenge';
+          break;
         case 2:
-          return '3 Month Challenge';
+          baseTitle = '3 Month Challenge';
+          break;
         case 3:
-          return '6 Month Challenge';
+          baseTitle = '6 Month Challenge';
+          break;
         case 4:
-          return '1 Year Challenge';
+          baseTitle = '1 Year Challenge';
+          break;
         default:
-          return `Challenge Type ${challengeType}`;
+          baseTitle = `Challenge Type ${challengeType}`;
       }
+      return `${baseTitle} ( ID: ${challengeId} )`;
     }
     
     // Fallback to old logic if no data
+    let baseTitle = '';
     switch(challengeId) {
       case 'one-week-challenge':
-        return 'One Week Challenge';
+        baseTitle = 'One Week Challenge';
+        break;
       case 'one-month-challenge':
-        return 'One Month Challenge';
+        baseTitle = 'One Month Challenge';
+        break;
       case 'three-month-challenge':
-        return 'Three Month Challenge';
+        baseTitle = 'Three Month Challenge';
+        break;
       case 'six-month-challenge':
-        return 'Six Month Challenge';
+        baseTitle = 'Six Month Challenge';
+        break;
       case 'one-year-challenge':
-        return 'One Year Challenge';
+        baseTitle = 'One Year Challenge';
+        break;
       default:
-        return 'One Week Challenge';
+        baseTitle = 'One Week Challenge';
     }
+    return `${baseTitle} (ID: ${challengeId})`;
   };
 
   // Get challenge details from real data
@@ -687,7 +701,14 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-100">{getChallengeTitle()}</h2>
+        <h2 className="text-xl">
+          <span className="text-gray-400">
+            {getChallengeTitle().split(' ( ID: ')[0]}
+          </span>
+          <span className="text-gray-100">
+            {getChallengeTitle().includes('( ID: ') ? ' ( ID: ' + getChallengeTitle().split('( ID: ')[1] : ''}
+          </span>
+        </h2>
         <div className="flex items-center gap-2">
           {/* Get Rewards Button - Show when challenge is ended AND current wallet is in top 5 */}
           {isClient && shouldShowGetRewards() && (
@@ -755,112 +776,112 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
       <ChallengeCharts challengeId={challengeId} />
 
       {/* Transactions and Ranking Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Transactions */}
-        <Card className="bg-gray-900/50 border-gray-700/50">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base text-gray-100">Recent Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {isLoadingTransactions ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                  <span className="ml-2 text-gray-400">Loading transactions...</span>
-                </div>
-              ) : transactionsError ? (
-                <div className="text-center py-8 text-red-400">
-                  <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="font-medium">Error loading transactions</p>
-                  <p className="text-sm text-gray-500 mt-2">{transactionsError.message}</p>
-                  <p className="text-xs text-gray-500 mt-1">Check console for more details</p>
-                </div>
-              ) : transactions.length > 0 ? (
-                transactions.slice(0, 10).map((transaction) => {
-                  const getTransactionIcon = (type: string) => {
-                    switch (type) {
-                      case 'create':
-                        return <Trophy className="h-4 w-4 text-white" />
-                      case 'join':
-                        return <User className="h-4 w-4 text-white" />
-                      case 'swap':
-                        return <ArrowLeftRight className="h-4 w-4 text-white" />
-                      case 'register':
-                        return <BarChart3 className="h-4 w-4 text-white" />
-                      case 'reward':
-                        return <Trophy className="h-4 w-4 text-white" />
-                      default:
-                        return <Receipt className="h-4 w-4 text-white" />
+        <div>
+          <h2 className="text-3xl text-gray-100 mb-4">Recent Transactions</h2>
+          <Card className="bg-gray-900/50 border-gray-700/50">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {isLoadingTransactions ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                    <span className="ml-2 text-gray-400">Loading transactions...</span>
+                  </div>
+                ) : transactionsError ? (
+                  <div className="text-center py-8 text-red-400">
+                    <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="font-medium">Error loading transactions</p>
+                    <p className="text-sm text-gray-500 mt-2">{transactionsError.message}</p>
+                    <p className="text-xs text-gray-500 mt-1">Check console for more details</p>
+                  </div>
+                ) : transactions.length > 0 ? (
+                  transactions.slice(0, 10).map((transaction) => {
+                    const getTransactionIcon = (type: string) => {
+                      switch (type) {
+                        case 'create':
+                          return <Trophy className="h-4 w-4 text-white" />
+                        case 'join':
+                          return <User className="h-4 w-4 text-white" />
+                        case 'swap':
+                          return <ArrowLeftRight className="h-4 w-4 text-white" />
+                        case 'register':
+                          return <BarChart3 className="h-4 w-4 text-white" />
+                        case 'reward':
+                          return <Trophy className="h-4 w-4 text-white" />
+                        default:
+                          return <Receipt className="h-4 w-4 text-white" />
+                      }
                     }
-                  }
 
-                  const getIconColor = (type: string) => {
-                    switch (type) {
-                      case 'create':
-                        return 'bg-purple-500'
-                      case 'join':
-                        return 'bg-blue-500'
-                      case 'swap':
-                        return 'bg-green-500'
-                      case 'register':
-                        return 'bg-orange-500'
-                      case 'reward':
-                        return 'bg-yellow-500'
-                      default:
-                        return 'bg-gray-500'
+                    const getIconColor = (type: string) => {
+                      switch (type) {
+                        case 'create':
+                          return 'bg-purple-500'
+                        case 'join':
+                          return 'bg-blue-500'
+                        case 'swap':
+                          return 'bg-green-500'
+                        case 'register':
+                          return 'bg-orange-500'
+                        case 'reward':
+                          return 'bg-yellow-500'
+                        default:
+                          return 'bg-gray-500'
+                      }
                     }
-                  }
 
-                  const formatTimestamp = (timestamp: number) => {
-                    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })
-                  }
+                    const formatTimestamp = (timestamp: number) => {
+                      return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                    }
 
-                  const formatUserAddress = (address?: string) => {
-                    if (!address) return ''
-                    return `${address.slice(0, 6)}...${address.slice(-4)}`
-                  }
+                    const formatUserAddress = (address?: string) => {
+                      if (!address) return ''
+                      return `${address.slice(0, 6)}...${address.slice(-4)}`
+                    }
 
-                  return (
-                    <div key={transaction.id} className="flex items-center justify-between py-3 border-b border-gray-700 bg-gray-800/30 px-3 rounded-lg last:border-b-0 mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
-                          {getTransactionIcon(transaction.type)}
-                        </div>
-                        <div>
-                          <div className="font-medium text-gray-100">{transaction.details}</div>
-                          <div className="text-sm text-gray-400">
-                            {formatTimestamp(transaction.timestamp)}
-                            {transaction.user && ` • ${formatUserAddress(transaction.user)}`}
+                    return (
+                      <div key={transaction.id} className="flex items-center justify-between py-3 px-3 last:border-b-0 mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
+                            {getTransactionIcon(transaction.type)}
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-100">{transaction.details}</div>
+                            <div className="text-sm text-gray-400">
+                              {formatTimestamp(transaction.timestamp)}
+                              {transaction.user && ` • ${formatUserAddress(transaction.user)}`}
+                            </div>
                           </div>
                         </div>
+                        <div className="text-right">
+                          <div className="font-medium text-gray-100">{transaction.amount || '-'}</div>
+                          <button
+                            onClick={() => window.open(`https://basescan.org/tx/${transaction.transactionHash}`, '_blank')}
+                            className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                          >
+                            View on BaseScan
+                          </button>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-medium text-gray-100">{transaction.amount || '-'}</div>
-                        <button
-                          onClick={() => window.open(`https://basescan.org/tx/${transaction.transactionHash}`, '_blank')}
-                          className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                        >
-                          View on BaseScan
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })
-              ) : (
-                <div className="text-center py-8 text-gray-400">
-                  <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No transactions found for this challenge</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                    )
+                  })
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No transactions found for this challenge</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Ranking Section */}
         <RankingSection challengeId={challengeId} />
