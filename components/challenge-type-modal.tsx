@@ -137,12 +137,16 @@ export function ChallengeTypeModal({ onCreateChallenge, isCreating, activeChalle
                         typeIsActive ? "cursor-not-allowed" : "cursor-pointer"
                       }`}
                     >
-                      <span className={`font-medium ${typeIsActive ? "text-muted-foreground" : ""}`}>
-                        {type.name}
+                      <div className="flex flex-col">
+                        <span className={`font-medium ${typeIsActive ? "text-muted-foreground" : ""}`}>
+                          {type.name}
+                        </span>
                         {typeIsActive && (
-                          <span className="ml-2 text-xs text-muted-foreground">(Active)</span>
+                          <span className="text-xs text-orange-500 font-medium mt-1">
+                            Already Active
+                          </span>
                         )}
-                      </span>
+                      </div>
                       <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
                         {type.duration}
                       </span>
