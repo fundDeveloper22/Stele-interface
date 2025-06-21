@@ -179,7 +179,7 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-3">
+        <Card className="bg-transparent border-0 lg:col-span-3">
           <CardHeader>
             <div className="h-8 bg-gray-700 rounded animate-pulse"></div>
             <div className="h-4 bg-gray-700 rounded animate-pulse mt-2 w-2/3"></div>
@@ -188,7 +188,7 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
             <div className="h-80 bg-gray-700 rounded animate-pulse"></div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-1">
+        <Card className="bg-transparent border-0 lg:col-span-1">
           <CardHeader>
             <div className="h-8 bg-gray-700 rounded animate-pulse"></div>
             <div className="h-4 bg-gray-700 rounded animate-pulse mt-2 w-2/3"></div>
@@ -204,7 +204,7 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
   if (error || !data?.investorSnapshots || chartData.length === 0) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-3">
+        <Card className="bg-transparent border-0 lg:col-span-3">
           <CardHeader>
             <CardTitle className="text-4xl font-bold text-gray-100">$0</CardTitle>
             <p className="text-sm text-gray-400">{currentDate}</p>
@@ -215,7 +215,7 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-1">
+        <Card className="bg-transparent border-0 lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-lg font-bold text-gray-100">Portfolio Summary</CardTitle>
           </CardHeader>
@@ -232,7 +232,7 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
       {/* Portfolio Value Chart - Takes 3 columns */}
-      <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-3">
+      <Card className="bg-transparent border-0 lg:col-span-3">
         <CardHeader className="pb-6">
           <CardTitle className="text-4xl font-bold text-gray-100">
             ${currentPortfolioValue.toFixed(2)}
@@ -299,7 +299,7 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
       </Card>
 
       {/* Portfolio Summary Card */}
-      <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-1">
+      <Card className="bg-gray-900 border-0 lg:col-span-1">
         <CardHeader className="pb-6">
           <CardTitle className="text-lg font-bold text-gray-100">Portfolio Summary</CardTitle>
         </CardHeader>
@@ -331,17 +331,6 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
             </div>
           </div>
 
-          {/* Ranking */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <User className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-400">Ranking</span>
-            </div>
-            <span className="text-xl font-bold text-gray-100">
-              #{metrics.ranking}
-            </span>
-          </div>
-
           {/* Total Rewards */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -351,24 +340,6 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
             <span className="text-xl font-bold text-yellow-400">
               {metrics.totalRewards}
             </span>
-          </div>
-
-          {/* Performance Indicator */}
-          <div className="pt-4 border-t border-gray-700">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-400">Performance</span>
-              <span className={`text-sm font-medium ${metrics.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                {metrics.isPositive ? 'Profitable' : 'Loss'}
-              </span>
-            </div>
-            <div className="w-full bg-gray-700 rounded-full h-2">
-              <div 
-                className={`h-2 rounded-full transition-all duration-300 ease-out ${
-                  metrics.isPositive ? 'bg-gradient-to-r from-green-500 to-emerald-400' : 'bg-gradient-to-r from-red-500 to-red-400'
-                }`}
-                style={{ width: `${Math.min(Math.abs(metrics.gainLossPercentage), 100)}%` }}
-              ></div>
-            </div>
           </div>
         </CardContent>
       </Card>

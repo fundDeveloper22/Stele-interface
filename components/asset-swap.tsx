@@ -547,7 +547,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                   onChange={(e) => setFromToken(e.target.value)}
                   className="px-3 py-2 border border-gray-600 rounded bg-gray-800 text-gray-100"
                 >
-                  <option value="">Select token</option>
+                  <option value="">Select</option>
                   {availableFromTokens.map((token) => (
                     <option key={token} value={token}>{token}</option>
                   ))}
