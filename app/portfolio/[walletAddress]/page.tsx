@@ -153,10 +153,10 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
 
     return (
       <tr 
-        className="border-b border-gray-700/50 hover:bg-gray-800/30 transition-colors cursor-pointer" 
+        className="hover:bg-gray-800/30 transition-colors cursor-pointer" 
         onClick={handleRowClick}
       >
-        <td className="py-4 px-4">
+        <td className="py-4 px-6">
           <div className="flex items-center gap-3">
             <div>
               <div className="font-medium text-gray-100">
@@ -197,7 +197,7 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
             {challengeData?.challenge?.endTime ? formatDate(challengeData.challenge.endTime) : 'Loading...'}
           </div>
         </td>
-        <td className="py-4 px-4">
+        <td className="py-4 px-6">
           <div className="flex flex-row items-center gap-2">
             {/* Challenge Status */}
             {/* Registration Status */}
@@ -246,35 +246,40 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
     if (challenges.length === 0) return null
 
     return (
-      <Card className="bg-gray-900/50 border-gray-700/50">
-        <CardHeader>
-          <CardTitle className="text-gray-100 flex items-center gap-2">
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <h2 className="text-xl font-bold text-gray-100 flex items-center gap-2">
             <Trophy className="h-5 w-5 text-gray-400" />
-            {title} ({challenges.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Challenge</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Initial Investment</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Current Value</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">P&L</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">End Date</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">State</th>
-                </tr>
-              </thead>
-              <tbody>
-                {challenges.map((investor) => (
-                  <ChallengeRow key={investor.id} investor={investor} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+            {title}
+          </h2>
+          <Badge variant="secondary" className="bg-gray-700 text-gray-300">
+            {challenges.length} challenges
+          </Badge>
+        </div>
+        <Card className="bg-transparent border border-gray-700/50">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-700 bg-gray-900/80 hover:bg-gray-800/50">
+                    <th className="text-left py-3 px-6 text-sm font-medium text-gray-400">Challenge</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Initial Investment</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Current Value</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">P&L</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">End Date</th>
+                    <th className="text-left py-3 px-6 text-sm font-medium text-gray-400">State</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {challenges.map((investor) => (
+                    <ChallengeRow key={investor.id} investor={investor} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
@@ -310,13 +315,6 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-2">
-            <Link 
-              href="/portfolio"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Portfolio
-            </Link>
             <div>
               <h1 className="text-3xl font-bold text-gray-100">Portfolio Overview</h1>
               <p className="text-gray-400 font-mono">

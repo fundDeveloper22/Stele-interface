@@ -67,10 +67,44 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
   // Get vote result data or use defaults
   const voteResult = voteResultData?.proposalVoteResult
   
+  // Parse proposal title from description (similar to vote page logic)
+  const parseProposalDetails = (description: string) => {
+    // Usually descriptions are in format "Title: Description"
+    const parts = description.split(':')
+    let title = ''
+    let desc = description
+
+    if (parts.length > 1) {
+      title = parts[0].trim()
+      desc = parts.slice(1).join(':').trim()
+    } else {
+      // If no colon separator, use first 50 characters as title
+      if (description.length > 50) {
+        title = description.substring(0, 50) + '...'
+        desc = description
+      } else {
+        title = description
+        desc = description
+      }
+    }
+
+    return { title, description: desc }
+  }
+
   // Extract proposal data from URL parameters
   const getProposalFromParams = () => {
-    const title = searchParams.get('title') || 'Increase reward for 1 week challenge'
-    const description = searchParams.get('description') || 'This proposal aims to increase the reward for the 1 week challenge from 100 USDC to 150 USDC to attract more participants.'
+    // Check if we have proposal details from subgraph first
+    const subgraphProposal = proposalDetailsData?.proposalCreateds?.[0]
+    
+    const rawDescription = subgraphProposal?.description || 
+                          searchParams.get('description') || 
+                          'This proposal aims to increase the reward for the 1 week challenge from 100 USDC to 150 USDC to attract more participants.'
+    const urlTitle = searchParams.get('title')
+    
+    // Parse title from description if not provided in URL
+    const parsedDetails = parseProposalDetails(rawDescription)
+    const title = urlTitle || parsedDetails.title || `Proposal #${id.slice(0, 8)}...`
+    const description = parsedDetails.description
     const proposer = searchParams.get('proposer') || '0x1234...5678'
     const status = searchParams.get('status') || 'active'
     const startTimeStr = searchParams.get('startTime')
@@ -865,8 +899,8 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle className="text-xl text-gray-100">Proposal #{id}</CardTitle>
-                  <CardDescription className="mt-2 text-gray-300">{proposal.title}</CardDescription>
+                  <CardTitle className="text-xl text-gray-100">{proposal.title}</CardTitle>
+                  <CardDescription className="mt-2 text-gray-400">Proposal #{id.slice(0, 8)}...{id.slice(-8)}</CardDescription>
                 </div>
                 <StatusBadge status={proposal.status} />
               </div>
@@ -938,17 +972,17 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
                 <div className="text-gray-300">👎 Votes Against: <span className="font-semibold text-red-400">{proposal.votesAgainst.toLocaleString()}</span></div>
                 <div className="text-gray-300">🤷 Abstain: <span className="font-semibold text-gray-400">{proposal.abstain.toLocaleString()}</span></div>
                 <div className="text-gray-300">📊 Total Votes: <span className="font-semibold text-gray-100">{(proposal.votesFor + proposal.votesAgainst + proposal.abstain).toLocaleString()}</span></div>
-                <div className="text-gray-300">🏆 Has Majority (For &gt; Against): <span className={`font-semibold ${proposal.votesFor > proposal.votesAgainst ? "text-green-400" : "text-red-400"}`}>
+                {/* <div className="text-gray-300">🏆 Has Majority (For &gt; Against): <span className={`font-semibold ${proposal.votesFor > proposal.votesAgainst ? "text-green-400" : "text-red-400"}`}>
                   {proposal.votesFor > proposal.votesAgainst ? "Yes" : "No"}
                 </span></div>
                 <div className="text-gray-300">📈 Has Minimum Participation: <span className={`font-semibold ${(proposal.votesFor + proposal.votesAgainst + proposal.abstain) > 0 ? "text-green-400" : "text-red-400"}`}>
                   {(proposal.votesFor + proposal.votesAgainst + proposal.abstain) > 0 ? "Yes" : "No"}
-                </span></div>
+                </span></div> */}
                 <div className="text-gray-300">🏛️ Proposal State: <span className="font-semibold text-blue-400">{proposalState !== null ? `${proposalState} (${typeof proposalState})` : "Loading..."}</span></div>
-                <div className="text-gray-300">✨ Proposal State is Succeeded (4): <span className={`font-semibold ${proposalState === 4 ? "text-green-400" : "text-red-400"}`}>
+                {/* <div className="text-gray-300">✨ Proposal State is Succeeded (4): <span className={`font-semibold ${proposalState === 4 ? "text-green-400" : "text-red-400"}`}>
                   {proposalState === 4 ? "Yes" : "No"}
-                </span></div>
-                <div className="text-gray-300">🔗 Is Connected: <span className={`font-semibold ${isConnected ? "text-green-400" : "text-red-400"}`}>
+                </span></div> */}
+                {/* <div className="text-gray-300">🔗 Is Connected: <span className={`font-semibold ${isConnected ? "text-green-400" : "text-red-400"}`}>
                   {isConnected ? "Yes" : "No"}
                 </span></div>
                 <div className="text-gray-300">🚀 Is Ready for Queue: <span className={`font-semibold ${currentTime ? (isReadyForQueue() ? "text-green-400" : "text-red-400") : "text-yellow-400"}`}>
@@ -959,8 +993,8 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
                 </span></div>
                 <div className="text-gray-300">⚡ Execute Button Should Show: <span className={`font-semibold ${isConnected && proposalState === 5 ? "text-green-400" : "text-red-400"}`}>
                   {isConnected && proposalState === 5 ? "Yes" : "No"}
-                </span></div>
-                
+                </span></div> */}
+{/*                 
                 <div className="border-t border-gray-600 pt-2 mt-3">
                   <div className="font-bold text-gray-100">⚙️ Queue Logic:</div>
                   <div className="text-gray-300 ml-2">📍 Using Proposal State: <span className={`font-semibold ${proposalState !== null ? "text-green-400" : "text-red-400"}`}>
@@ -984,7 +1018,7 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
                       </span></div>
                     </div>
                   )}
-                </div>
+                </div> */}
               </div>
 
               {isConnected && (
@@ -996,9 +1030,9 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
                     </div>
                   ) : (
                     <>
-                      <div>Token balance: {Number(proposal.cachedTokenBalance).toLocaleString()} STELE</div>
+                      {/* <div>Token balance: {Number(proposal.cachedTokenBalance).toLocaleString()} STELE</div> */}
                       <div>Your voting power: {Number(votingPower).toLocaleString()}</div>
-                      {proposal.cachedDelegatedTo && (
+                      {/* {proposal.cachedDelegatedTo && (
                         <div>Delegated to: {
                           proposal.cachedDelegatedTo === "0x0000000000000000000000000000000000000000" 
                             ? "Not delegated" 
@@ -1006,7 +1040,7 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
                               ? "Self" 
                               : `${proposal.cachedDelegatedTo.slice(0, 6)}...${proposal.cachedDelegatedTo.slice(-4)}`
                         }</div>
-                      )}
+                      )} */}
                       {proposalState !== null && (
                         <div>Proposal state: {
                           isReadyForQueue() && proposalState !== 5 ? "Pending Queue" :
@@ -1047,7 +1081,7 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
                   </div>
                 </RadioGroup>
 
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label htmlFor="reason">Reason (Optional)</Label>
                   <Textarea 
                     id="reason" 
@@ -1056,7 +1090,7 @@ export default function ProposalDetailPage({ params }: ProposalDetailPageProps) 
                     onChange={(e) => setReason(e.target.value)}
                     disabled={proposal.hasVoted || isVoting}
                   />
-                </div>
+                </div> */}
               </div>
             </CardContent>
             <CardFooter className="flex flex-col space-y-3">

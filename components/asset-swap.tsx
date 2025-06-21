@@ -184,6 +184,13 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
     const value = e.target.value
     // Allow only numbers and decimal point
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      // Limit decimal places to 4
+      if (value.includes('.')) {
+        const parts = value.split('.');
+        if (parts[1] && parts[1].length > 4) {
+          return; // Don't update if more than 4 decimal places
+        }
+      }
       setFromAmount(value)
     }
   }
@@ -513,254 +520,110 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
 
   return (
     <div className={cn("max-w-md mx-auto", className)} {...props}>
-      <Card className="bg-gray-900/50 border-gray-700/50">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-gray-100">Swap Assets</CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isLoading}
-              className="text-gray-400 hover:text-gray-100 hover:bg-gray-800"
-            >
-              <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-            </Button>
-          </div>
-          <CardDescription className="text-gray-400">
-            Exchange your tokens with live pricing
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <Card className="bg-transparent border-0">
+        <CardContent className="p-0 space-y-3">
           {/* From Token */}
           <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-300">From</span>
-              <span className="text-gray-400">
-                Balance: {getFormattedTokenBalance(fromToken)}
-              </span>
-            </div>
-            <div className="p-4 border border-gray-700 bg-gray-800/30 rounded-lg space-y-2">
-              <div className="flex gap-2">
-                <select
-                  value={fromToken}
-                  onChange={(e) => setFromToken(e.target.value)}
-                  className="px-3 py-2 border border-gray-600 rounded bg-gray-800 text-gray-100"
-                >
-                  <option value="">Select token</option>
-                  {availableFromTokens.map((token) => (
-                    <option key={token} value={token}>{token}</option>
-                  ))}
-                </select>
-                <div className="flex-1">
+            <div className="p-4 bg-transparent border border-gray-600 rounded-2xl">
+              <div className="text-sm text-gray-400 mb-3">Sell</div>
+              <div className="flex items-center justify-between min-h-[60px]">
+                <div className="flex-1 min-w-0 pr-4">
                   <Input
-                    placeholder="0.0"
+                    placeholder="0"
                     value={fromAmount}
                     onChange={handleFromAmountChange}
-                    className={cn(
-                      "text-right text-lg bg-gray-800 text-gray-100 placeholder:text-gray-500",
-                      (isAmountExceedsBalance() || isBelowMinimumSwapAmount()) 
-                        ? "border-red-500 focus:border-red-500" 
-                        : "border-gray-600"
-                    )}
+                    className="bg-transparent border-0 text-white p-1 h-12 focus-visible:ring-0 w-full overflow-hidden text-ellipsis"
+                    style={{ 
+                      fontSize: fromAmount && fromAmount.length > 15 ? '1.25rem' : 
+                               fromAmount && fromAmount.length > 12 ? '1.5rem' : '1.75rem', 
+                      lineHeight: '1' 
+                    }}
                   />
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const rawBalance = getFromTokenBalance(fromToken);
-                    const userToken = userTokens.find(token => token.symbol === fromToken);
-                    if (userToken && rawBalance !== '0') {
-                      // Safe format function to handle both raw and formatted amounts
-                      try {
-                        // Check if rawBalance is already formatted (contains decimal point)
-                        if (rawBalance.includes('.')) {
-                          // Already formatted, use directly
-                          setFromAmount(rawBalance);
-                        } else {
-                          // Raw amount, format it
-                          const formattedBalance = rawBalance;
-                          setFromAmount(formattedBalance);
-                        }
-                      } catch (error) {
-                        console.error('Error formatting balance for MAX button:', error);
-                        // Fallback: use raw amount directly
-                        setFromAmount(rawBalance);
-                      }
-                    }
-                  }}
-                  className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
-                >
-                  MAX
-                </Button>
-              </div>
-              
-              {fromToken && priceData?.tokens?.[fromToken] && (
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm text-gray-400">
-                    <span>Price: ${priceData.tokens[fromToken].priceUSD}</span>
-                    <span className={cn(
-                      "flex items-center gap-1",
-                      priceData.tokens[fromToken].priceChange24h && priceData.tokens[fromToken].priceChange24h! >= 0 ? "text-green-400" : "text-red-400"
-                    )}>
-                      {priceData.tokens[fromToken].priceChange24h && priceData.tokens[fromToken].priceChange24h! >= 0 ? 
-                        <TrendingUp className="h-3 w-3" /> : 
-                        <TrendingDown className="h-3 w-3" />
-                      }
-                      {priceData.tokens[fromToken].priceChange24h?.toFixed(2) || 'N/A'}%
-                    </span>
+                  <div className="text-sm text-gray-400 mt-1">
+                    ${getSwapAmountUSD().toFixed(2)}
                   </div>
-                  {fromAmount && parseFloat(fromAmount) > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">USD Value:</span>
-                                            <span className={cn(
-                        "font-medium",
-                        isBelowMinimumSwapAmount() ? "text-red-400" : "text-gray-300"
-                      )}>
-                         ${getSwapAmountUSD().toFixed(2)}
-                          {isBelowMinimumSwapAmount() && ` (Min: $${MINIMUM_SWAP_USD.toFixed(2)})`}
-                       </span>
-                    </div>
-                  )}
                 </div>
-              )}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex flex-col items-end">
+                    <select
+                      value={fromToken}
+                      onChange={(e) => setFromToken(e.target.value)}
+                      className="bg-gray-700 text-white rounded-full px-4 py-2 border-0 text-sm font-medium"
+                    >
+                      <option value="">Select</option>
+                      {availableFromTokens.map((token) => (
+                        <option key={token} value={token}>{token}</option>
+                      ))}
+                    </select>
+                    <div className="text-xs text-gray-400 mt-1">
+                      {getFormattedTokenBalance(fromToken)} {fromToken}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Swap Arrow */}
-          <div className="flex justify-center">
+          <div className="flex justify-center -my-2 relative z-10">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={handleTokenSwap}
-              className="rounded-full p-2 bg-gray-800 border-gray-600 hover:bg-gray-700 text-gray-100"
+              className="p-2 rounded-full bg-gray-700 border-0 hover:bg-gray-600"
             >
-              <ArrowDown className="h-4 w-4" />
+              <ArrowDown className="h-4 w-4 text-white" />
             </Button>
           </div>
 
           {/* To Token */}
           <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-300">To</span>
-              <span className="text-gray-400">
-                Estimated
-              </span>
-            </div>
-            <div className="p-4 border border-gray-700 bg-gray-800/30 rounded-lg space-y-2">
-              <div className="flex gap-2">
-                <select
-                  value={toToken}
-                  onChange={(e) => setToToken(e.target.value)}
-                  className="px-3 py-2 border border-gray-600 rounded bg-gray-800 text-gray-100"
-                >
-                  {availableToTokens.map((token) => (
-                    <option key={token} value={token}>{token}</option>
-                  ))}
-                </select>
-                <div className="flex-1">
-                  <Input
-                    placeholder="0.0"
-                    value={outputAmount}
-                    readOnly
-                    className="text-right text-lg bg-gray-800 border-gray-600 text-gray-100 placeholder:text-gray-500"
-                  />
+            <div className="p-4 bg-transparent border border-gray-600 rounded-2xl">
+              <div className="text-sm text-gray-400 mb-3">Buy</div>
+              <div className="flex items-center justify-between min-h-[60px]">
+                <div className="flex-1 min-w-0 pr-4">
+                  <div 
+                    className="text-white overflow-hidden text-ellipsis whitespace-nowrap"
+                    style={{ 
+                      fontSize: outputAmount && outputAmount.length > 15 ? '1.25rem' : 
+                               outputAmount && outputAmount.length > 12 ? '1.5rem' : '1.75rem'
+                    }}
+                  >
+                    {(() => {
+                      if (!outputAmount || outputAmount === "0") return "0";
+                      const num = parseFloat(outputAmount);
+                      if (num % 1 === 0) return num.toString();
+                      return num.toFixed(4).replace(/\.?0+$/, '');
+                    })()}
+                  </div>
+                  <div className="text-sm text-gray-400 mt-1">
+                    ${outputAmount && toToken && priceData?.tokens?.[toToken] ? 
+                      (parseFloat(outputAmount) * priceData.tokens[toToken].priceUSD).toFixed(2) : "0.00"}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <select
+                    value={toToken}
+                    onChange={(e) => setToToken(e.target.value)}
+                    className="bg-gray-700 text-white rounded-full px-4 py-2 border-0 text-sm font-medium"
+                  >
+                    {availableToTokens.map((token) => (
+                      <option key={token} value={token}>{token}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              
-              {toToken && priceData?.tokens?.[toToken] && (
-                <div className="flex justify-between text-sm text-gray-400">
-                  <span>Price: ${priceData.tokens[toToken].priceUSD}</span>
-                  <span className={cn(
-                    "flex items-center gap-1",
-                    priceData.tokens[toToken].priceChange24h && priceData.tokens[toToken].priceChange24h! >= 0 ? "text-green-400" : "text-red-400"
-                  )}>
-                    {priceData.tokens[toToken].priceChange24h && priceData.tokens[toToken].priceChange24h! >= 0 ? 
-                      <TrendingUp className="h-3 w-3" /> : 
-                      <TrendingDown className="h-3 w-3" />
-                    }
-                    {priceData.tokens[toToken].priceChange24h?.toFixed(2) || 'N/A'}%
-                  </span>
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Insufficient Balance Warning */}
-          {isAmountExceedsBalance() && (
-            <div className="p-4 bg-red-900/20 border border-red-700/50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="flex-shrink-0">
-                  <XCircle className="h-5 w-5 text-red-400" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-red-300">
-                    Insufficient Balance
-                  </h4>
-                  <p className="text-sm text-red-400 mt-1">
-                    You don't have enough {fromToken}. Available: {getFormattedTokenBalance(fromToken)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Minimum Swap Amount Warning */}
-          {isBelowMinimumSwapAmount() && !isAmountExceedsBalance() && (
-            <div className="p-4 bg-amber-900/20 border border-amber-700/50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="flex-shrink-0">
-                  <XCircle className="h-5 w-5 text-amber-400" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-amber-300">
-                    Minimum Swap Amount Required
-                  </h4>
-                  <p className="text-sm text-amber-400 mt-1">
-                    Current value: ${getSwapAmountUSD().toFixed(2)} USD. Minimum required: ${MINIMUM_SWAP_USD.toFixed(2)} USD.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Data Ready Status Warning */}
-          {!isDataReady && (
-            <div className="p-4 bg-amber-900/20 border border-amber-700/50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="flex-shrink-0">
-                  <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-amber-300">
-                    Swap Currently Unavailable
-                  </h4>
-                  <p className="text-sm text-amber-400 mt-1">
-                    {disabledReason}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Swap Details */}
+          {/* Exchange Rate - Simple Display */}
           {isDataReady && fromToken && toToken && swapQuote && (
-            <div className="p-3 bg-gray-800/50 border border-gray-700 rounded-lg space-y-2 text-sm">
-              <div className="flex justify-between text-gray-300">
-                <span>Exchange Rate</span>
-                <span>1 {fromToken} = {swapQuote.exchangeRate.toFixed(6)} {toToken}</span>
-              </div>
-              <div className="flex justify-between text-gray-300">
-                <span>Estimated Received</span>
-                <span>{minimumReceived} {toToken}</span>
-              </div>
+            <div className="text-center text-sm text-gray-400">
+              1 {fromToken} = {swapQuote.exchangeRate.toFixed(6)} {toToken}
             </div>
           )}
-        </CardContent>
-        <CardFooter>
           <Button 
-            className="w-full" 
+            className="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold py-3 rounded-2xl mt-4" 
             size="lg"
             onClick={handleSwapTransaction}
             disabled={(() => {
@@ -785,27 +648,18 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
                 Swapping...
               </div>
             ) : !isDataReady ? (
-              <div className="flex items-center">
-                <XCircle className="mr-2 h-4 w-4" />
-                Data Loading...
-              </div>
+              'Loading Data...'
             ) : !fromAmount || parseFloat(fromAmount) <= 0 || !fromToken || !toToken ? (
-              'Enter Amount to Swap'
+              'Enter Amount'
             ) : isAmountExceedsBalance() ? (
-              <div className="flex items-center">
-                <XCircle className="mr-2 h-4 w-4" />
-                Insufficient Balance
-              </div>
+              'Insufficient Balance'
             ) : isBelowMinimumSwapAmount() ? (
-              <div className="flex items-center">
-                <XCircle className="mr-2 h-4 w-4" />
-                Minimum $${MINIMUM_SWAP_USD.toFixed(0)} Required (Current: ${getSwapAmountUSD().toFixed(2)})
-              </div>
+              'Minimum Amount Required'
             ) : (
-              `Swap Tokens ($${getSwapAmountUSD().toFixed(2)})`
+              'Swap'
             )}
           </Button>
-        </CardFooter>
+        </CardContent>
       </Card>
     </div>
   )

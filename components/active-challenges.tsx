@@ -400,7 +400,12 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
   const getStatusBadge = (status: "active" | "pending" | "completed" | "finished") => {
     switch (status) {
       case "active":
-        return <Badge className="bg-green-500 text-white">Active</Badge>
+        return (
+          <Badge className="bg-green-600/20 text-green-400 border border-green-500/30 rounded-full px-2 py-1 flex items-center gap-1 w-fit">
+            <Clock className="h-3 w-3" />
+            Active
+          </Badge>
+        )
       case "pending":
         return <Badge variant="outline" className="border-gray-600 text-gray-300">Pending</Badge>
       case "completed":
@@ -563,54 +568,47 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-100">Active Challenges</h2>
+        <h2 className="text-2xl text-gray-100">Active Challenges</h2>
       </div>
 
-      <Card className="bg-gray-900/50 border-gray-700/50">
+      <Card className="bg-transparent border border-gray-700/50">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-b border-gray-700 hover:bg-gray-800/50">
-                  <TableHead className="text-gray-300 pl-14">Period</TableHead>
-                  <TableHead className="text-gray-300 pl-2">Challenge ID</TableHead>
-                  <TableHead className="text-gray-300 pl-4">Participants</TableHead>
-                  <TableHead className="text-gray-300 pl-6">Prize Pool</TableHead>
-                  <TableHead className="text-gray-300 pl-14">Progress</TableHead>
-                  <TableHead className="text-gray-300 pl-10">Status</TableHead>
-                  <TableHead className="text-gray-300 pl-16">Action</TableHead>
+                <TableRow className="border-b border-gray-700 bg-gray-900/80 hover:bg-gray-800/50">
+                  <TableHead className="text-gray-300 pl-16">Period</TableHead>
+                  <TableHead className="text-gray-300">Participants</TableHead>
+                  <TableHead className="text-gray-300">Prize</TableHead>
+                  <TableHead className="text-gray-300">Progress</TableHead>
+                  <TableHead className="text-gray-300">Status</TableHead>
+                  <TableHead className="text-gray-300 pr-6">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {challenges.map((challenge) => (
                   <TableRow 
-                    key={challenge.id} 
-                    className="border-b border-gray-700 hover:bg-gray-800/50 cursor-pointer transition-colors"
+                    key={challenge.id}
+                    className="border-0 hover:bg-gray-800/50 cursor-pointer transition-colors"
                     onClick={() => window.location.href = `/challenge/${challenge.challengeId}`}
+                    title={`Challenge ID: ${challenge.challengeId}`}
                   >
-                    <TableCell className="font-medium text-gray-100 pl-10">
+                    <TableCell className="font-medium text-gray-100 pl-16">
                       <div className="flex items-center gap-2">
                         <Trophy className="h-4 w-4 text-yellow-500" />
                         {challenge.title}
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium text-gray-100 pl-8">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                          {challenge.challengeId}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell className="pl-10">
+                    <TableCell>
                       <div className="flex items-center gap-1 text-gray-300">
                         <Users className="h-3 w-3" />
                         <span>{challenge.participants}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium text-gray-100 pl-10">
+                    <TableCell className="font-medium text-yellow-400">
                       {challenge.prize}
                     </TableCell>
-                    <TableCell className="pl-10">
+                    <TableCell>
                       <div className="flex items-center gap-2">
                         <TooltipProvider>
                           <Tooltip>
@@ -630,10 +628,10 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
                         <span className="text-xs text-gray-400">{Math.round(challenge.progress)}%</span>
                       </div>
                     </TableCell>
-                    <TableCell className="pl-10">
+                    <TableCell>
                       {getStatusBadge(challenge.status)}
                     </TableCell>
-                    <TableCell className="pl-10">
+                    <TableCell className="pr-6">
                       <Button 
                         variant="outline" 
                         size="sm" 

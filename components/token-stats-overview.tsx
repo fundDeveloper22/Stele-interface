@@ -19,16 +19,6 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
 
-  // Format timestamp to readable date
-  const formatDate = (timestamp: string) => {
-    const date = new Date(parseInt(timestamp) * 1000)
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
   // Format challenge type
   const getChallengeType = (challengeId: string) => {
     return `${challengeId}`
@@ -55,52 +45,51 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
 
   if (isLoading) {
     return (
-      <Card className={`${className} bg-gray-900/50 border-gray-700/50`}>
-        <CardHeader>
-          <CardTitle className="text-gray-100">Total Ranking</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-            <span className="ml-2 text-gray-400">Loading rankings...</span>
-          </div>
-        </CardContent>
-      </Card>
+      <div className={cn("space-y-6", className)}>
+        <h2 className="text-xl font-bold text-gray-100">Total Ranking</h2>
+        <Card className="bg-transparent border border-gray-700/50">
+          <CardContent>
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              <span className="ml-2 text-gray-400">Loading rankings...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <Card className={`${className} bg-gray-900/50 border-gray-700/50`}>
-        <CardHeader>
-          <CardTitle className="text-gray-100">Total Ranking</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-red-400">Error loading rankings</p>
-            <p className="text-sm text-gray-500 mt-1">
-              {error instanceof Error ? error.message : 'Failed to load data'}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className={cn("space-y-6", className)}>
+        <h2 className="text-2xl text-gray-100">Total Ranking</h2>
+        <Card className="bg-transparent border border-gray-700/50">
+          <CardContent>
+            <div className="text-center py-8">
+              <p className="text-red-400">Error loading rankings</p>
+              <p className="text-sm text-gray-500 mt-1">
+                {error instanceof Error ? error.message : 'Failed to load data'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
   const rankings = rankingData || []
 
   return (
-    <Card className={`${className} bg-gray-900/50 border-gray-700/50`}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-gray-100">
-          <Trophy className="h-5 w-5" />
-          Total Ranking
-          <Badge variant="secondary" className="ml-2 bg-gray-700 text-gray-300">
-            {rankings.length} participants
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className={cn("space-y-6", className)}>
+      <div className="flex items-center gap-2">
+        <Trophy className="h-5 w-5 text-gray-100" />
+        <h2 className="text-2xl text-gray-100">Total Ranking</h2>
+        <Badge variant="secondary" className="ml-2 bg-gray-700 text-gray-300">
+          {rankings.length} participants
+        </Badge>
+      </div>
+      <Card className="bg-transparent border border-gray-700/50">
+        <CardContent>
         {rankings.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-400">No ranking data found</p>
@@ -137,7 +126,7 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
                           </code>
                         </TableCell>
                         <TableCell className="pl-8">
-                          <Badge variant="outlin" className="bg-gray-800 text-gray-300 border-gray-600">
+                          <Badge variant="outline" className="bg-gray-800 text-gray-300 border-gray-600">
                             {getChallengeType(ranking.challengeId)}
                           </Badge>
                         </TableCell>
@@ -163,5 +152,6 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
         )}
       </CardContent>
     </Card>
+    </div>
   )
 } 

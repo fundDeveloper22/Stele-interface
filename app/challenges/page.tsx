@@ -39,7 +39,7 @@ export default async function ChallengesPage() {
     <HydrationBoundary state={dehydrate(queryClient)}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-gray-100">Investment Challenges</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-100">Total Challenges</h1>
         </div>
         <RecentChallengesTable />
       </div>

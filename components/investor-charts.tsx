@@ -178,200 +178,99 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-3">
-          <CardHeader>
-            <div className="h-8 bg-gray-700 rounded animate-pulse"></div>
-            <div className="h-4 bg-gray-700 rounded animate-pulse mt-2 w-2/3"></div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 bg-gray-700 rounded animate-pulse"></div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-1">
-          <CardHeader>
-            <div className="h-8 bg-gray-700 rounded animate-pulse"></div>
-            <div className="h-4 bg-gray-700 rounded animate-pulse mt-2 w-2/3"></div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 bg-gray-700 rounded animate-pulse"></div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="bg-transparent border-0">
+        <CardHeader>
+          <div className="h-8 bg-gray-700 rounded animate-pulse"></div>
+          <div className="h-4 bg-gray-700 rounded animate-pulse mt-2 w-2/3"></div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 bg-gray-700 rounded animate-pulse"></div>
+        </CardContent>
+      </Card>
     )
   }
 
   if (error || !data?.investorSnapshots || chartData.length === 0) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-3">
-          <CardHeader>
-            <CardTitle className="text-4xl font-bold text-gray-100">$0</CardTitle>
-            <p className="text-sm text-gray-400">{currentDate}</p>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 flex items-center justify-center">
-              <p className="text-gray-400">No portfolio data available</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-lg font-bold text-gray-100">Portfolio Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 flex items-center justify-center">
-              <p className="text-gray-400">Loading portfolio data...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="bg-transparent border-0">
+        <CardHeader>
+          <CardTitle className="text-4xl font-bold text-gray-100">$0</CardTitle>
+          <p className="text-sm text-gray-400">{currentDate}</p>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 flex items-center justify-center">
+            <p className="text-gray-400">No portfolio data available</p>
+          </div>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-      {/* Portfolio Value Chart - Takes 3 columns */}
-      <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-3">
-        <CardHeader className="pb-6">
-          <CardTitle className="text-4xl font-bold text-gray-100">
-            ${currentPortfolioValue.toFixed(2)}
-          </CardTitle>
-          <p className="text-sm text-gray-400">{currentDate}</p>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart 
-              data={chartData} 
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-              barCategoryGap="5%"
-              maxBarSize={200}
-              onMouseMove={(state) => {
-                if (state && typeof state.activeTooltipIndex === 'number' && state.activeTooltipIndex >= 0) {
-                  setActiveIndexPortfolio(state.activeTooltipIndex)
-                }
-              }}
-              onMouseLeave={() => setActiveIndexPortfolio(null)}
+    <Card className="bg-transparent border-0">
+      <CardHeader className="pb-6">
+        <CardTitle className="text-4xl font-bold text-gray-100">
+          ${currentPortfolioValue.toFixed(2)}
+        </CardTitle>
+        <p className="text-sm text-gray-400">{currentDate}</p>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={320}>
+          <BarChart 
+            data={chartData} 
+            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+            barCategoryGap="5%"
+            maxBarSize={200}
+            onMouseMove={(state) => {
+              if (state && typeof state.activeTooltipIndex === 'number' && state.activeTooltipIndex >= 0) {
+                setActiveIndexPortfolio(state.activeTooltipIndex)
+              }
+            }}
+            onMouseLeave={() => setActiveIndexPortfolio(null)}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="transparent" vertical={false} />
+            <XAxis 
+              dataKey="dateLabel" 
+              stroke="#9CA3AF"
+              fontSize={12}
+              tick={{ fill: '#9CA3AF' }}
+              axisLine={false}
+              tickLine={false}
+              interval="preserveStartEnd"
+            />
+            <YAxis 
+              orientation="right"
+              stroke="#9CA3AF"
+              fontSize={12}
+              tick={{ fill: '#9CA3AF' }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(value) => `$${value >= 1000 ? `${(value / 1000).toFixed(0)}K` : value.toString()}`}
+            />
+            <Tooltip 
+              content={<CustomTooltipPortfolio />} 
+              cursor={<CustomCursor />}
+            />
+            <Bar 
+              dataKey="currentUSD" 
+              radius={[3, 3, 0, 0]}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="transparent" vertical={false} />
-              <XAxis 
-                dataKey="dateLabel" 
-                stroke="#9CA3AF"
-                fontSize={12}
-                tick={{ fill: '#9CA3AF' }}
-                axisLine={false}
-                tickLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis 
-                orientation="right"
-                stroke="#9CA3AF"
-                fontSize={12}
-                tick={{ fill: '#9CA3AF' }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(value) => `$${value >= 1000 ? `${(value / 1000).toFixed(0)}K` : value.toString()}`}
-              />
-              <Tooltip 
-                content={<CustomTooltipPortfolio />} 
-                cursor={<CustomCursor />}
-              />
-              <Bar 
-                dataKey="currentUSD" 
-                radius={[3, 3, 0, 0]}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-portfolio-${index}`} 
-                    fill={
-                      activeIndexPortfolio === null 
-                        ? "#EC4899" // All bars pink when no hover
-                        : activeIndexPortfolio === index 
-                        ? "#EC4899" // Hovered bar stays pink
-                        : "#3A1A3BA0" // Other bars become dark maroon purple with less transparency
-                    } 
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Portfolio Summary Card */}
-      <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-1">
-        <CardHeader className="pb-6">
-          <CardTitle className="text-lg font-bold text-gray-100">Portfolio Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Portfolio Value */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-400">Portfolio Value</span>
-            </div>
-            <span className="text-2xl font-bold text-gray-100">
-              ${metrics.portfolioValue.toFixed(2)}
-            </span>
-          </div>
-
-          {/* Gain/Loss */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {metrics.isPositive ? <TrendingUp className="h-5 w-5 text-green-400" /> : <TrendingDown className="h-5 w-5 text-red-400" />}
-              <span className="text-sm text-gray-400">Gain/Loss</span>
-            </div>
-            <div className="text-right">
-              <div className={`text-xl font-bold ${metrics.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                {metrics.isPositive ? '+' : ''}${metrics.gainLoss.toFixed(2)}
-              </div>
-              <div className={`text-sm ${metrics.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                {metrics.isPositive ? '+' : ''}{metrics.gainLossPercentage.toFixed(2)}%
-              </div>
-            </div>
-          </div>
-
-          {/* Ranking */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <User className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-400">Ranking</span>
-            </div>
-            <span className="text-xl font-bold text-gray-100">
-              #{metrics.ranking}
-            </span>
-          </div>
-
-          {/* Total Rewards */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-400">Total Rewards</span>
-            </div>
-            <span className="text-xl font-bold text-yellow-400">
-              {metrics.totalRewards}
-            </span>
-          </div>
-
-          {/* Performance Indicator */}
-          <div className="pt-4 border-t border-gray-700">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-400">Performance</span>
-              <span className={`text-sm font-medium ${metrics.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                {metrics.isPositive ? 'Profitable' : 'Loss'}
-              </span>
-            </div>
-            <div className="w-full bg-gray-700 rounded-full h-2">
-              <div 
-                className={`h-2 rounded-full transition-all duration-300 ease-out ${
-                  metrics.isPositive ? 'bg-gradient-to-r from-green-500 to-emerald-400' : 'bg-gradient-to-r from-red-500 to-red-400'
-                }`}
-                style={{ width: `${Math.min(Math.abs(metrics.gainLossPercentage), 100)}%` }}
-              ></div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+              {chartData.map((entry, index) => (
+                <Cell 
+                  key={`cell-portfolio-${index}`} 
+                  fill={
+                    activeIndexPortfolio === null 
+                      ? "#EC4899" // All bars pink when no hover
+                      : activeIndexPortfolio === index 
+                      ? "#EC4899" // Hovered bar stays pink
+                      : "#3A1A3BA0" // Other bars become dark maroon purple with less transparency
+                  } 
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
   )
 } 

@@ -1,6 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { useChallengeSnapshots } from '@/app/hooks/useChallengeSnapshots'
 import { useChallenge } from '@/app/hooks/useChallenge'
@@ -221,7 +222,7 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
         <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-3">
           <CardHeader>
-            <CardTitle className="text-4xl font-bold text-gray-100">$0</CardTitle>
+            <CardTitle className="text-4xl text-gray-100">$0</CardTitle>
             <p className="text-sm text-gray-400">{currentDate}</p>
           </CardHeader>
           <CardContent>
@@ -247,9 +248,9 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
       {/* Total Rewards Chart - Takes 3 columns */}
-      <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-3">
+      <Card className="bg-transparent border-0 lg:col-span-3">
         <CardHeader className="pb-6">
-          <CardTitle className="text-4xl font-bold text-gray-100">
+          <CardTitle className="text-4xl text-gray-100">
             ${currentRewardAmount >= 1000000 ? `${(currentRewardAmount / 1000000).toFixed(1)}M` : currentRewardAmount >= 1000 ? `${(currentRewardAmount / 1000).toFixed(1)}K` : currentRewardAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </CardTitle>
           <p className="text-sm text-gray-400">{currentDate}</p>
@@ -314,68 +315,19 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
       </Card>
 
       {/* Challenge Info Card */}
-      <Card className="bg-gray-900/50 border-gray-700/50 lg:col-span-1">
-        <CardHeader className="pb-6">
-          <CardTitle className="text-lg font-bold text-gray-100">Challenge Info</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Challenge ID */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-400">Challenge ID</span>
-            </div>
-            <span className="text-sm font-medium text-gray-100">{challengeId}</span>
-          </div>
-
-          {/* Total Prize */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-400">Total Prize</span>
-            </div>
-            <span className="text-xl font-bold text-green-400">
-              ${challengeDetails.totalPrize >= 1000000 
-                ? `${(challengeDetails.totalPrize / 1000000).toFixed(1)}M` 
-                : challengeDetails.totalPrize >= 1000 
-                ? `${(challengeDetails.totalPrize / 1000).toFixed(1)}K` 
-                : challengeDetails.totalPrize.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-              }
-            </span>
-          </div>
-
-          {/* Challenge Period */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-400">Challenge Period</span>
-            </div>
-            <span className="text-sm font-medium text-gray-100">{challengeDetails.challengePeriod}</span>
-          </div>
-
-          {/* Participants */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-400">Participants</span>
-            </div>
-            <span className="text-2xl font-bold text-gray-100">{challengeDetails.participants.toLocaleString()}</span>
-          </div>
-
+      <Card className="bg-gray-900 border-0 lg:col-span-1 rounded-2xl">
+        <CardContent className="p-8 space-y-8">
           {/* Progress */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-gray-400" />
-                <span className="text-sm text-gray-400">Progress</span>
-              </div>
-              <span className="text-sm font-medium text-gray-100">{progressPercentage}%</span>
+              <span className="text-sm text-gray-400">Progress</span>
+              <span className="text-sm font-medium text-gray-300">{progressPercentage}%</span>
             </div>
             
             {/* Progress Bar */}
-            <div className="w-full bg-gray-700 rounded-full h-3">
+            <div className="w-full bg-gray-700 rounded-full h-2">
               <div 
-                className="bg-gradient-to-r from-pink-500 to-purple-500 h-3 rounded-full transition-all duration-300 ease-out"
+                className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
                 style={{ width: `${progressPercentage}%` }}
               ></div>
             </div>
@@ -387,12 +339,31 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
             </div>
           </div>
 
+          {/* Total Prize */}
+          <div className="space-y-2">
+            <span className="text-sm text-gray-400">Total Prize</span>
+            <div className="text-4xl text-white">
+              ${challengeDetails.totalPrize >= 1000000 
+                ? `${(challengeDetails.totalPrize / 1000000).toFixed(1)}M` 
+                : challengeDetails.totalPrize >= 1000 
+                ? `${(challengeDetails.totalPrize / 1000).toFixed(1)}K` 
+                : challengeDetails.totalPrize.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+              }
+            </div>
+          </div>
+
+          {/* Participants */}
+          <div className="space-y-2">
+            <span className="text-sm text-gray-400">Participants</span>
+            <div className="text-4xl text-white">{challengeDetails.participants.toLocaleString()}</div>
+          </div>
+
           {/* Status */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-700">
+          <div className="space-y-2">
             <span className="text-sm text-gray-400">Status</span>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${challengeDetails.isActive ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className={`text-sm font-medium ${challengeDetails.isActive ? 'text-green-400' : 'text-red-400'}`}>
+              <span className={`text-lg font-medium ${challengeDetails.isActive ? 'text-green-400' : 'text-red-400'}`}>
                 {challengeDetails.isActive ? 'Active' : 'Inactive'}
               </span>
             </div>

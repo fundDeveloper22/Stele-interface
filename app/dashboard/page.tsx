@@ -5,12 +5,13 @@ import { DashboardCharts } from "@/components/dashboard-charts"
 
 export default function Dashboard() {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-100">Dashboard</h1>
+    <div>
+      <div className="flex items-center justify-between mb-6">
       </div>
       <DashboardCharts />
-      <DashboardClientComponents />
+      <div className="mt-6">
+        <DashboardClientComponents />
+      </div>
     </div>
   )
 } 
