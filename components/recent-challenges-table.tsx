@@ -50,14 +50,32 @@ export function RecentChallengesTable() {
     const endTime = new Date(Number(challenge.endTime) * 1000)
     
     if (currentTime < startTime) {
-      return { status: "pending", label: "Pending", variant: "outline" as const }
+      return "pending"
     }
     
     if (currentTime >= endTime || !challenge.isActive) {
-      return { status: "completed", label: "Completed", variant: "secondary" as const }
+      return "completed"
     }
     
-    return { status: "active", label: "Active", variant: "default" as const }
+    return "active"
+  }
+
+  const getStatusBadge = (status: "active" | "pending" | "completed") => {
+    switch (status) {
+      case "active":
+        return (
+          <Badge className="bg-green-600/20 text-green-400 border border-green-500/30 rounded-full px-2 py-1 flex items-center gap-1 w-fit">
+            <Clock className="h-3 w-3" />
+            Active
+          </Badge>
+        )
+      case "pending":
+        return <Badge variant="outline" className="border-gray-600 text-gray-300">Pending</Badge>
+      case "completed":
+        return <Badge className="bg-blue-500 text-white">Completed</Badge>
+      default:
+        return <Badge variant="secondary">Unknown</Badge>
+    }
   }
 
   const formatDate = (timestamp: string): string => {
@@ -142,7 +160,6 @@ export function RecentChallengesTable() {
                 </TableRow>
               ) : (
                 data.challenges.map((challenge) => {
-                  const statusInfo = getChallengeStatus(challenge)
                   return (
                     <TableRow 
                       key={challenge.id} 
@@ -181,12 +198,7 @@ export function RecentChallengesTable() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge 
-                          variant={statusInfo.variant}
-                          className={statusInfo.status === "active" ? "bg-emerald-500" : ""}
-                        >
-                          {statusInfo.label}
-                        </Badge>
+                        {getStatusBadge(getChallengeStatus(challenge))}
                       </TableCell>
                     </TableRow>
                   )

@@ -288,15 +288,83 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-700 rounded w-1/3"></div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-32 bg-gray-700 rounded"></div>
-              ))}
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header Loading */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="space-y-2">
+              <div className="h-8 bg-gray-700 rounded w-48 animate-pulse"></div>
+              <div className="h-5 bg-gray-700 rounded w-64 animate-pulse"></div>
+              <div className="h-4 bg-gray-700 rounded w-32 animate-pulse"></div>
             </div>
-            <div className="h-96 bg-gray-700 rounded"></div>
+          </div>
+
+          {/* Table Loading */}
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-6 bg-gray-700 rounded w-48 animate-pulse"></div>
+              <div className="h-6 bg-gray-700 rounded w-20 animate-pulse"></div>
+            </div>
+            
+            <Card className="bg-transparent border border-gray-700/50">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-700 bg-gray-900/80">
+                        <th className="text-left py-3 px-6">
+                          <div className="h-4 bg-gray-600 rounded w-20 animate-pulse"></div>
+                        </th>
+                        <th className="text-left py-3 px-4">
+                          <div className="h-4 bg-gray-600 rounded w-28 animate-pulse"></div>
+                        </th>
+                        <th className="text-left py-3 px-4">
+                          <div className="h-4 bg-gray-600 rounded w-24 animate-pulse"></div>
+                        </th>
+                        <th className="text-left py-3 px-4">
+                          <div className="h-4 bg-gray-600 rounded w-16 animate-pulse"></div>
+                        </th>
+                        <th className="text-left py-3 px-4">
+                          <div className="h-4 bg-gray-600 rounded w-20 animate-pulse"></div>
+                        </th>
+                        <th className="text-left py-3 px-6">
+                          <div className="h-4 bg-gray-600 rounded w-16 animate-pulse"></div>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <tr key={i} className="border-0">
+                          <td className="py-4 px-6">
+                            <div className="space-y-2">
+                              <div className="h-4 bg-gray-700 rounded w-32 animate-pulse"></div>
+                              <div className="h-3 bg-gray-700 rounded w-16 animate-pulse"></div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex gap-2">
+                              <div className="h-6 bg-gray-700 rounded-full w-16 animate-pulse"></div>
+                              <div className="h-6 bg-gray-700 rounded-full w-14 animate-pulse"></div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -316,7 +384,7 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-2">
             <div>
-              <h1 className="text-3xl font-bold text-gray-100">Portfolio Overview</h1>
+              <h1 className="text-3xl font-bold text-gray-100">Portfolio</h1>
               <p className="text-gray-400 font-mono">
                 {walletAddress.slice(0, 8)}...{walletAddress.slice(-8)}
               </p>

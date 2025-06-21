@@ -93,13 +93,98 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   if (isLoadingInvestor || isLoadingTokens || isLoadingChallenge || isLoadingTransactions) {
     return (
       <div className="container mx-auto p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-700 rounded w-1/3"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-32 bg-gray-700 rounded"></div>
-              ))}
+        <div className="max-w-6xl mx-auto space-y-6">
+          {/* Header Loading */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-8 bg-gray-700 rounded w-20 animate-pulse"></div>
+              <div className="h-8 bg-gray-700 rounded w-40 animate-pulse"></div>
+            </div>
+            <div className="flex gap-2">
+              <div className="h-10 bg-gray-700 rounded w-20 animate-pulse"></div>
+              <div className="h-10 bg-gray-700 rounded w-24 animate-pulse"></div>
+            </div>
+          </div>
+
+          {/* Main Content Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Side - Charts + Tabs */}
+            <div className="lg:col-span-2 space-y-4">
+              {/* Chart Loading */}
+              <div className="h-80 bg-gray-700 rounded-lg animate-pulse"></div>
+              
+              {/* Tabs Loading */}
+              <div className="space-y-4">
+                <div className="flex w-full">
+                  <div className="h-10 bg-gray-700 rounded-l w-1/2 animate-pulse"></div>
+                  <div className="h-10 bg-gray-600 rounded-r w-1/2 animate-pulse"></div>
+                </div>
+                
+                {/* Tab Content Loading */}
+                <Card className="bg-transparent border border-gray-700/50">
+                  <CardHeader>
+                    <div className="h-6 bg-gray-700 rounded w-32 animate-pulse"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex items-center justify-between p-4 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-gray-700 animate-pulse"></div>
+                            <div className="space-y-2">
+                              <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
+                              <div className="h-3 bg-gray-700 rounded w-24 animate-pulse"></div>
+                            </div>
+                          </div>
+                          <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+            
+            {/* Right Side - Portfolio Summary */}
+            <div className="lg:col-span-1">
+              <Card className="bg-gray-900 border-0 rounded-2xl">
+                <CardContent className="p-8 space-y-8">
+                  {/* Progress Loading */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
+                      <div className="h-4 bg-gray-700 rounded w-10 animate-pulse"></div>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2 animate-pulse"></div>
+                    <div className="flex justify-between">
+                      <div className="h-3 bg-gray-700 rounded w-20 animate-pulse"></div>
+                      <div className="h-3 bg-gray-700 rounded w-20 animate-pulse"></div>
+                    </div>
+                  </div>
+
+                  {/* Portfolio Value Loading */}
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-700 rounded w-24 animate-pulse"></div>
+                    <div className="h-10 bg-gray-700 rounded w-32 animate-pulse"></div>
+                  </div>
+
+                  {/* Gain/Loss Loading */}
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
+                    <div className="h-10 bg-gray-700 rounded w-28 animate-pulse"></div>
+                    <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
+                  </div>
+
+                  {/* Status Loading */}
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-700 rounded w-12 animate-pulse"></div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-gray-700 animate-pulse"></div>
+                      <div className="h-6 bg-gray-700 rounded w-16 animate-pulse"></div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
