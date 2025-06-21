@@ -80,7 +80,7 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
             minute: '2-digit',
             hour12: true
           }),
-          dateLabel: date.toISOString().split('T')[0] // YYYY-MM-DD 형식
+          dateLabel: date.toISOString().split('T')[0] // YYYY-MM-DD format
         }
       })
       .sort((a, b) => a.dateLabel.localeCompare(b.dateLabel)) // Sort by date (ascending)

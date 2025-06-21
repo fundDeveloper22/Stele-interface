@@ -37,6 +37,7 @@ import { useChallenge } from "@/app/hooks/useChallenge"
 import { useInvestorTransactions } from "@/app/hooks/useInvestorTransactions"
 import { useWallet } from "@/app/hooks/useWallet"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ethers } from "ethers"
 import { toast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
@@ -57,6 +58,7 @@ interface InvestorPageProps {
 
 export default function InvestorPage({ params }: InvestorPageProps) {
   const { id: challengeId, walletAddress } = use(params)
+  const router = useRouter()
   
   // Use hooks
   const { address: connectedAddress, isConnected } = useWallet()
@@ -382,23 +384,25 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   return (
     <div className="container mx-auto p-6">
       <div className="max-w-6xl mx-auto space-y-4">
+        {/* Back Button */}
+        <div className="mb-6">
+          <button 
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+        </div>
+        
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="space-y-2">
-            <Link 
-              href={`/challenge/${challengeId}`}
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Challenge
-            </Link>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold text-gray-100">Investor</h1>
-                <p className="text-gray-400">
-                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-                </p>
-              </div>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl text-gray-400">Investor</h1>
+              <p className="text-2xl">
+                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </p>
             </div>
           </div>
           <div className="space-y-4">            

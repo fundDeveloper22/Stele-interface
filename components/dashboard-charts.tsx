@@ -53,10 +53,10 @@ export function DashboardCharts() {
             minute: '2-digit',
             hour12: true
           }),
-          dateLabel: simulatedDate.toISOString().split('T')[0] // YYYY-MM-DD 형식
+          dateLabel: simulatedDate.toISOString().split('T')[0] // YYYY-MM-DD format
         }
       })
-      .sort((a, b) => a.dateLabel.localeCompare(b.dateLabel)) // 날짜 오름차순 정렬
+      .sort((a, b) => a.dateLabel.localeCompare(b.dateLabel)) // Sort by date ascending
 
     return processedData
   }, [data])
@@ -64,13 +64,13 @@ export function DashboardCharts() {
   // Calculate total values for headers (use the most recent snapshot)
   const totalParticipants = useMemo(() => {
     if (!chartData.length) return 0
-    // 이제 배열이 날짜 오름차순으로 정렬되어 있으므로 마지막 요소가 가장 최근
+    // Array is now sorted by date ascending, so last element is most recent
     return chartData[chartData.length - 1]?.totalParticipants || 0
   }, [chartData])
 
   const totalRewards = useMemo(() => {
     if (!chartData.length) return 0
-    // 이제 배열이 날짜 오름차순으로 정렬되어 있으므로 마지막 요소가 가장 최근
+    // Array is now sorted by date ascending, so last element is most recent
     return chartData[chartData.length - 1]?.totalRewards || 0
   }, [chartData])
 
