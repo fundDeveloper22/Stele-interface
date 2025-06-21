@@ -128,62 +128,58 @@ export function Header() {
   const { symbol, name } = getNetworkInfo();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border h-16 flex items-center justify-between px-4 md:px-6 bg-background">
+    <header className="sticky top-0 z-30 border-b border-border h-20 flex items-center justify-between px-4 md:px-6 bg-background">
       <div className="flex items-center">
-        <Link href="/" className="flex items-center gap-2 mr-4">
-          <span className="text-xl font-bold text-primary">Stele</span>
+        <Link href="/" className="flex items-center gap-2 mr-6">
+          <span className="text-2xl font-bold text-primary">Stele</span>
         </Link>
         
         <div className="flex items-center">
-          <Link href={"/dashboard"} className="mr-4">
+          <Link href={"/dashboard"} className="mr-6">
             <div 
               className={cn(
-                "flex flex-row items-center font-medium text-sm transition-colors",
+                "flex flex-row items-center font-medium text-base transition-colors",
                 pathname === "/" || pathname === "/dashboard"
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Home className="h-4 w-4 mr-1.5" />
               <span>Dashboard</span>
             </div>
           </Link>
-          <Link href={"/portfolio"} className="mr-4">
+          <Link href={"/portfolio"} className="mr-6">
             <div 
               className={cn(
-                "flex flex-row items-center font-medium text-sm transition-colors",
+                "flex flex-row items-center font-medium text-base transition-colors",
                 pathname.includes("/portfolio") 
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <BarChart3 className="h-4 w-4 mr-1.5" />
               <span>My Portfolio</span>
             </div>
           </Link>
-          <Link href={"/challenges"} className="mr-4">
+          <Link href={"/challenges"} className="mr-6">
             <div 
               className={cn(
-                "flex flex-row items-center font-medium text-sm transition-colors",
+                "flex flex-row items-center font-medium text-base transition-colors",
                 pathname.includes("/challenges") || pathname.includes("/challenge/") 
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Trophy className="h-4 w-4 mr-1.5" />
               <span>Challenges</span>
             </div>
           </Link>
-          <Link href={"/vote"}>
+          <Link href={"/vote"} className="mr-6">
             <div 
               className={cn(
-                "flex flex-row items-center font-medium text-sm transition-colors",
+                "flex flex-row items-center font-medium text-base transition-colors",
                 pathname.includes("/vote") 
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Vote className="h-4 w-4 mr-1.5" />
               <span>Vote</span>
             </div>
           </Link>

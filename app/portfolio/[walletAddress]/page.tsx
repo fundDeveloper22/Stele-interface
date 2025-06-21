@@ -94,15 +94,15 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
   const getChallengeTitle = (challengeType: number) => {
     switch(challengeType) {
       case 0:
-        return '1 Week Challenge'
+        return '1 Week'
       case 1:
-        return '1 Month Challenge'
+        return '1 Month'
       case 2:
-        return '3 Months Challenge'
+        return '3 Months'
       case 3:
-        return '6 Months Challenge'
+        return '6 Months'
       case 4:
-        return '1 Year Challenge'
+        return '1 Year'
       default:
         return `Challenge Type ${challengeType}`
     }
@@ -113,6 +113,19 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
+    })
+  }
+
+  const formatDateTime = (timestamp: string) => {
+    const date = new Date(Number(timestamp) * 1000)
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }) + ' ' + date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
     })
   }
 
@@ -132,9 +145,12 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
   // Challenge Table Row Component
   const ChallengeRow = ({ investor }: { investor: any }) => {
     const { data: challengeData } = useChallenge(investor.challengeId)
-    const profit = safeFormatUSD(investor.profitUSD)
-    const profitRatio = parseFloat(investor.profitRatio)
-    const isPositive = profit >= 0
+    const initialInvestment = safeFormatUSD(investor.seedMoneyUSD)
+    const currentValue = safeFormatUSD(investor.currentUSD)
+    
+    // Calculate correct profit/loss ratio: ((Current - Initial) / Initial) * 100
+    const profitRatio = initialInvestment > 0 ? ((currentValue - initialInvestment) / initialInvestment) * 100 : 0
+    const isPositive = profitRatio >= 0
 
     // Check if challenge is active based on challenge data
     const isActive = useMemo(() => {
@@ -152,33 +168,26 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
     }
 
     return (
-      <tr 
+            <tr 
         className="hover:bg-gray-800/30 transition-colors cursor-pointer" 
         onClick={handleRowClick}
       >
-        <td className="py-4 px-6">
+        <td className="py-6 px-6">
           <div className="flex items-center gap-3">
             <div>
-              <div className="font-medium text-gray-100">
-                {challengeTitle}
-              </div>
-              <div className="text-sm text-gray-400">
-                ID: {investor.challengeId}
+ 
+              <div className="text-sm text-gray-400 pl-8">
+                {investor.challengeId}
               </div>
             </div>
           </div>
         </td>
-        <td className="py-4 px-4">
+        <td className="py-6 px-4">
           <span className="font-medium text-gray-100">
-            {formatCurrency(safeFormatUSD(investor.seedMoneyUSD))}
+            {challengeTitle}
           </span>
         </td>
-        <td className="py-4 px-4">
-          <span className="font-medium text-gray-100">
-            {formatCurrency(safeFormatUSD(investor.currentUSD))}
-          </span>
-        </td>
-        <td className="py-4 px-4">
+        <td className="py-6 px-4">
           <div className="flex items-center gap-1">
             {isPositive ? 
               <TrendingUp className="h-3 w-3 text-emerald-400" /> : 
@@ -192,12 +201,17 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
             </span>
           </div>
         </td>
-        <td className="py-4 px-4">
+        <td className="py-6 px-4">
           <div className="text-sm text-gray-400">
-            {challengeData?.challenge?.endTime ? formatDate(challengeData.challenge.endTime) : 'Loading...'}
+            {challengeData?.challenge?.startTime ? formatDateTime(challengeData.challenge.startTime) : 'Loading...'}
           </div>
         </td>
-        <td className="py-4 px-6">
+        <td className="py-6 px-4">
+          <div className="text-sm text-gray-400">
+            {challengeData?.challenge?.endTime ? formatDateTime(challengeData.challenge.endTime) : 'Loading...'}
+          </div>
+        </td>
+        <td className="py-6 px-6">
           <div className="flex flex-row items-center gap-2">
             {/* Challenge Status */}
             {/* Registration Status */}
@@ -247,27 +261,18 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
 
     return (
       <div>
-        <div className="flex items-center gap-3 mb-4">
-          <h2 className="text-xl font-bold text-gray-100 flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-gray-400" />
-            {title}
-          </h2>
-          <Badge variant="secondary" className="bg-gray-700 text-gray-300">
-            {challenges.length} challenges
-          </Badge>
-        </div>
         <Card className="bg-transparent border border-gray-700/50">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-700 bg-gray-900/80 hover:bg-gray-800/50">
-                    <th className="text-left py-3 px-6 text-sm font-medium text-gray-400">Challenge</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Initial Investment</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Current Value</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">P&L</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">End Date</th>
-                    <th className="text-left py-3 px-6 text-sm font-medium text-gray-400">State</th>
+                    <th className="text-left py-3 px-6 text-sm font-medium text-gray-400 pl-14">ID</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400 pl-6">Type</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400 pl-8">Profit</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400 pl-10">Start Date</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400 pl-10">End Date</th>
+                    <th className="text-left py-3 px-6 text-sm font-medium text-gray-400 pl-10">State</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -315,13 +320,13 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
                           <div className="h-4 bg-gray-600 rounded w-20 animate-pulse"></div>
                         </th>
                         <th className="text-left py-3 px-4">
-                          <div className="h-4 bg-gray-600 rounded w-28 animate-pulse"></div>
-                        </th>
-                        <th className="text-left py-3 px-4">
-                          <div className="h-4 bg-gray-600 rounded w-24 animate-pulse"></div>
+                          <div className="h-4 bg-gray-600 rounded w-16 animate-pulse"></div>
                         </th>
                         <th className="text-left py-3 px-4">
                           <div className="h-4 bg-gray-600 rounded w-16 animate-pulse"></div>
+                        </th>
+                        <th className="text-left py-3 px-4">
+                          <div className="h-4 bg-gray-600 rounded w-20 animate-pulse"></div>
                         </th>
                         <th className="text-left py-3 px-4">
                           <div className="h-4 bg-gray-600 rounded w-20 animate-pulse"></div>
@@ -334,25 +339,25 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
                     <tbody>
                       {[1, 2, 3, 4, 5].map((i) => (
                         <tr key={i} className="border-0">
-                          <td className="py-4 px-6">
+                          <td className="py-6 px-6">
                             <div className="space-y-2">
                               <div className="h-4 bg-gray-700 rounded w-32 animate-pulse"></div>
                               <div className="h-3 bg-gray-700 rounded w-16 animate-pulse"></div>
                             </div>
                           </td>
-                          <td className="py-4 px-4">
+                          <td className="py-6 px-4">
                             <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
                           </td>
-                          <td className="py-4 px-4">
-                            <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
-                          </td>
-                          <td className="py-4 px-4">
+                          <td className="py-6 px-4">
                             <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
                           </td>
-                          <td className="py-4 px-4">
+                          <td className="py-6 px-4">
                             <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
                           </td>
-                          <td className="py-4 px-6">
+                          <td className="py-6 px-4">
+                            <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
+                          </td>
+                          <td className="py-6 px-6">
                             <div className="flex gap-2">
                               <div className="h-6 bg-gray-700 rounded-full w-16 animate-pulse"></div>
                               <div className="h-6 bg-gray-700 rounded-full w-14 animate-pulse"></div>
@@ -383,16 +388,11 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-2">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-100">Portfolio</h1>
-              <p className="text-gray-400 font-mono">
+            <div className="flex items-center justify-between w-full gap-4">
+              <h1 className="text-3xl text-gray-100">Portfolio</h1>
+              <p className="text-xl text-gray-400 font-mono">
                 {walletAddress.slice(0, 8)}...{walletAddress.slice(-8)}
               </p>
-              <div className="flex items-center gap-4 mt-2">
-                <span className="text-sm text-gray-400">
-                  {portfolioSummary.totalChallenges} Total Challenges
-                </span>
-              </div>
             </div>
           </div>
         </div>
@@ -416,7 +416,7 @@ export default function PortfolioPage({ params }: PortfolioPageProps) {
         ) : (
           <ChallengeTable 
             challenges={investors}
-            title="All Challenges"
+            title=""
           />
         )}
       </div>

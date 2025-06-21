@@ -1173,16 +1173,6 @@ export default function VotePage() {
         </TabsList>
 
         <TabsContent value="active" className="mt-4">
-          <div className="mb-4 text-sm text-gray-400">
-            📋 Active and recent proposals ({actionableCount?.proposals?.length || 0} total): ⏳ PENDING • 🗳️ VOTING • ⏳ PENDING QUEUE • 🔄 QUEUED • ✨ EXECUTED • ❌ DEFEATED
-            <br />
-            🚫 Only canceled proposals are excluded from this view
-            {(actionableCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
-              <span className="block mt-1">
-                Showing {((activeProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(activeProposalsPage * ITEMS_PER_PAGE, actionableCount?.proposals?.length || 0)} of {actionableCount?.proposals?.length || 0} proposals
-              </span>
-            )}
-          </div>
           <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
             <Table>
               <TableHeader>
@@ -1244,19 +1234,18 @@ export default function VotePage() {
             totalPages={totalActivePages}
             onPageChange={setActiveProposalsPage}
           />
+          <div className="mt-4 text-sm text-gray-400 border-t border-gray-700/50 pt-4">
+            <div className="flex justify-between items-center">
+              {(actionableCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
+                <div>
+                  Showing {((activeProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(activeProposalsPage * ITEMS_PER_PAGE, actionableCount?.proposals?.length || 0)} of {actionableCount?.proposals?.length || 0} proposals
+                </div>
+              )}
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="completed" className="mt-4">
-          <div className="mb-4 text-sm text-gray-400">
-            ✨ Successfully executed proposals only ({completedCount?.proposals?.length || 0} total)
-            <br />
-            📋 These proposals have passed voting and been fully implemented
-            {(completedCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
-              <span className="block mt-1">
-                Showing {((completedProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(completedProposalsPage * ITEMS_PER_PAGE, completedCount?.proposals?.length || 0)} of {completedCount?.proposals?.length || 0} proposals
-              </span>
-            )}
-          </div>
           <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
             <Table>
               <TableHeader>
@@ -1318,19 +1307,18 @@ export default function VotePage() {
             totalPages={totalCompletedPages}
             onPageChange={setCompletedProposalsPage}
           />
+          <div className="mt-4 text-sm text-gray-400 border-t border-gray-700/50 pt-4">
+            <div className="flex justify-between items-center mb-2">
+              {(completedCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
+                <div>
+                  Showing {((completedProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(completedProposalsPage * ITEMS_PER_PAGE, completedCount?.proposals?.length || 0)} of {completedCount?.proposals?.length || 0} proposals
+                </div>
+              )}
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="all" className="mt-4">
-          <div className="mb-4 text-sm text-gray-400">
-            📋 All proposals with accurate statuses ({allCount?.proposals?.length || 0} total): ⏳ PENDING • 🗳️ ACTIVE • ⏳ PENDING QUEUE • 🔄 QUEUED • ✨ EXECUTED • ❌ DEFEATED • 🚫 CANCELED
-            <br />
-            🎯 Status reflects actual governance state with time-based validation
-            {(allCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
-              <span className="block mt-1">
-                Showing {((allProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(allProposalsPage * ITEMS_PER_PAGE, allCount?.proposals?.length || 0)} of {allCount?.proposals?.length || 0} proposals
-              </span>
-            )}
-          </div>
           <div className="border rounded-lg bg-gray-900/50 border-gray-700/50">
             <Table>
               <TableHeader>
@@ -1392,6 +1380,15 @@ export default function VotePage() {
             totalPages={totalAllPages}
             onPageChange={setAllProposalsPage}
           />
+          <div className="mt-4 text-sm text-gray-400 border-t border-gray-700/50 pt-4">
+            <div className="flex justify-between items-center mb-2">
+              {(allCount?.proposals?.length || 0) > ITEMS_PER_PAGE && (
+                <div>
+                  Showing {((allProposalsPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(allProposalsPage * ITEMS_PER_PAGE, allCount?.proposals?.length || 0)} of {allCount?.proposals?.length || 0} proposals
+                </div>
+              )}
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

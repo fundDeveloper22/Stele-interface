@@ -96,15 +96,15 @@ export function InvestableTokens() {
                     className="border-0 hover:bg-gray-800/30 cursor-pointer transition-colors"
                     onClick={() => handleRowClick(token.tokenAddress)}
                   >
-                    <TableCell className="font-medium text-gray-100 pl-6">
+                    <TableCell className="font-medium text-gray-100 pl-6 py-6">
                       {token.symbol}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-6">
                       <code className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">
                         {formatAddress(token.tokenAddress)}
                       </code>
                     </TableCell>
-                    <TableCell className="text-gray-400 pr-6">
+                    <TableCell className="text-gray-400 pr-6 py-6">
                       {formatDate(token.updatedTimestamp)}
                     </TableCell>
                   </TableRow>

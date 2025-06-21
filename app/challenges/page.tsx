@@ -38,9 +38,6 @@ export default async function ChallengesPage() {
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-gray-100">Total Challenges</h1>
-        </div>
         <RecentChallengesTable />
       </div>
     </HydrationBoundary>

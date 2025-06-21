@@ -96,7 +96,7 @@ export function RecentChallengesTable() {
 
   if (isLoading) {
     return (
-      <Card className="bg-gray-900/50 border-gray-700/50">
+      <Card className="bg-transparent border-0">
         <CardHeader>
           <CardTitle className="text-gray-100">Recent Challenges</CardTitle>
         </CardHeader>
@@ -113,7 +113,7 @@ export function RecentChallengesTable() {
 
   if (error || !data?.challenges) {
     return (
-      <Card className="bg-gray-900/50 border-gray-700/50">
+      <Card className="bg-transparent border-0">
         <CardHeader>
           <CardTitle className="text-gray-100">Recent Challenges</CardTitle>
         </CardHeader>
@@ -127,21 +127,21 @@ export function RecentChallengesTable() {
   }
 
   return (
-    <Card className="bg-gray-900/50 border-gray-700/50">
+    <Card className="bg-transparent border-0">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-gray-100">
           <Trophy className="h-5 w-5" />
-          Recent Challenges
+          Total Challenges
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="rounded-md border border-gray-700">
           <Table>
             <TableHeader>
-              <TableRow className="border-b border-gray-700 hover:bg-gray-800/50">
-                <TableHead className="text-gray-300 pl-10">Challenge</TableHead>
+              <TableRow className="border-b border-gray-700 bg-gray-900/80 hover:bg-gray-800/50">
+                <TableHead className="text-gray-300 pl-12">ID</TableHead>
                 <TableHead className="text-gray-300 pl-6">Type</TableHead>
-                <TableHead className="text-gray-300 pl-6">Participants</TableHead>
+                <TableHead className="text-gray-300 pl-10">Users</TableHead>
                 <TableHead className="text-gray-300 pl-8">Prize</TableHead>
                 <TableHead className="text-gray-300 pl-20">Start Date</TableHead>
                 <TableHead className="text-gray-300 pl-16">End Date</TableHead>
@@ -166,38 +166,32 @@ export function RecentChallengesTable() {
                       className="border-0 hover:bg-gray-800/50 cursor-pointer transition-colors"
                       onClick={() => window.location.href = `/challenge/${challenge.challengeId}`}
                     >
-                      <TableCell className="font-medium pl-10">
-                        <code className="text-sm bg-gray-800 text-gray-300 px-2 py-1 rounded">
-                          {challenge.challengeId.slice(0, 8)}
-                        </code>
+                      <TableCell className="font-medium pl-12 py-6">
+                        {challenge.challengeId.slice(0, 8)}
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="border-blue-500 text-blue-400 bg-blue-900/20">
-                          {getChallengeTypeName(challenge.challengeType)}
-                        </Badge>
+                      <TableCell className="pl-6 py-6">
+                        {getChallengeTypeName(challenge.challengeType)}
                       </TableCell>
-                      <TableCell className="pl-10">
+                      <TableCell className="pl-10 py-6">
                         <div className="flex items-center gap-1 text-gray-300">
                           <Users className="h-4 w-4 text-gray-400" />
                           {challenge.investorCounter}
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium text-yellow-400 pl-8">
+                      <TableCell className="font-medium text-yellow-400 pl-8 py-6">
                         {formatUSDAmount(challenge.rewardAmountUSD)}
                       </TableCell>
-                      <TableCell className="pl-10">
+                      <TableCell className="pl-10 py-6">
                         <div className="flex items-center gap-1 text-sm text-gray-400">
-                          <Clock className="h-4 w-4" />
                           {formatDate(challenge.startTime)}
                         </div>
                       </TableCell>
-                      <TableCell className="pl-4">
+                      <TableCell className="pl-4 py-6">
                         <div className="flex items-center gap-1 text-sm text-gray-400">
-                          <Clock className="h-4 w-4" />
                           {formatDate(challenge.endTime)}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-6">
                         {getStatusBadge(getChallengeStatus(challenge))}
                       </TableCell>
                     </TableRow>
