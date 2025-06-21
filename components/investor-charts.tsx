@@ -8,6 +8,7 @@ import { DollarSign, TrendingUp, TrendingDown, User, Trophy } from 'lucide-react
 import { useMemo, useState } from 'react'
 import { ethers } from 'ethers'
 import { USDC_DECIMALS } from '@/lib/constants'
+import { AssetSwap } from './asset-swap'
 
 interface ChartDataPoint {
   id: string
@@ -24,6 +25,8 @@ interface InvestorChartsProps {
   challengeId: string
   investor: string
   investorData?: any // Add investor data prop for calculations
+  swapMode?: boolean // Add swap mode prop
+  userTokens?: any[] // Add user tokens for swap component
 }
 
 export function InvestorCharts({ challengeId, investor, investorData }: InvestorChartsProps) {
@@ -178,8 +181,8 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-        <Card className="bg-transparent border-0 lg:col-span-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <Card className="bg-transparent border-0 lg:col-span-2">
           <CardHeader>
             <div className="h-8 bg-gray-700 rounded animate-pulse"></div>
             <div className="h-4 bg-gray-700 rounded animate-pulse mt-2 w-2/3"></div>
@@ -188,23 +191,27 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
             <div className="h-80 bg-gray-700 rounded animate-pulse"></div>
           </CardContent>
         </Card>
-        <Card className="bg-transparent border-0 lg:col-span-1">
-          <CardHeader>
-            <div className="h-8 bg-gray-700 rounded animate-pulse"></div>
-            <div className="h-4 bg-gray-700 rounded animate-pulse mt-2 w-2/3"></div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 bg-gray-700 rounded animate-pulse"></div>
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-1">
+          <div className="h-[600px] overflow-y-auto">
+            <Card className="bg-transparent border-0 h-fit">
+              <CardHeader>
+                <div className="h-8 bg-gray-700 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-700 rounded animate-pulse mt-2 w-2/3"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80 bg-gray-700 rounded animate-pulse"></div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     )
   }
 
   if (error || !data?.investorSnapshots || chartData.length === 0) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-        <Card className="bg-transparent border-0 lg:col-span-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <Card className="bg-transparent border-0 lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-4xl font-bold text-gray-100">$0</CardTitle>
             <p className="text-sm text-gray-400">{currentDate}</p>
@@ -215,24 +222,28 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-transparent border-0 lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-lg font-bold text-gray-100">Portfolio Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 flex items-center justify-center">
-              <p className="text-gray-400">Loading portfolio data...</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-1">
+          <div className="h-[600px] overflow-y-auto">
+            <Card className="bg-transparent border-0 h-fit">
+              <CardHeader>
+                <CardTitle className="text-lg font-bold text-gray-100">Portfolio Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80 flex items-center justify-center">
+                  <p className="text-gray-400">Loading portfolio data...</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-      {/* Portfolio Value Chart - Takes 3 columns */}
-      <Card className="bg-transparent border-0 lg:col-span-3">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      {/* Portfolio Value Chart - Takes 2 columns */}
+      <Card className="bg-transparent border-0 lg:col-span-2">
         <CardHeader className="pb-6">
           <CardTitle className="text-4xl font-bold text-gray-100">
             ${currentPortfolioValue.toFixed(2)}
@@ -298,51 +309,59 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
         </CardContent>
       </Card>
 
-      {/* Portfolio Summary Card */}
-      <Card className="bg-gray-900 border-0 lg:col-span-1">
-        <CardHeader className="pb-6">
-          <CardTitle className="text-lg font-bold text-gray-100">Portfolio Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Portfolio Value */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-400">Portfolio Value</span>
-            </div>
-            <span className="text-2xl font-bold text-gray-100">
-              ${metrics.portfolioValue.toFixed(2)}
-            </span>
-          </div>
+      {/* Portfolio Summary Card or Swap Assets */}
+      <div className="lg:col-span-1">
+        <div className="h-[600px] overflow-y-auto">
+          {swapMode ? (
+            <AssetSwap userTokens={userTokens} />
+          ) : (
+            <Card className="bg-gray-900 border-0 h-fit">
+              <CardHeader className="pb-6">
+                <CardTitle className="text-lg font-bold text-gray-100">Portfolio Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Portfolio Value */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-gray-400" />
+                    <span className="text-sm text-gray-400">Portfolio Value</span>
+                  </div>
+                  <span className="text-2xl font-bold text-gray-100">
+                    ${metrics.portfolioValue.toFixed(2)}
+                  </span>
+                </div>
 
-          {/* Gain/Loss */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {metrics.isPositive ? <TrendingUp className="h-5 w-5 text-green-400" /> : <TrendingDown className="h-5 w-5 text-red-400" />}
-              <span className="text-sm text-gray-400">Gain/Loss</span>
-            </div>
-            <div className="text-right">
-              <div className={`text-xl font-bold ${metrics.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                {metrics.isPositive ? '+' : ''}${metrics.gainLoss.toFixed(2)}
-              </div>
-              <div className={`text-sm ${metrics.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                {metrics.isPositive ? '+' : ''}{metrics.gainLossPercentage.toFixed(2)}%
-              </div>
-            </div>
-          </div>
+                {/* Gain/Loss */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {metrics.isPositive ? <TrendingUp className="h-5 w-5 text-green-400" /> : <TrendingDown className="h-5 w-5 text-red-400" />}
+                    <span className="text-sm text-gray-400">Gain/Loss</span>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-xl font-bold ${metrics.isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                      {metrics.isPositive ? '+' : ''}${metrics.gainLoss.toFixed(2)}
+                    </div>
+                    <div className={`text-sm ${metrics.isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                      {metrics.isPositive ? '+' : ''}{metrics.gainLossPercentage.toFixed(2)}%
+                    </div>
+                  </div>
+                </div>
 
-          {/* Total Rewards */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-400">Total Rewards</span>
-            </div>
-            <span className="text-xl font-bold text-yellow-400">
-              {metrics.totalRewards}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+                {/* Total Rewards */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-gray-400" />
+                    <span className="text-sm text-gray-400">Total Rewards</span>
+                  </div>
+                  <span className="text-xl font-bold text-yellow-400">
+                    {metrics.totalRewards}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   )
 } 

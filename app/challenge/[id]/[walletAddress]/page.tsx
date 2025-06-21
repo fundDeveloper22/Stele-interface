@@ -26,7 +26,8 @@ import {
   ArrowLeft,
   Loader2,
   Receipt,
-  FileText
+  FileText,
+  X
 } from "lucide-react"
 import { AssetSwap } from "@/components/asset-swap"
 import { InvestorCharts } from "@/components/investor-charts"
@@ -66,6 +67,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   const [isClient, setIsClient] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isRegistering, setIsRegistering] = useState(false)
+  const [isSwapMode, setIsSwapMode] = useState(false)
 
   // Ensure client-side rendering for time calculations
   useEffect(() => {
@@ -412,8 +414,26 @@ export default function InvestorPage({ params }: InvestorPageProps) {
               )}
             </div>
             
-            {/* Register Button */}
-            <div className="flex justify-end">
+            {/* Swap and Register Buttons */}
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsSwapMode(!isSwapMode)}
+                className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 border-pink-500/50"
+              >
+                {isSwapMode ? (
+                  <>
+                    <X className="mr-2 h-4 w-4" />
+                    Close
+                  </>
+                ) : (
+                  <>
+                    <Repeat className="mr-2 h-4 w-4" />
+                    Swap
+                  </>
+                )}
+              </Button>
               <Button 
                 variant="default" 
                 size="sm" 
@@ -438,28 +458,37 @@ export default function InvestorPage({ params }: InvestorPageProps) {
         </div>
 
         {/* Investor Charts */}
-        <InvestorCharts challengeId={challengeId} investor={walletAddress} investorData={investorData} />
+        <InvestorCharts 
+          challengeId={challengeId} 
+          investor={walletAddress} 
+          investorData={investorData}
+          swapMode={isSwapMode}
+          userTokens={userTokens}
+        />
 
-        {/* Tabbed Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="portfolio" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Portfolio
-            </TabsTrigger>
-            <TabsTrigger value="swap" className="flex items-center gap-2">
-              <Repeat className="h-4 w-4" />
-              Swap
-            </TabsTrigger>
-            <TabsTrigger value="transactions" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Transactions
-            </TabsTrigger>
-            <TabsTrigger value="stats" className="flex items-center gap-2">
-              <Star className="h-4 w-4" />
-              Stats
-            </TabsTrigger>
-          </TabsList>
+        {/* Tabbed Content Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Side - Tabbed Content */}
+          <div className="lg:col-span-2">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="portfolio" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Portfolio
+                </TabsTrigger>
+                <TabsTrigger value="swap" className="flex items-center gap-2">
+                  <Repeat className="h-4 w-4" />
+                  Swap
+                </TabsTrigger>
+                <TabsTrigger value="transactions" className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Transactions
+                </TabsTrigger>
+                <TabsTrigger value="stats" className="flex items-center gap-2">
+                  <Star className="h-4 w-4" />
+                  Stats
+                </TabsTrigger>
+              </TabsList>
 
           <TabsContent value="portfolio" className="space-y-4">
             <Card className="bg-gray-900/50 border-gray-700/50">
@@ -759,7 +788,9 @@ export default function InvestorPage({ params }: InvestorPageProps) {
               </Card>
             </div>
           </TabsContent>
-        </Tabs>
+            </Tabs>
+          </div>
+        </div>
       </div>
     </div>
   )
