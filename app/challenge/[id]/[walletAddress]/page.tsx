@@ -157,23 +157,6 @@ export default function InvestorPage({ params }: InvestorPageProps) {
             {/* Right Side - Portfolio Summary */}
             <div className="lg:col-span-1">
               <div className="space-y-4">
-                {/* Challenge Info Loading */}
-                <Card className="bg-gray-900 border-0 rounded-2xl">
-                  <CardContent className="p-8 space-y-8">
-                    {/* Challenge Type Loading */}
-                    <div className="space-y-2">
-                      <div className="h-4 bg-gray-700 rounded w-28 animate-pulse"></div>
-                      <div className="h-8 bg-gray-700 rounded w-32 animate-pulse"></div>
-                    </div>
-
-                    {/* Challenge ID Loading */}
-                    <div className="space-y-2">
-                      <div className="h-4 bg-gray-700 rounded w-24 animate-pulse"></div>
-                      <div className="h-8 bg-gray-700 rounded w-4 animate-pulse"></div>
-                    </div>
-                  </CardContent>
-                </Card>
-
                 {/* Portfolio Summary Loading */}
                 <Card className="bg-gray-900 border-0 rounded-2xl">
                   <CardContent className="p-8 space-y-8">
@@ -210,6 +193,29 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                         <div className="w-2 h-2 rounded-full bg-gray-700 animate-pulse"></div>
                         <div className="h-6 bg-gray-700 rounded w-16 animate-pulse"></div>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Challenge Info Loading */}
+                <Card className="bg-gray-900 border-0 rounded-2xl">
+                  <CardContent className="p-8 space-y-8">
+                    {/* Challenge Type Loading */}
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-700 rounded w-28 animate-pulse"></div>
+                      <div className="h-8 bg-gray-700 rounded w-32 animate-pulse"></div>
+                    </div>
+
+                    {/* Challenge ID Loading */}
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-700 rounded w-24 animate-pulse"></div>
+                      <div className="h-8 bg-gray-700 rounded w-4 animate-pulse"></div>
+                    </div>
+
+                    {/* Seed Money Loading */}
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
+                      <div className="h-8 bg-gray-700 rounded w-16 animate-pulse"></div>
                     </div>
                   </CardContent>
                 </Card>
@@ -796,7 +802,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                   {/* Gain/Loss */}
                   <div className="space-y-2">
                     <span className="text-sm text-gray-400">Gain/Loss</span>
-                    <div className={`text-4xl font-bold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                    <div className={`text-4xl ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
                       {isPositive ? '+' : ''}${gainLoss.toFixed(2)}
                     </div>
                     <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
@@ -848,6 +854,22 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                     <span className="text-sm text-gray-400">Challenge ID</span>
                     <div className="text-2xl text-white font-semibold">
                       {challengeId}
+                    </div>
+                  </div>
+
+                  {/* Seed Money */}
+                  <div className="space-y-2">
+                    <span className="text-sm text-gray-400">Seed Money</span>
+                    <div className="text-2xl text-white font-semibold">
+                      {(() => {
+                        // If we have challenge data and seedMoney is available
+                        if (challengeData?.challenge?.seedMoney) {
+                          const seedMoneyValue = parseInt(challengeData.challenge.seedMoney);
+                          return seedMoneyValue > 0 ? `$${seedMoneyValue}` : '$0';
+                        }
+                        // Default fallback
+                        return '$0';
+                      })()}
                     </div>
                   </div>
                 </CardContent>
