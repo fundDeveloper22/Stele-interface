@@ -90,7 +90,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   }, [isClient]);
 
   // Handle loading and error states
-  if (isLoadingInvestor || isLoadingTokens || isLoadingChallenge || isLoadingTransactions) {
+  if (isLoadingInvestor || isLoadingChallenge || isLoadingTransactions) {
     return (
       <div className="container mx-auto p-6">
         <div className="max-w-6xl mx-auto space-y-6">
@@ -147,44 +147,64 @@ export default function InvestorPage({ params }: InvestorPageProps) {
             
             {/* Right Side - Portfolio Summary */}
             <div className="lg:col-span-1">
-              <Card className="bg-gray-900 border-0 rounded-2xl">
-                <CardContent className="p-8 space-y-8">
-                  {/* Progress Loading */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
-                      <div className="h-4 bg-gray-700 rounded w-10 animate-pulse"></div>
+              <div className="space-y-4">
+                {/* Challenge Info Loading */}
+                <Card className="bg-gray-900 border-0 rounded-2xl">
+                  <CardContent className="p-8 space-y-8">
+                    {/* Challenge Type Loading */}
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-700 rounded w-28 animate-pulse"></div>
+                      <div className="h-8 bg-gray-700 rounded w-24 animate-pulse"></div>
                     </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2 animate-pulse"></div>
-                    <div className="flex justify-between">
-                      <div className="h-3 bg-gray-700 rounded w-20 animate-pulse"></div>
-                      <div className="h-3 bg-gray-700 rounded w-20 animate-pulse"></div>
+
+                    {/* Challenge ID Loading */}
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-700 rounded w-24 animate-pulse"></div>
+                      <div className="h-8 bg-gray-700 rounded w-6 animate-pulse"></div>
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
 
-                  {/* Portfolio Value Loading */}
-                  <div className="space-y-2">
-                    <div className="h-4 bg-gray-700 rounded w-24 animate-pulse"></div>
-                    <div className="h-10 bg-gray-700 rounded w-32 animate-pulse"></div>
-                  </div>
-
-                  {/* Gain/Loss Loading */}
-                  <div className="space-y-2">
-                    <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
-                    <div className="h-10 bg-gray-700 rounded w-28 animate-pulse"></div>
-                    <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
-                  </div>
-
-                  {/* Status Loading */}
-                  <div className="space-y-2">
-                    <div className="h-4 bg-gray-700 rounded w-12 animate-pulse"></div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-gray-700 animate-pulse"></div>
-                      <div className="h-6 bg-gray-700 rounded w-16 animate-pulse"></div>
+                {/* Portfolio Summary Loading */}
+                <Card className="bg-gray-900 border-0 rounded-2xl">
+                  <CardContent className="p-8 space-y-8">
+                    {/* Progress Loading */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
+                        <div className="h-4 bg-gray-700 rounded w-8 animate-pulse"></div>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2 animate-pulse"></div>
+                      <div className="flex justify-between">
+                        <div className="h-3 bg-gray-700 rounded w-28 animate-pulse"></div>
+                        <div className="h-3 bg-gray-700 rounded w-24 animate-pulse"></div>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+
+                    {/* Portfolio Value Loading */}
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-700 rounded w-28 animate-pulse"></div>
+                      <div className="h-12 bg-gray-700 rounded w-40 animate-pulse"></div>
+                    </div>
+
+                    {/* Gain/Loss Loading */}
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
+                      <div className="h-12 bg-gray-700 rounded w-36 animate-pulse"></div>
+                      <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
+                    </div>
+
+                    {/* Status Loading */}
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-700 rounded w-12 animate-pulse"></div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-gray-700 animate-pulse"></div>
+                        <div className="h-5 bg-gray-700 rounded w-16 animate-pulse"></div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
@@ -694,60 +714,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
             <div className="space-y-4">
               {/* Swap Assets (when swap mode is active) */}
               {isSwapMode && (
-                isLoadingTokens ? (
-                  // Swap Loading Skeleton
-                  <Card className="bg-gray-900 border-0 rounded-2xl">
-                    <CardContent className="p-6 space-y-4">
-                      {/* Header */}
-                      <div className="flex items-center justify-between">
-                        <div className="h-5 bg-gray-700 rounded w-16 animate-pulse"></div>
-                        <div className="h-4 bg-gray-700 rounded w-8 animate-pulse"></div>
-                      </div>
-                      
-                      {/* From Token (Sell) */}
-                      <div className="p-4 bg-transparent border border-gray-600 rounded-2xl space-y-3">
-                        <div className="h-4 bg-gray-700 rounded w-8 animate-pulse"></div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 space-y-2">
-                            <div className="h-8 bg-gray-700 rounded w-24 animate-pulse"></div>
-                            <div className="h-3 bg-gray-700 rounded w-16 animate-pulse"></div>
-                          </div>
-                          <div className="flex flex-col items-end space-y-2">
-                            <div className="h-8 bg-gray-700 rounded-full w-20 animate-pulse"></div>
-                            <div className="h-3 bg-gray-700 rounded w-16 animate-pulse"></div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Swap Arrow */}
-                      <div className="flex justify-center">
-                        <div className="w-8 h-8 bg-gray-700 rounded-full animate-pulse"></div>
-                      </div>
-                      
-                      {/* To Token (Buy) */}
-                      <div className="p-4 bg-transparent border border-gray-600 rounded-2xl space-y-3">
-                        <div className="h-4 bg-gray-700 rounded w-8 animate-pulse"></div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 space-y-2">
-                            <div className="h-8 bg-gray-700 rounded w-20 animate-pulse"></div>
-                            <div className="h-3 bg-gray-700 rounded w-14 animate-pulse"></div>
-                          </div>
-                          <div className="h-8 bg-gray-700 rounded-full w-20 animate-pulse"></div>
-                        </div>
-                      </div>
-                      
-                      {/* Exchange Rate */}
-                      <div className="text-center">
-                        <div className="h-4 bg-gray-700 rounded w-32 mx-auto animate-pulse"></div>
-                      </div>
-                      
-                      {/* Swap Button */}
-                      <div className="h-14 bg-gray-700 rounded-2xl w-full animate-pulse"></div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <AssetSwap userTokens={userTokens} />
-                )
+                <AssetSwap userTokens={userTokens} />
               )}
               
               {/* Challenge Info */}
