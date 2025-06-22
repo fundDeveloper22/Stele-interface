@@ -84,8 +84,8 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
       <div className="flex items-center gap-2">
         <Trophy className="h-6 w-6 text-gray-100" />
         <h2 className="text-3xl text-gray-100">Total Ranking</h2>
-        <Badge variant="secondary" className="ml-2 bg-gray-700 text-gray-300">
-          {rankings.length} participants
+        <Badge variant="secondary" className="ml-2 bg-gray-700 text-gray-300 text-base px-3 py-1.5">
+          {rankings.length} users
         </Badge>
       </div>
       <Card className="bg-transparent border border-gray-700/50">
@@ -101,11 +101,11 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
               <Table>
                 <TableHeader>
                   <TableRow className="border-b border-gray-700 hover:bg-gray-800/50">
-                    <TableHead className="text-gray-300">Rank</TableHead>
-                    <TableHead className="text-gray-300 pl-12">User</TableHead>
-                    <TableHead className="text-gray-300">Challenge</TableHead>
-                    <TableHead className="text-gray-300 pl-6">Score</TableHead>
-                    <TableHead className="text-gray-300 pl-6">Profit Ratio</TableHead>
+                    <TableHead className="text-gray-300 text-base">Rank</TableHead>
+                    <TableHead className="text-gray-300 pl-12 text-base">User</TableHead>
+                    <TableHead className="text-gray-300 text-base">Challenge</TableHead>
+                    <TableHead className="text-gray-300 pl-6 text-base">Score</TableHead>
+                    <TableHead className="text-gray-300 pl-6 text-base">Profit Ratio</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -115,27 +115,27 @@ export function TokenStatsOverview({ className }: TokenStatsOverviewProps) {
                     
                     return (
                       <TableRow key={ranking.id} className="border-b border-gray-700 hover:bg-gray-800/30">
-                        <TableCell className="font-medium text-gray-100">
+                        <TableCell className="font-medium text-gray-100 text-base">
                           <div className="flex items-center gap-2 pl-2">
                             <span>#{index + 1}</span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <code className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">
+                          <code className="text-sm bg-gray-800 text-gray-300 px-2 py-1 rounded">
                             {formatAddress(ranking.user)}
                           </code>
                         </TableCell>
                         <TableCell className="pl-8">
-                          <Badge variant="outline" className="bg-gray-800 text-gray-300 border-gray-600">
+                          <Badge variant="outline" className="bg-gray-800 text-gray-300 border-gray-600 text-sm">
                             {getChallengeType(ranking.challengeId)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-medium text-gray-100">
+                        <TableCell className="font-medium text-gray-100 text-base">
                           {formatScore(ranking.score)}
                         </TableCell>
                         <TableCell>
                           <div className={cn(
-                            "flex items-center gap-1 font-medium",
+                            "flex items-center gap-1 font-medium text-base",
                             isPositive ? "text-green-400" : "text-red-400"
                           )}>
                             {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}

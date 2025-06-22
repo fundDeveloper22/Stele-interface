@@ -176,13 +176,13 @@ export function Header() {
                 <div className="space-y-2 p-2 bg-background border border-gray-600 rounded-2xl shadow-xl">
                   <Link 
                     href="/portfolio"
-                    className="block px-4 py-3 text-lg text-white bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-2xl transition-all duration-200 font-medium shadow-lg"
+                    className="block px-4 py-3 text-lg text-white bg-transparent hover:bg-gray-700/30 border border-gray-600 rounded-2xl transition-all duration-200 font-medium shadow-lg"
                   >
                     My Portfolios
                   </Link>
                   <Link 
                     href="/challenges"
-                    className="block px-4 py-3 text-lg text-white bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-2xl transition-all duration-200 font-medium shadow-lg"
+                    className="block px-4 py-3 text-lg text-white bg-transparent hover:bg-gray-700/30 border border-gray-600 rounded-2xl transition-all duration-200 font-medium shadow-lg"
                   >
                     Total Challenges
                   </Link>
