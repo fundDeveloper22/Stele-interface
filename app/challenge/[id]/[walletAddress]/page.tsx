@@ -90,19 +90,28 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   }, [isClient]);
 
   // Handle loading and error states
-  if (isLoadingInvestor || isLoadingTokens || isLoadingChallenge || isLoadingTransactions) {
+  if (isLoadingInvestor || isLoadingChallenge || isLoadingTransactions) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="max-w-6xl mx-auto space-y-6">
+      <div className="container mx-auto p-6 py-20">
+        <div className="max-w-6xl mx-auto space-y-4">
+          {/* Back Button Loading */}
+          <div className="mb-6">
+            <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
+          </div>
+          
           {/* Header Loading */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-8 bg-gray-700 rounded w-20 animate-pulse"></div>
-              <div className="h-8 bg-gray-700 rounded w-40 animate-pulse"></div>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="h-8 bg-gray-700 rounded w-20 animate-pulse"></div>
+                <div className="h-8 bg-gray-700 rounded w-40 animate-pulse"></div>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <div className="h-10 bg-gray-700 rounded w-20 animate-pulse"></div>
-              <div className="h-10 bg-gray-700 rounded w-24 animate-pulse"></div>
+            <div className="space-y-4">
+              <div className="flex justify-end gap-4">
+                <div className="h-14 bg-gray-700 rounded-lg w-24 animate-pulse"></div>
+                <div className="h-14 bg-gray-700 rounded-lg w-28 animate-pulse"></div>
+              </div>
             </div>
           </div>
 
@@ -147,44 +156,64 @@ export default function InvestorPage({ params }: InvestorPageProps) {
             
             {/* Right Side - Portfolio Summary */}
             <div className="lg:col-span-1">
-              <Card className="bg-gray-900 border-0 rounded-2xl">
-                <CardContent className="p-8 space-y-8">
-                  {/* Progress Loading */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+              <div className="space-y-4">
+                {/* Challenge Info Loading */}
+                <Card className="bg-gray-900 border-0 rounded-2xl">
+                  <CardContent className="p-8 space-y-8">
+                    {/* Challenge Type Loading */}
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-700 rounded w-28 animate-pulse"></div>
+                      <div className="h-8 bg-gray-700 rounded w-32 animate-pulse"></div>
+                    </div>
+
+                    {/* Challenge ID Loading */}
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-700 rounded w-24 animate-pulse"></div>
+                      <div className="h-8 bg-gray-700 rounded w-4 animate-pulse"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Portfolio Summary Loading */}
+                <Card className="bg-gray-900 border-0 rounded-2xl">
+                  <CardContent className="p-8 space-y-8">
+                    {/* Progress Loading */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
+                        <div className="h-4 bg-gray-700 rounded w-8 animate-pulse"></div>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2 animate-pulse"></div>
+                      <div className="flex justify-between">
+                        <div className="h-3 bg-gray-700 rounded w-36 animate-pulse"></div>
+                        <div className="h-3 bg-gray-700 rounded w-32 animate-pulse"></div>
+                      </div>
+                    </div>
+
+                    {/* Portfolio Value Loading */}
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-700 rounded w-28 animate-pulse"></div>
+                      <div className="h-10 bg-gray-700 rounded w-48 animate-pulse"></div>
+                    </div>
+
+                    {/* Gain/Loss Loading */}
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
+                      <div className="h-10 bg-gray-700 rounded w-44 animate-pulse"></div>
                       <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
-                      <div className="h-4 bg-gray-700 rounded w-10 animate-pulse"></div>
                     </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2 animate-pulse"></div>
-                    <div className="flex justify-between">
-                      <div className="h-3 bg-gray-700 rounded w-20 animate-pulse"></div>
-                      <div className="h-3 bg-gray-700 rounded w-20 animate-pulse"></div>
+
+                    {/* Status Loading */}
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-700 rounded w-12 animate-pulse"></div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-gray-700 animate-pulse"></div>
+                        <div className="h-6 bg-gray-700 rounded w-16 animate-pulse"></div>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Portfolio Value Loading */}
-                  <div className="space-y-2">
-                    <div className="h-4 bg-gray-700 rounded w-24 animate-pulse"></div>
-                    <div className="h-10 bg-gray-700 rounded w-32 animate-pulse"></div>
-                  </div>
-
-                  {/* Gain/Loss Loading */}
-                  <div className="space-y-2">
-                    <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
-                    <div className="h-10 bg-gray-700 rounded w-28 animate-pulse"></div>
-                    <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
-                  </div>
-
-                  {/* Status Loading */}
-                  <div className="space-y-2">
-                    <div className="h-4 bg-gray-700 rounded w-12 animate-pulse"></div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-gray-700 animate-pulse"></div>
-                      <div className="h-6 bg-gray-700 rounded w-16 animate-pulse"></div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
@@ -467,7 +496,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   };
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 py-20">
       <div className="max-w-6xl mx-auto space-y-4">
         {/* Back Button */}
         <div className="mb-6">
@@ -494,40 +523,40 @@ export default function InvestorPage({ params }: InvestorPageProps) {
             {/* Swap and Register Buttons - Only show if connected wallet matches investor address */}
             {connectedAddress && walletAddress && 
              connectedAddress.toLowerCase() === walletAddress.toLowerCase() && (
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-4">
                 <Button 
                   variant="outline" 
-                  size="sm" 
+                  size="lg" 
                   onClick={() => setIsSwapMode(!isSwapMode)}
-                  className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 border-pink-500/50"
+                  className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white border-0 font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-lg"
                 >
                   {isSwapMode ? (
                     <>
-                      <X className="mr-2 h-4 w-4" />
+                      <X className="mr-3 h-5 w-5" />
                       Close
                     </>
                   ) : (
                     <>
-                      <Repeat className="mr-2 h-4 w-4" />
+                      <Repeat className="mr-3 h-5 w-5" />
                       Swap
                     </>
                   )}
                 </Button>
                 <Button 
                   variant="default" 
-                  size="sm" 
+                  size="lg" 
                   onClick={handleRegister}
                   disabled={isRegistering}
-                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-lg"
                 >
                   {isRegistering ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                       Registering...
                     </>
                   ) : (
                     <>
-                      <FileText className="mr-2 h-4 w-4" />
+                      <FileText className="mr-3 h-5 w-5" />
                       Register
                     </>
                   )}
@@ -697,6 +726,42 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                 <AssetSwap userTokens={userTokens} />
               )}
               
+              {/* Challenge Info */}
+              <Card className="bg-gray-900 border-0 rounded-2xl">
+                <CardContent className="p-8 space-y-8">
+                  {/* Challenge Type */}
+                  <div className="space-y-2">
+                    <span className="text-sm text-gray-400">Challenge Type</span>
+                    <div className="text-2xl text-white font-semibold">
+                      {(() => {
+                        switch (challengeId) {
+                          case '1':
+                            return '1 Week';
+                          case '2':
+                            return '1 Month';
+                          case '3':
+                            return '3 Months';
+                          case '4':
+                            return '6 Months';
+                          case '5':
+                            return '1 Year';
+                          default:
+                            return `Type ${challengeId}`;
+                        }
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Challenge ID */}
+                  <div className="space-y-2">
+                    <span className="text-sm text-gray-400">Challenge ID</span>
+                    <div className="text-2xl text-white font-semibold">
+                      {challengeId}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Portfolio Summary (always visible) */}
               <Card className="bg-gray-900 border-0 rounded-2xl">
                 <CardContent className="p-8 space-y-8">

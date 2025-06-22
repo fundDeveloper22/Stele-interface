@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Plus, Settings, DollarSign, Shield, Users } from "lucide-react"
+import { ArrowLeft, Plus, Settings, DollarSign, Shield, Users, FileText, Loader2 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -43,6 +43,18 @@ const PROPOSAL_TEMPLATES: ProposalTemplate[] = [
     parameterLabels: ['Token Address'],
     parameterPlaceholders: ['0x...'],
     parameterDescriptions: ['The contract address of the token to be added as an investable asset']
+  },
+  {
+    id: 'reset-token',
+    name: 'Reset Investable Token',
+    description: 'Remove an investable token from the system',
+    icon: <Settings className="h-5 w-5" />,
+    targetContract: STELE_CONTRACT_ADDRESS,
+    functionSignature: 'removeToken(address)',
+    parameterTypes: ['address'],
+    parameterLabels: ['Token Address'],
+    parameterPlaceholders: ['0x...'],
+    parameterDescriptions: ['The contract address of the token to be removed from investable assets']
   },
   {
     id: 'set-reward-ratio',
@@ -178,16 +190,16 @@ export default function CreateProposalPage() {
   };
 
   // Handle template selection
-  const handleTemplateSelect = (templateId: string) => {
-    if (templateId === 'custom') {
+  const handleTemplateSelect = (templateName: string) => {
+    if (templateName === 'Custom Proposal') {
       setIsCustomProposal(true);
       setSelectedTemplate('');
       setTemplateParameters([]);
     } else {
       setIsCustomProposal(false);
-      setSelectedTemplate(templateId);
-      const template = PROPOSAL_TEMPLATES.find(t => t.id === templateId);
+      const template = PROPOSAL_TEMPLATES.find(t => t.name === templateName);
       if (template) {
+        setSelectedTemplate(template.id);
         setTemplateParameters(new Array(template.parameterTypes.length).fill(''));
       }
     }
@@ -510,174 +522,192 @@ export default function CreateProposalPage() {
   }
   
   return (
-    <div className="container mx-auto py-6">
-      <div className="mb-6">
-        <Link href="/vote">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Proposals
-          </Button>
-        </Link>
-      </div>
-      
-      <div className="max-w-2xl mx-auto">
-        <Card className="bg-gray-900/50 border-gray-700/50">
-          <CardHeader>
-            <CardTitle className="text-xl text-gray-100">Create New Proposal</CardTitle>
-            <CardDescription className="text-gray-300">
-              Submit a proposal to be voted on by the community. You need to have enough voting power to create a proposal.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title" className="text-gray-200">Proposal Title</Label>
-              <Input 
-                id="title" 
-                placeholder="Enter a concise title for your proposal" 
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                disabled={isSubmitting}
-                className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
-              />
+    <div className="container mx-auto p-6 py-20">
+      <div className="max-w-4xl mx-auto space-y-4">
+        <div className="mb-6">
+          <button 
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+        </div>
+        
+        <div className="mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-100">Create Proposal</h1>
+            <p className="text-gray-400 mt-1">Submit a new governance proposal to the community</p>
+          </div>
+        </div>
+        <Card className="bg-transparent border border-gray-700/50">
+          <CardContent className="space-y-8 p-8">
+            {/* Basic Information Section */}
+            <div className="space-y-6">
+              
+              <div className="grid gap-6">
+                <div className="space-y-3">
+                  <Label htmlFor="title" className="text-gray-200 text-base font-medium">Proposal Title *</Label>
+                  <Input 
+                    id="title" 
+                    placeholder="Enter a clear and concise title for your proposal." 
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    disabled={isSubmitting}
+                    className="bg-gray-800/30 border-gray-600 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20 h-12 text-lg"
+                  />
+                </div>
+                
+                <div className="space-y-3">
+                  <Label htmlFor="description" className="text-gray-200 text-base font-medium">Short Description *</Label>
+                  <Textarea 
+                    id="description" 
+                    placeholder="Provide a brief summary of what your proposal aims to achieve." 
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    disabled={isSubmitting}
+                    className="bg-gray-800/30 border-gray-600 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20 min-h-[100px] text-base"
+                  />
+                </div>
+                
+                <div className="space-y-3">
+                  <Label htmlFor="details" className="text-gray-200 text-base font-medium">Detailed Description</Label>
+                  <Textarea 
+                    id="details" 
+                    placeholder="Explain your proposal in detail." 
+                    className="min-h-[200px] bg-gray-800/30 border-gray-600 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20 text-base"
+                    value={details}
+                    onChange={(e) => setDetails(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-gray-200">Short Description</Label>
-              <Textarea 
-                id="description" 
-                placeholder="Provide a brief summary of what your proposal aims to achieve" 
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                disabled={isSubmitting}
-                className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="details" className="text-gray-200">Detailed Description</Label>
-              <Textarea 
-                id="details" 
-                placeholder="Explain your proposal in detail, including rationale and implementation details" 
-                className="min-h-[150px] bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
-                value={details}
-                onChange={(e) => setDetails(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-            
-            <div className="space-y-4 border border-gray-600 rounded-md p-4 bg-gray-800/30">
-              <h3 className="text-sm font-medium text-gray-200">Governance Action</h3>
-              <div className="space-y-2">
-                <Label htmlFor="template" className="text-gray-200">Select Proposal Type</Label>
-                <Select onValueChange={handleTemplateSelect} disabled={isSubmitting}>
-                  <SelectTrigger className="bg-gray-800/50 border-gray-600 text-gray-100 focus:border-gray-500 focus:ring-gray-500/20">
-                    <SelectValue placeholder="Choose a governance action..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-600">
-                    {PROPOSAL_TEMPLATES.map((template) => (
-                      <SelectItem key={template.id} value={template.id} className="text-gray-100 focus:bg-gray-700">
-                        <div className="flex items-center gap-2">
-                          {template.icon}
-                          <div>
-                            <div className="font-medium">{template.name}</div>
-                            <div className="text-sm text-gray-400">{template.description}</div>
-                          </div>
-                        </div>
+            {/* Governance Action Section */}
+            <div className="space-y-6">
+              <div className="border-b border-gray-700/50 pb-4">
+                <h3 className="text-lg font-semibold text-gray-200 flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Governance Action
+                </h3>
+                <p className="text-sm text-gray-400 mt-1">Define the on-chain action this proposal will execute</p>
+              </div>
+              
+              <div className="bg-gray-800/20 border border-gray-600/50 rounded-lg p-6 space-y-6">
+                <div className="space-y-3">
+                  <Label htmlFor="template" className="text-gray-200 text-base font-medium">Select Proposal Type</Label>
+                  <Select onValueChange={handleTemplateSelect} disabled={isSubmitting}>
+                    <SelectTrigger className="bg-gray-800/30 border-gray-600 text-gray-100 focus:border-blue-500 focus:ring-blue-500/20 h-12">
+                      <SelectValue placeholder="Choose a governance action..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-black/80 border-gray-600">
+                      {PROPOSAL_TEMPLATES.map((template) => (
+                        <SelectItem key={template.id} value={template.name} className="text-gray-100 focus:bg-gray-700">
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="Custom Proposal" className="text-gray-100 focus:bg-gray-700">
+                        Custom Proposal
                       </SelectItem>
-                    ))}
-                    <SelectItem value="custom" className="text-gray-100 focus:bg-gray-700">
-                      <div className="flex items-center gap-2">
-                        <Settings className="h-5 w-5" />
-                        <div>
-                          <div className="font-medium">Custom Proposal</div>
-                          <div className="text-sm text-gray-400">Advanced: Define your own contract interaction</div>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              {/* Template Parameters */}
-              {selectedTemplate && !isCustomProposal && (
-                <div className="space-y-3">
-                  {PROPOSAL_TEMPLATES.find(t => t.id === selectedTemplate)?.parameterLabels.map((label, index) => {
-                    const template = PROPOSAL_TEMPLATES.find(t => t.id === selectedTemplate)!;
-                    return (
-                      <div key={index} className="space-y-2">
-                        <Label htmlFor={`param-${index}`} className="text-gray-200">{label}</Label>
-                        <Input 
-                          id={`param-${index}`}
-                          placeholder={template.parameterPlaceholders[index]}
-                          value={templateParameters[index] || ''}
-                          onChange={(e) => updateTemplateParameter(index, e.target.value)}
-                          disabled={isSubmitting}
-                          className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
-                        />
-                        <p className="text-xs text-gray-400">{template.parameterDescriptions[index]}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                {/* Template Parameters */}
+                {selectedTemplate && !isCustomProposal && (
+                  <div className="space-y-4 bg-gray-700/20 border border-gray-600/30 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-gray-300">Template Parameters</h4>
+                    <div className="space-y-4">
+                      {PROPOSAL_TEMPLATES.find(t => t.id === selectedTemplate)?.parameterLabels.map((label, index) => {
+                        const template = PROPOSAL_TEMPLATES.find(t => t.id === selectedTemplate)!;
+                        return (
+                          <div key={index} className="space-y-2">
+                            <Label htmlFor={`param-${index}`} className="text-gray-200 text-sm font-medium">{label}</Label>
+                            <Input 
+                              id={`param-${index}`}
+                              placeholder={template.parameterPlaceholders[index]}
+                              value={templateParameters[index] || ''}
+                              onChange={(e) => updateTemplateParameter(index, e.target.value)}
+                              disabled={isSubmitting}
+                              className="bg-gray-800/30 border-gray-600 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20 h-11"
+                            />
+                            <p className="text-xs text-gray-400">{template.parameterDescriptions[index]}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-              {/* Custom Proposal Fields */}
-              {isCustomProposal && (
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="target" className="text-gray-200">Target Contract Address</Label>
-                    <Input 
-                      id="target" 
-                      placeholder="0x..." 
-                      value={targetAddress}
-                      onChange={(e) => setTargetAddress(e.target.value)}
-                      disabled={isSubmitting}
-                      className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
-                    />
+                {/* Custom Proposal Fields */}
+                {isCustomProposal && (
+                  <div className="space-y-4 bg-gray-700/20 border border-gray-600/30 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-gray-300">Custom Contract Interaction</h4>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="target" className="text-gray-200 text-sm font-medium">Target Contract Address</Label>
+                        <Input 
+                          id="target" 
+                          placeholder="0x..." 
+                          value={targetAddress}
+                          onChange={(e) => setTargetAddress(e.target.value)}
+                          disabled={isSubmitting}
+                          className="bg-gray-800/30 border-gray-600 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20 h-11"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="function" className="text-gray-200 text-sm font-medium">Function Signature</Label>
+                        <Input 
+                          id="function" 
+                          placeholder="e.g. setRewardAmount(uint256)" 
+                          value={functionSignature}
+                          onChange={(e) => setFunctionSignature(e.target.value)}
+                          disabled={isSubmitting}
+                          className="bg-gray-800/30 border-gray-600 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20 h-11"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="params" className="text-gray-200 text-sm font-medium">Function Parameters (comma separated)</Label>
+                        <Input 
+                          id="params" 
+                          placeholder="e.g. 150000000" 
+                          value={functionParams}
+                          onChange={(e) => setFunctionParams(e.target.value)}
+                          disabled={isSubmitting}
+                          className="bg-gray-800/30 border-gray-600 text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500/20 h-11"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="function" className="text-gray-200">Function Signature</Label>
-                    <Input 
-                      id="function" 
-                      placeholder="e.g. setRewardAmount(uint256)" 
-                      value={functionSignature}
-                      onChange={(e) => setFunctionSignature(e.target.value)}
-                      disabled={isSubmitting}
-                      className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="params" className="text-gray-200">Function Parameters (comma separated)</Label>
-                    <Input 
-                      id="params" 
-                      placeholder="e.g. 150000000" 
-                      value={functionParams}
-                      onChange={(e) => setFunctionParams(e.target.value)}
-                      disabled={isSubmitting}
-                      className="bg-gray-800/50 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:border-gray-500 focus:ring-gray-500/20"
-                    />
-                  </div>
-                </div>
-              )}
+                )}
             </div>
           </CardContent>
-          <CardFooter>
-            <Button 
-              className="w-full" 
-              onClick={handleCreateProposal}
-              disabled={isSubmitting || !title || !description || (!isCustomProposal && !selectedTemplate)}
-            >
-              {isSubmitting ? (
-                "Submitting..."
-              ) : (
-                <>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Proposal
-                </>
-              )}
-            </Button>
+          <CardFooter className="pt-8 pb-8">
+            <div className="flex items-center justify-center w-full">
+              <Button 
+                variant="default"
+                size="lg"
+                onClick={handleCreateProposal}
+                disabled={isSubmitting || !title || !description || (!isCustomProposal && !selectedTemplate)}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-12 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-lg min-w-[200px]"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-3 h-5 w-5" />
+                    Create Proposal
+                  </>
+                )}
+              </Button>
+            </div>
           </CardFooter>
         </Card>
       </div>

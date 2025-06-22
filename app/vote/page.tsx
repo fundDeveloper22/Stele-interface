@@ -1022,28 +1022,33 @@ export default function VotePage() {
     <div className="container mx-auto px-20 py-16">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl text-gray-100">Governance</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <Button 
-            variant="outline" 
+            variant="default" 
+            size="lg"
             onClick={handleRefresh}
             disabled={isInitialLoading || isLoadingActionable || isLoadingCompletedByStatus || isLoadingAllByStatus} 
-            className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
+            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-lg"
           >
             {isInitialLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                 Refreshing...
               </>
             ) : (
               <>
-                <Clock className="mr-2 h-4 w-4" />
+                <Clock className="mr-3 h-5 w-5" />
                 Refresh Data
               </>
             )}
           </Button>
           <Link href="/vote/create">
-            <Button variant="outline" className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700">
-              <Plus className="mr-2 h-4 w-4" />
+            <Button 
+              variant="default" 
+              size="lg"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-lg"
+            >
+              <Plus className="mr-3 h-5 w-5" />
               Create Proposal
             </Button>
           </Link>

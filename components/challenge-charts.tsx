@@ -342,7 +342,7 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
           {/* Total Prize */}
           <div className="space-y-2">
             <span className="text-sm text-gray-400">Total Prize</span>
-            <div className="text-4xl text-white">
+            <div className="text-4xl text-yellow-400">
               ${challengeDetails.totalPrize >= 1000000 
                 ? `${(challengeDetails.totalPrize / 1000000).toFixed(1)}M` 
                 : challengeDetails.totalPrize >= 1000 

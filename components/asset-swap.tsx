@@ -26,7 +26,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
   const { tokens: investableTokens, isLoading: isLoadingInvestableTokens, error: investableTokensError } = useInvestableTokensForSwap();
   const [fromAmount, setFromAmount] = useState<string>("")
   const [fromToken, setFromToken] = useState<string>("")
-  const [toToken, setToToken] = useState<string>("USDC")
+  const [toToken, setToToken] = useState<string>("WETH")
   const [isSwapping, setIsSwapping] = useState(false)
   const [isHoveringFromToken, setIsHoveringFromToken] = useState(false)
 
@@ -54,19 +54,15 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
     }
   }
 
-  // Initialize fromToken when userTokens are available
+  // Initialize toToken when investable tokens are available (keep WETH if available)
   useEffect(() => {
-    if (userTokens.length > 0 && !fromToken) {
-      setFromToken(userTokens[0].symbol);
-    }
-  }, [userTokens, fromToken]);
-
-  // Initialize toToken when investable tokens are available
-  useEffect(() => {
-    if (investableTokens.length > 0 && (!toToken || toToken === "USDC")) {
-      // Try to find USDC first, otherwise use the first available token
-      const usdcToken = investableTokens.find(token => token.symbol === "USDC");
-      setToToken(usdcToken?.symbol || investableTokens[0].symbol);
+    if (investableTokens.length > 0 && toToken === "WETH") {
+      // Check if WETH is available in investable tokens, otherwise keep the initial WETH value
+      const wethToken = investableTokens.find(token => token.symbol === "WETH");
+      if (!wethToken) {
+        // If WETH is not available, fallback to first available token
+        setToToken(investableTokens[0].symbol);
+      }
     }
   }, [investableTokens, toToken]);
 
@@ -252,9 +248,9 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
 
   // Get available tokens
   const availableFromTokens = userTokens.length > 0 ? userTokens.map(token => token.symbol) : (priceData?.tokens ? Object.keys(priceData.tokens) : ['ETH', 'USDC', 'USDT', 'WETH', 'WBTC']);
-  const availableToTokens = investableTokens
-    .map(token => token.symbol)
-    .filter(symbol => symbol !== fromToken); // Filter out the selected fromToken
+  const availableToTokens = investableTokens.length > 0 
+    ? investableTokens.map(token => token.symbol).filter(symbol => symbol !== fromToken)
+    : ['WETH', 'USDC', 'ETH', 'USDT', 'WBTC'].filter(symbol => symbol !== fromToken); // Default tokens if investable tokens not loaded
 
   // Get balance for fromToken (raw amount)
   const getFromTokenBalance = (tokenSymbol: string): string => {
@@ -480,7 +476,7 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
           title: "Swap Successful",
           description: `Successfully swapped ${fromAmount} ${fromToken} for ${toToken}!`,
           action: (
-                      <ToastAction altText="View on Etherscan" onClick={() => window.open(`https://etherscan.io/tx/${receipt.hash}`, '_blank')}>
+          <ToastAction altText="View on Etherscan" onClick={() => window.open(`https://etherscan.io/tx/${receipt.hash}`, '_blank')}>
             View on Etherscan
           </ToastAction>
           ),
@@ -523,55 +519,15 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
   };
 
   // Calculate actual output amount based on user input
-  const outputAmount = fromAmount && swapQuote 
+  const outputAmount = fromAmount && parseFloat(fromAmount) > 0 && swapQuote 
     ? (parseFloat(fromAmount) * swapQuote.exchangeRate).toFixed(6)
-    : swapQuote?.toAmount.toFixed(6) || "0";
+    : "0";
   
   const minimumReceived = fromAmount && swapQuote
     ? (parseFloat(fromAmount) * swapQuote.exchangeRate * 0.99).toFixed(4)
     : swapQuote?.minimumReceived.toFixed(4) || "0";
 
-  // Show loading state for investable tokens
-  if (isLoadingInvestableTokens) {
-    return (
-      <div className={cn("max-w-md mx-auto", className)} {...props}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Swap Assets</CardTitle>
-            <CardDescription>Loading investable tokens...</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-muted-foreground">Loading...</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Show error state for investable tokens
-  if (investableTokensError) {
-    return (
-      <div className={cn("max-w-md mx-auto", className)} {...props}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Swap Assets</CardTitle>
-            <CardDescription>Error loading investable tokens</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8">
-              <p className="text-red-600">Failed to load investable tokens</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {investableTokensError instanceof Error ? investableTokensError.message : 'Please try again later'}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Remove loading and error states - show swap interface immediately
 
   return (
     <div className={cn("max-w-md mx-auto", className)} {...props}>
