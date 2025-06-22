@@ -92,17 +92,26 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   // Handle loading and error states
   if (isLoadingInvestor || isLoadingChallenge || isLoadingTransactions) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="max-w-6xl mx-auto space-y-6">
+      <div className="container mx-auto p-6 py-20">
+        <div className="max-w-6xl mx-auto space-y-4">
+          {/* Back Button Loading */}
+          <div className="mb-6">
+            <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
+          </div>
+          
           {/* Header Loading */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-8 bg-gray-700 rounded w-20 animate-pulse"></div>
-              <div className="h-8 bg-gray-700 rounded w-40 animate-pulse"></div>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="h-8 bg-gray-700 rounded w-20 animate-pulse"></div>
+                <div className="h-8 bg-gray-700 rounded w-40 animate-pulse"></div>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <div className="h-10 bg-gray-700 rounded w-20 animate-pulse"></div>
-              <div className="h-10 bg-gray-700 rounded w-24 animate-pulse"></div>
+            <div className="space-y-4">
+              <div className="flex justify-end gap-4">
+                <div className="h-14 bg-gray-700 rounded-lg w-24 animate-pulse"></div>
+                <div className="h-14 bg-gray-700 rounded-lg w-28 animate-pulse"></div>
+              </div>
             </div>
           </div>
 
@@ -154,13 +163,13 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                     {/* Challenge Type Loading */}
                     <div className="space-y-2">
                       <div className="h-4 bg-gray-700 rounded w-28 animate-pulse"></div>
-                      <div className="h-8 bg-gray-700 rounded w-24 animate-pulse"></div>
+                      <div className="h-8 bg-gray-700 rounded w-32 animate-pulse"></div>
                     </div>
 
                     {/* Challenge ID Loading */}
                     <div className="space-y-2">
                       <div className="h-4 bg-gray-700 rounded w-24 animate-pulse"></div>
-                      <div className="h-8 bg-gray-700 rounded w-6 animate-pulse"></div>
+                      <div className="h-8 bg-gray-700 rounded w-4 animate-pulse"></div>
                     </div>
                   </CardContent>
                 </Card>
@@ -176,22 +185,22 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                       </div>
                       <div className="w-full bg-gray-700 rounded-full h-2 animate-pulse"></div>
                       <div className="flex justify-between">
-                        <div className="h-3 bg-gray-700 rounded w-28 animate-pulse"></div>
-                        <div className="h-3 bg-gray-700 rounded w-24 animate-pulse"></div>
+                        <div className="h-3 bg-gray-700 rounded w-36 animate-pulse"></div>
+                        <div className="h-3 bg-gray-700 rounded w-32 animate-pulse"></div>
                       </div>
                     </div>
 
                     {/* Portfolio Value Loading */}
                     <div className="space-y-2">
                       <div className="h-4 bg-gray-700 rounded w-28 animate-pulse"></div>
-                      <div className="h-12 bg-gray-700 rounded w-40 animate-pulse"></div>
+                      <div className="h-10 bg-gray-700 rounded w-48 animate-pulse"></div>
                     </div>
 
                     {/* Gain/Loss Loading */}
                     <div className="space-y-2">
                       <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
-                      <div className="h-12 bg-gray-700 rounded w-36 animate-pulse"></div>
-                      <div className="h-4 bg-gray-700 rounded w-20 animate-pulse"></div>
+                      <div className="h-10 bg-gray-700 rounded w-44 animate-pulse"></div>
+                      <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
                     </div>
 
                     {/* Status Loading */}
@@ -199,7 +208,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                       <div className="h-4 bg-gray-700 rounded w-12 animate-pulse"></div>
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-gray-700 animate-pulse"></div>
-                        <div className="h-5 bg-gray-700 rounded w-16 animate-pulse"></div>
+                        <div className="h-6 bg-gray-700 rounded w-16 animate-pulse"></div>
                       </div>
                     </div>
                   </CardContent>

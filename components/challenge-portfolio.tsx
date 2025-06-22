@@ -746,25 +746,25 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
           ) : !isChallengeEnded() && (
             <Button 
               variant="outline" 
-              size="sm" 
+              size="lg" 
               onClick={handleJoinChallenge} 
               disabled={isJoining || isLoadingEntryFee}
-              className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border-0 font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-lg"
             >
               {isJoining ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                   Joining...
                 </>
               ) : isLoadingEntryFee ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                   Loading...
                 </>
               ) : (
                 <>
-                  <LineChart className="mr-2 h-4 w-4" />
-                  Join Challenge ({entryFee} USDC)
+                  <LineChart className="mr-3 h-5 w-5" />
+                  Join Challenge
                 </>
               )}
             </Button>

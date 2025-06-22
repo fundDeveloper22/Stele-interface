@@ -519,9 +519,9 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
   };
 
   // Calculate actual output amount based on user input
-  const outputAmount = fromAmount && swapQuote 
+  const outputAmount = fromAmount && parseFloat(fromAmount) > 0 && swapQuote 
     ? (parseFloat(fromAmount) * swapQuote.exchangeRate).toFixed(6)
-    : swapQuote?.toAmount.toFixed(6) || "0";
+    : "0";
   
   const minimumReceived = fromAmount && swapQuote
     ? (parseFloat(fromAmount) * swapQuote.exchangeRate * 0.99).toFixed(4)
