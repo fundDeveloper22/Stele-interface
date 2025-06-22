@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowRight, BarChart3, LineChart, PieChart, Loader2, User, Receipt, ArrowLeftRight, Trophy, Medal, Crown, DollarSign, UserPlus } from "lucide-react"
+import { ArrowRight, BarChart3, LineChart, PieChart, Loader2, User, Receipt, ArrowLeftRight, Trophy, Medal, Crown, DollarSign, UserPlus, Plus } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { ethers } from "ethers"
@@ -848,8 +848,9 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
                 </>
               ) : (
                 <>
-                  <UserPlus className="mr-3 h-5 w-5" />
+                  <Plus className="mr-2 h-5 w-5" />
                   Join
+                  <UserPlus className="ml-2 h-5 w-5" />
                 </>
               )}
             </Button>

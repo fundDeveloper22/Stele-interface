@@ -516,9 +516,9 @@ export default function InvestorPage({ params }: InvestorPageProps) {
         <div className="mb-4">
           <button 
             onClick={() => router.push(`/challenge/${challengeId}`)}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-2 text-base text-muted-foreground hover:text-foreground transition-colors"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
             go to challenge : {challengeId}
           </button>
         </div>
@@ -745,10 +745,10 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                 <CardContent className="p-8 space-y-8">
                   {/* Status */}
                   <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Status</span>
+                    <span className="text-base text-gray-400">Status</span>
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${challengeData?.challenge?.isActive ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                      <span className={`text-lg font-medium ${challengeData?.challenge?.isActive ? 'text-green-400' : 'text-gray-400'}`}>
+                      <div className={`w-3 h-3 rounded-full ${challengeData?.challenge?.isActive ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+                      <span className={`text-xl font-medium ${challengeData?.challenge?.isActive ? 'text-green-400' : 'text-gray-400'}`}>
                         {challengeData?.challenge?.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </div>
@@ -756,7 +756,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
 
                   {/* Portfolio Value */}
                   <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Portfolio Value</span>
+                    <span className="text-base text-gray-400">Portfolio Value</span>
                     <div className="text-4xl text-white">
                       ${currentValue.toFixed(2)}
                     </div>
@@ -764,20 +764,22 @@ export default function InvestorPage({ params }: InvestorPageProps) {
 
                   {/* Gain/Loss */}
                   <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Gain/Loss</span>
-                    <div className={`text-4xl ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                      {isPositive ? '+' : ''}${gainLoss.toFixed(2)}
-                    </div>
-                    <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                      {isPositive ? '+' : ''}{gainLossPercentage.toFixed(2)}%
+                    <span className="text-base text-gray-400">Gain/Loss</span>
+                    <div className="flex items-baseline gap-3">
+                      <div className={`text-4xl ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                        {isPositive ? '+' : ''}${gainLoss.toFixed(2)}
+                      </div>
+                      <div className={`text-base ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                        ({isPositive ? '+' : ''}{gainLossPercentage.toFixed(2)}%)
+                      </div>
                     </div>
                   </div>
 
                   {/* Progress */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Progress</span>
-                      <span className="text-sm font-medium text-gray-300">
+                      <span className="text-base text-gray-400">Progress</span>
+                      <span className="text-base font-medium text-gray-300">
                         {(() => {
                           if (!challengeDetails || !isClient) return '0%';
                           
@@ -798,9 +800,9 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                     </div>
                     
                     {/* Progress Bar */}
-                    <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div className="w-full bg-gray-700 rounded-full h-3">
                       <div 
-                        className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
+                        className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-300 ease-out"
                         style={{ 
                           width: `${(() => {
                             if (!challengeDetails || !isClient) return 0;
@@ -823,7 +825,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                     </div>
                     
                     {/* Time Info */}
-                    <div className="flex justify-between text-xs text-gray-500">
+                    <div className="flex justify-between text-sm text-gray-500">
                       <span>Started: {challengeDetails?.startTime.toLocaleDateString() || 'N/A'}</span>
                       <span>Ends: {challengeDetails?.endTime.toLocaleDateString() || 'N/A'}</span>
                     </div>
@@ -836,8 +838,8 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                 <CardContent className="p-8 space-y-8">
                   {/* Challenge Type */}
                   <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Challenge Type</span>
-                    <div className="text-2xl text-white font-semibold">
+                    <span className="text-base text-gray-400">Challenge Type</span>
+                    <div className="text-3xl text-white">
                       {(() => {
                         switch (challengeId) {
                           case '1':
@@ -859,16 +861,16 @@ export default function InvestorPage({ params }: InvestorPageProps) {
 
                   {/* Challenge ID */}
                   <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Challenge ID</span>
-                    <div className="text-2xl text-white font-semibold">
+                    <span className="text-base text-gray-400">Challenge ID</span>
+                    <div className="text-3xl text-white">
                       {challengeId}
                     </div>
                   </div>
 
                   {/* Seed Money */}
                   <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Seed Money</span>
-                    <div className="text-2xl text-white font-semibold">
+                    <span className="text-base text-gray-400">Seed Money</span>
+                    <div className="text-3xl text-white">
                       {(() => {
                         // If we have challenge data and seedMoney is available
                         if (challengeData?.challenge?.seedMoney) {
