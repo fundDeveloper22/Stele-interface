@@ -99,6 +99,14 @@ export default function InvestorPage({ params }: InvestorPageProps) {
             <div className="h-4 bg-gray-700 rounded w-16 animate-pulse"></div>
           </div>
           
+          {/* Challenge Info Loading */}
+          <div className="mb-0">
+            <div className="flex items-center gap-3">
+              <div className="h-8 bg-gray-700 rounded w-24 animate-pulse"></div>
+              <div className="h-8 bg-gray-700 rounded w-4 animate-pulse"></div>
+            </div>
+          </div>
+          
           {/* Header Loading */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -513,6 +521,19 @@ export default function InvestorPage({ params }: InvestorPageProps) {
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
+        </div>
+
+        {/* Challenge Info */}
+        <div className="mb-0">
+          <div 
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => router.push(`/challenge/${challengeId}`)}
+          >
+            <h1 className="text-2xl text-gray-400">Challenge :</h1>
+            <p className="text-2xl text-white">
+              {challengeId}
+            </p>
+          </div>
         </div>
         
         {/* Header */}

@@ -701,14 +701,21 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl">
-          <span className="text-gray-400">
-            {getChallengeTitle().split(' ( ID: ')[0]}
-          </span>
-          <span className="text-gray-100">
-            {getChallengeTitle().includes('( ID: ') ? ' ( ID: ' + getChallengeTitle().split('( ID: ')[1] : ''}
-          </span>
-        </h2>
+        {isLoadingChallenge ? (
+          <div className="flex items-center gap-2">
+            <div className="h-8 bg-gray-700 rounded w-48 animate-pulse"></div>
+            <div className="h-8 bg-gray-700 rounded w-16 animate-pulse"></div>
+          </div>
+        ) : (
+          <h2 className="text-2xl">
+            <span className="text-gray-400">
+              {getChallengeTitle().split(' ( ID: ')[0]}
+            </span>
+            <span className="text-gray-100">
+              {getChallengeTitle().includes('( ID: ') ? ' ( ID: ' + getChallengeTitle().split('( ID: ')[1] : ''}
+            </span>
+          </h2>
+        )}
         <div className="flex items-center gap-2">
           {/* Get Rewards Button - Show when challenge is ended AND current wallet is in top 5 */}
           {isClient && shouldShowGetRewards() && (
