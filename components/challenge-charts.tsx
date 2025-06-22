@@ -250,6 +250,7 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
       {/* Total Rewards Chart - Takes 2 columns */}
       <Card className="bg-transparent border-0 lg:col-span-2">
         <CardHeader className="pb-6">
+          <h3 className="text-3xl text-gray-100 mb-2">Total Prize</h3>
           <CardTitle className="text-4xl text-gray-100">
             ${currentRewardAmount >= 1000000 ? `${(currentRewardAmount / 1000000).toFixed(1)}M` : currentRewardAmount >= 1000 ? `${(currentRewardAmount / 1000).toFixed(1)}K` : currentRewardAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </CardTitle>
@@ -317,25 +318,14 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
       {/* Challenge Info Card */}
       <Card className="bg-gray-900 border-0 lg:col-span-1 rounded-2xl">
         <CardContent className="p-8 space-y-8">
-          {/* Progress */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-400">Progress</span>
-              <span className="text-sm font-medium text-gray-300">{progressPercentage}%</span>
-            </div>
-            
-            {/* Progress Bar */}
-            <div className="w-full bg-gray-700 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
-                style={{ width: `${progressPercentage}%` }}
-              ></div>
-            </div>
-            
-            {/* Time Info */}
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>Started: {challengeDetails.startTime.toLocaleDateString()}</span>
-              <span>Ends: {challengeDetails.endTime.toLocaleDateString()}</span>
+          {/* Status */}
+          <div className="space-y-2">
+            <span className="text-sm text-gray-400">Status</span>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${challengeDetails.isActive ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <span className={`text-lg font-medium ${challengeDetails.isActive ? 'text-green-400' : 'text-red-400'}`}>
+                {challengeDetails.isActive ? 'Active' : 'Inactive'}
+              </span>
             </div>
           </div>
 
@@ -358,14 +348,25 @@ export function ChallengeCharts({ challengeId }: ChallengeChartsProps) {
             <div className="text-4xl text-white">{challengeDetails.participants.toLocaleString()}</div>
           </div>
 
-          {/* Status */}
-          <div className="space-y-2">
-            <span className="text-sm text-gray-400">Status</span>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${challengeDetails.isActive ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className={`text-lg font-medium ${challengeDetails.isActive ? 'text-green-400' : 'text-red-400'}`}>
-                {challengeDetails.isActive ? 'Active' : 'Inactive'}
-              </span>
+          {/* Progress */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">Progress</span>
+              <span className="text-sm font-medium text-gray-300">{progressPercentage}%</span>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-700 rounded-full h-2">
+              <div 
+                className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
+            </div>
+            
+            {/* Time Info */}
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>Started: {challengeDetails.startTime.toLocaleDateString()}</span>
+              <span>Ends: {challengeDetails.endTime.toLocaleDateString()}</span>
             </div>
           </div>
         </CardContent>

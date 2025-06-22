@@ -510,30 +510,17 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   };
 
   return (
-    <div className="container mx-auto p-6 py-20">
+    <div className="container mx-auto p-6 py-12">
       <div className="max-w-6xl mx-auto space-y-4">
-        {/* Back Button */}
-        <div className="mb-6">
+        {/* Go to Challenge Button */}
+        <div className="mb-4">
           <button 
-            onClick={() => router.back()}
+            onClick={() => router.push(`/challenge/${challengeId}`)}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            go to challenge : {challengeId}
           </button>
-        </div>
-
-        {/* Challenge Info */}
-        <div className="mb-0">
-          <div 
-            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => router.push(`/challenge/${challengeId}`)}
-          >
-            <h1 className="text-2xl text-gray-400">Challenge :</h1>
-            <p className="text-2xl text-white">
-              {challengeId}
-            </p>
-          </div>
         </div>
         
         {/* Header */}
@@ -756,6 +743,36 @@ export default function InvestorPage({ params }: InvestorPageProps) {
               {/* Portfolio Summary (always visible) */}
               <Card className="bg-gray-900 border-0 rounded-2xl">
                 <CardContent className="p-8 space-y-8">
+                  {/* Status */}
+                  <div className="space-y-2">
+                    <span className="text-sm text-gray-400">Status</span>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${challengeData?.challenge?.isActive ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+                      <span className={`text-lg font-medium ${challengeData?.challenge?.isActive ? 'text-green-400' : 'text-gray-400'}`}>
+                        {challengeData?.challenge?.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Portfolio Value */}
+                  <div className="space-y-2">
+                    <span className="text-sm text-gray-400">Portfolio Value</span>
+                    <div className="text-4xl text-white">
+                      ${currentValue.toFixed(2)}
+                    </div>
+                  </div>
+
+                  {/* Gain/Loss */}
+                  <div className="space-y-2">
+                    <span className="text-sm text-gray-400">Gain/Loss</span>
+                    <div className={`text-4xl ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                      {isPositive ? '+' : ''}${gainLoss.toFixed(2)}
+                    </div>
+                    <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                      {isPositive ? '+' : ''}{gainLossPercentage.toFixed(2)}%
+                    </div>
+                  </div>
+
                   {/* Progress */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -809,36 +826,6 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                     <div className="flex justify-between text-xs text-gray-500">
                       <span>Started: {challengeDetails?.startTime.toLocaleDateString() || 'N/A'}</span>
                       <span>Ends: {challengeDetails?.endTime.toLocaleDateString() || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  {/* Portfolio Value */}
-                  <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Portfolio Value</span>
-                    <div className="text-4xl text-white">
-                      ${currentValue.toFixed(2)}
-                    </div>
-                  </div>
-
-                  {/* Gain/Loss */}
-                  <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Gain/Loss</span>
-                    <div className={`text-4xl ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                      {isPositive ? '+' : ''}${gainLoss.toFixed(2)}
-                    </div>
-                    <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                      {isPositive ? '+' : ''}{gainLossPercentage.toFixed(2)}%
-                    </div>
-                  </div>
-
-                  {/* Status */}
-                  <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Status</span>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${challengeData?.challenge?.isActive ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                      <span className={`text-lg font-medium ${challengeData?.challenge?.isActive ? 'text-green-400' : 'text-gray-400'}`}>
-                        {challengeData?.challenge?.isActive ? 'Active' : 'Inactive'}
-                      </span>
                     </div>
                   </div>
                 </CardContent>

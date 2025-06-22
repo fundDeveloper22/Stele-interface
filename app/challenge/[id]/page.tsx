@@ -2,11 +2,7 @@
 
 import { use } from "react"
 import { ChallengePortfolio } from "@/components/challenge-portfolio"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { useChallenge } from '@/app/hooks/useChallenge'
-import { useRouter } from "next/navigation"
 
 interface ChallengePageProps {
   params: Promise<{
@@ -57,21 +53,10 @@ function ChallengeContent({ challengeId }: { challengeId: string }) {
 
 export default function ChallengePage({ params }: ChallengePageProps) {
   const { id } = use(params)
-  const router = useRouter()
   
   return (
     <div className="container mx-auto p-6 py-20">
       <div className="max-w-6xl mx-auto space-y-4">
-        <div className="mb-6">
-          <button 
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
-        </div>
-        
         <ChallengeContent challengeId={id} />
       </div>
     </div>

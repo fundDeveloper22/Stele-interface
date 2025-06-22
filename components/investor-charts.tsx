@@ -209,6 +209,7 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
   return (
     <Card className="bg-transparent border-0">
       <CardHeader className="pb-6">
+        <h3 className="text-3xl text-gray-100 mb-2">Portfolio</h3>
         <div className="flex items-baseline gap-3">
           <CardTitle className="text-4xl font-bold text-gray-100">
             ${currentPortfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -219,7 +220,6 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
             </span>
           </div>
         </div>
-        <p className="text-sm text-gray-400">{currentDate}</p>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={320}>
