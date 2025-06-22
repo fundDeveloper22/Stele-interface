@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 import { useInvestorSnapshots } from '@/app/hooks/useInvestorSnapshots'
 import { useChallenge } from '@/app/hooks/useChallenge'
 import { DollarSign, TrendingUp, TrendingDown, User, Trophy } from 'lucide-react'
@@ -209,30 +209,41 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
   return (
     <Card className="bg-transparent border-0">
       <CardHeader className="pb-6">
-        <CardTitle className="text-4xl font-bold text-gray-100">
-          ${currentPortfolioValue.toFixed(2)}
-        </CardTitle>
+        <div className="flex items-baseline gap-3">
+          <CardTitle className="text-4xl font-bold text-gray-100">
+            ${currentPortfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </CardTitle>
+          <div className="flex items-center gap-1">
+            <span className={`text-sm font-medium ${metrics.isPositive ? 'text-green-400' : 'text-red-400'}`}>
+              {metrics.isPositive ? '▲' : '▼'} {Math.abs(metrics.gainLossPercentage).toFixed(2)}%
+            </span>
+          </div>
+        </div>
         <p className="text-sm text-gray-400">{currentDate}</p>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={320}>
-          <BarChart 
+          <AreaChart 
             data={chartData} 
             margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-            barCategoryGap="5%"
-            maxBarSize={200}
-            onMouseMove={(state) => {
+            onMouseMove={(state: any) => {
               if (state && typeof state.activeTooltipIndex === 'number' && state.activeTooltipIndex >= 0) {
                 setActiveIndexPortfolio(state.activeTooltipIndex)
               }
             }}
             onMouseLeave={() => setActiveIndexPortfolio(null)}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="transparent" vertical={false} />
+            <defs>
+              <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#f97316" stopOpacity={0.05}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" vertical={false} />
             <XAxis 
-              dataKey="dateLabel" 
+              dataKey="timeLabel" 
               stroke="#9CA3AF"
-              fontSize={12}
+              fontSize={11}
               tick={{ fill: '#9CA3AF' }}
               axisLine={false}
               tickLine={false}
@@ -241,34 +252,34 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
             <YAxis 
               orientation="right"
               stroke="#9CA3AF"
-              fontSize={12}
+              fontSize={11}
               tick={{ fill: '#9CA3AF' }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(value) => `$${value >= 1000 ? `${(value / 1000).toFixed(0)}K` : value.toString()}`}
+              tickFormatter={(value) => {
+                if (value >= 1000000) {
+                  return `$${(value / 1000000).toFixed(1)}M`
+                } else if (value >= 1000) {
+                  return `$${(value / 1000).toFixed(0)}K`
+                } else {
+                  return `$${value.toFixed(0)}`
+                }
+              }}
             />
             <Tooltip 
               content={<CustomTooltipPortfolio />} 
-              cursor={<CustomCursor />}
+              cursor={{ stroke: '#f97316', strokeWidth: 1 }}
             />
-            <Bar 
-              dataKey="currentUSD" 
-              radius={[3, 3, 0, 0]}
-            >
-              {chartData.map((entry, index) => (
-                <Cell 
-                  key={`cell-portfolio-${index}`} 
-                  fill={
-                    activeIndexPortfolio === null 
-                      ? "#EC4899" // All bars pink when no hover
-                      : activeIndexPortfolio === index 
-                      ? "#EC4899" // Hovered bar stays pink
-                      : "#3A1A3BA0" // Other bars become dark maroon purple with less transparency
-                  } 
-                />
-              ))}
-            </Bar>
-          </BarChart>
+            <Area
+              type="monotone"
+              dataKey="currentUSD"
+              stroke="#f97316"
+              strokeWidth={2}
+              fill="url(#portfolioGradient)"
+              dot={false}
+              activeDot={{ r: 4, fill: '#f97316', stroke: '#ffffff', strokeWidth: 2 }}
+            />
+          </AreaChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
