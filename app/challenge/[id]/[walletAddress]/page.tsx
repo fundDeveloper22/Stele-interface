@@ -726,42 +726,6 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                 <AssetSwap userTokens={userTokens} />
               )}
               
-              {/* Challenge Info */}
-              <Card className="bg-gray-900 border-0 rounded-2xl">
-                <CardContent className="p-8 space-y-8">
-                  {/* Challenge Type */}
-                  <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Challenge Type</span>
-                    <div className="text-2xl text-white font-semibold">
-                      {(() => {
-                        switch (challengeId) {
-                          case '1':
-                            return '1 Week';
-                          case '2':
-                            return '1 Month';
-                          case '3':
-                            return '3 Months';
-                          case '4':
-                            return '6 Months';
-                          case '5':
-                            return '1 Year';
-                          default:
-                            return `Type ${challengeId}`;
-                        }
-                      })()}
-                    </div>
-                  </div>
-
-                  {/* Challenge ID */}
-                  <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Challenge ID</span>
-                    <div className="text-2xl text-white font-semibold">
-                      {challengeId}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Portfolio Summary (always visible) */}
               <Card className="bg-gray-900 border-0 rounded-2xl">
                 <CardContent className="p-8 space-y-8">
@@ -848,6 +812,42 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                       <span className={`text-lg font-medium ${challengeData?.challenge?.isActive ? 'text-green-400' : 'text-gray-400'}`}>
                         {challengeData?.challenge?.isActive ? 'Active' : 'Inactive'}
                       </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Challenge Info */}
+              <Card className="bg-gray-900 border-0 rounded-2xl">
+                <CardContent className="p-8 space-y-8">
+                  {/* Challenge Type */}
+                  <div className="space-y-2">
+                    <span className="text-sm text-gray-400">Challenge Type</span>
+                    <div className="text-2xl text-white font-semibold">
+                      {(() => {
+                        switch (challengeId) {
+                          case '1':
+                            return '1 Week';
+                          case '2':
+                            return '1 Month';
+                          case '3':
+                            return '3 Months';
+                          case '4':
+                            return '6 Months';
+                          case '5':
+                            return '1 Year';
+                          default:
+                            return `Type ${challengeId}`;
+                        }
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Challenge ID */}
+                  <div className="space-y-2">
+                    <span className="text-sm text-gray-400">Challenge ID</span>
+                    <div className="text-2xl text-white font-semibold">
+                      {challengeId}
                     </div>
                   </div>
                 </CardContent>
