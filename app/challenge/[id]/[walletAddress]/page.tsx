@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { cn } from "@/lib/utils"
 import { 
   TrendingUp, 
@@ -72,6 +73,9 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isRegistering, setIsRegistering] = useState(false)
   const [isSwapMode, setIsSwapMode] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
+  const maxPages = 5
 
   // Ensure client-side rendering for time calculations
   useEffect(() => {
@@ -655,7 +659,14 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                           <p className="text-sm text-gray-400 mt-2">Please try again later</p>
                         </div>
                       ) : investorTransactions.length > 0 ? (
-                        investorTransactions.map((transaction) => {
+                        (() => {
+                          // Calculate pagination
+                          const totalTransactions = Math.min(investorTransactions.length, maxPages * itemsPerPage);
+                          const startIndex = (currentPage - 1) * itemsPerPage;
+                          const endIndex = Math.min(startIndex + itemsPerPage, totalTransactions);
+                          const paginatedTransactions = investorTransactions.slice(startIndex, endIndex);
+                          const totalPages = Math.min(Math.ceil(totalTransactions / itemsPerPage), maxPages);
+
                           const getTransactionIcon = (type: string) => {
                             switch (type) {
                               case 'join':
@@ -697,26 +708,65 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                           }
 
                           return (
-                            <div 
-                              key={transaction.id} 
-                              className="flex items-center justify-between p-4 rounded-lg bg-transparent border-0 cursor-pointer hover:bg-gray-800/20 transition-colors"
-                              onClick={() => window.open(`https://etherscan.io/tx/${transaction.transactionHash}`, '_blank')}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className={`h-10 w-10 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
-                                  {getTransactionIcon(transaction.type)}
+                            <div className="space-y-4">
+                              {paginatedTransactions.map((transaction) => (
+                                <div 
+                                  key={transaction.id} 
+                                  className="flex items-center justify-between p-4 rounded-lg bg-transparent border-0 cursor-pointer hover:bg-gray-800/20 transition-colors"
+                                  onClick={() => window.open(`https://etherscan.io/tx/${transaction.transactionHash}`, '_blank')}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className={`h-10 w-10 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
+                                      {getTransactionIcon(transaction.type)}
+                                    </div>
+                                    <div>
+                                      <p className="font-medium text-gray-100">{transaction.details}</p>
+                                      <p className="text-sm text-gray-400">{formatTimestamp(transaction.timestamp)}</p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-medium text-gray-100">{transaction.amount || '-'}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="font-medium text-gray-100">{transaction.details}</p>
-                                  <p className="text-sm text-gray-400">{formatTimestamp(transaction.timestamp)}</p>
+                              ))}
+                              
+                              {/* Pagination */}
+                              {totalPages > 1 && (
+                                <div className="flex justify-center mt-6">
+                                  <Pagination>
+                                    <PaginationContent>
+                                      <PaginationItem>
+                                        <PaginationPrevious 
+                                          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                        />
+                                      </PaginationItem>
+                                      
+                                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                        <PaginationItem key={page}>
+                                          <PaginationLink
+                                            onClick={() => setCurrentPage(page)}
+                                            isActive={currentPage === page}
+                                            className="cursor-pointer"
+                                          >
+                                            {page}
+                                          </PaginationLink>
+                                        </PaginationItem>
+                                      ))}
+                                      
+                                      <PaginationItem>
+                                        <PaginationNext 
+                                          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                        />
+                                      </PaginationItem>
+                                    </PaginationContent>
+                                  </Pagination>
                                 </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-medium text-gray-100">{transaction.amount || '-'}</p>
-                              </div>
+                              )}
                             </div>
                           )
-                        })
+                        })()
                       ) : (
                         <div className="text-center py-8 text-gray-400">
                           <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />

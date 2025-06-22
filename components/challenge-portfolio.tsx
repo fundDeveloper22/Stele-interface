@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { ArrowRight, BarChart3, LineChart, PieChart, Loader2, User, Receipt, ArrowLeftRight, Trophy, Medal, Crown, DollarSign, UserPlus, Plus } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
@@ -168,6 +169,9 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const [hasJoinedLocally, setHasJoinedLocally] = useState(false);
   const [usdcBalance, setUsdcBalance] = useState<string>('0');
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const maxPages = 5;
   const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee();
 
   // Get appropriate explorer URL based on chain ID
@@ -882,7 +886,14 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
                     <p className="text-xs text-gray-500 mt-1">Check console for more details</p>
                   </div>
                 ) : transactions.length > 0 ? (
-                  transactions.slice(0, 10).map((transaction) => {
+                  (() => {
+                    // Calculate pagination
+                    const totalTransactions = Math.min(transactions.length, maxPages * itemsPerPage);
+                    const startIndex = (currentPage - 1) * itemsPerPage;
+                    const endIndex = Math.min(startIndex + itemsPerPage, totalTransactions);
+                    const paginatedTransactions = transactions.slice(startIndex, endIndex);
+                    const totalPages = Math.min(Math.ceil(totalTransactions / itemsPerPage), maxPages);
+
                     const getTransactionIcon = (type: string) => {
                       switch (type) {
                         case 'create':
@@ -933,29 +944,68 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
                     }
 
                     return (
-                      <div 
-                        key={transaction.id} 
-                        className="flex items-center justify-between py-3 px-3 last:border-b-0 mb-2 cursor-pointer hover:bg-gray-800/50 rounded-lg transition-colors"
-                        onClick={() => window.open(`https://etherscan.io/tx/${transaction.transactionHash}`, '_blank')}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
-                            {getTransactionIcon(transaction.type)}
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-100">{transaction.details}</div>
-                            <div className="text-sm text-gray-400">
-                              {formatTimestamp(transaction.timestamp)}
-                              {transaction.user && ` • ${formatUserAddress(transaction.user)}`}
+                      <div className="space-y-4">
+                        {paginatedTransactions.map((transaction) => (
+                          <div 
+                            key={transaction.id} 
+                            className="flex items-center justify-between py-3 px-3 last:border-b-0 mb-2 cursor-pointer hover:bg-gray-800/50 rounded-lg transition-colors"
+                            onClick={() => window.open(`https://etherscan.io/tx/${transaction.transactionHash}`, '_blank')}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
+                                {getTransactionIcon(transaction.type)}
+                              </div>
+                              <div>
+                                <div className="font-medium text-gray-100">{transaction.details}</div>
+                                <div className="text-sm text-gray-400">
+                                  {formatTimestamp(transaction.timestamp)}
+                                  {transaction.user && ` • ${formatUserAddress(transaction.user)}`}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-medium text-gray-100">{transaction.amount || '-'}</div>
                             </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium text-gray-100">{transaction.amount || '-'}</div>
-                        </div>
+                        ))}
+                        
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                          <div className="flex justify-center mt-6">
+                            <Pagination>
+                              <PaginationContent>
+                                <PaginationItem>
+                                  <PaginationPrevious 
+                                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                  />
+                                </PaginationItem>
+                                
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                  <PaginationItem key={page}>
+                                    <PaginationLink
+                                      onClick={() => setCurrentPage(page)}
+                                      isActive={currentPage === page}
+                                      className="cursor-pointer"
+                                    >
+                                      {page}
+                                    </PaginationLink>
+                                  </PaginationItem>
+                                ))}
+                                
+                                <PaginationItem>
+                                  <PaginationNext 
+                                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                  />
+                                </PaginationItem>
+                              </PaginationContent>
+                            </Pagination>
+                          </div>
+                        )}
                       </div>
                     )
-                  })
+                  })()
                 ) : (
                   <div className="text-center py-8 text-gray-400">
                     <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
