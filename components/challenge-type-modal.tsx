@@ -88,12 +88,12 @@ export function ChallengeTypeModal({ onCreateChallenge, isCreating, activeChalle
       <DialogTrigger asChild>
         <Button 
           variant="default" 
-          size="default"
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+          size="lg"
+          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-lg"
         >
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="mr-3 h-5 w-5" />
           Create Challenge
-          <Trophy className="ml-2 h-4 w-4" />
+          <Trophy className="ml-3 h-5 w-5" />
         </Button>
       </DialogTrigger>
       

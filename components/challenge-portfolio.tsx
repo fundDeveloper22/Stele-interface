@@ -736,11 +736,11 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
           {hasJoinedChallenge ? (
             <Button 
               variant="outline" 
-              size="sm" 
+              size="lg" 
               onClick={handleNavigateToAccount}
-              className="bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700"
+              className="bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-white border-gray-500 hover:border-gray-400 font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-lg"
             >
-              <User className="mr-2 h-4 w-4" />
+              <User className="mr-3 h-5 w-5" />
               My Account
             </Button>
           ) : !isChallengeEnded() && (
@@ -850,7 +850,7 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
                       <div 
                         key={transaction.id} 
                         className="flex items-center justify-between py-3 px-3 last:border-b-0 mb-2 cursor-pointer hover:bg-gray-800/50 rounded-lg transition-colors"
-                        onClick={() => window.open(`https://basescan.org/tx/${transaction.transactionHash}`, '_blank')}
+                        onClick={() => window.open(`https://etherscan.io/tx/${transaction.transactionHash}`, '_blank')}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>

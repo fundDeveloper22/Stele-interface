@@ -467,7 +467,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   };
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 py-20">
       <div className="max-w-6xl mx-auto space-y-4">
         {/* Back Button */}
         <div className="mb-6">
@@ -494,40 +494,40 @@ export default function InvestorPage({ params }: InvestorPageProps) {
             {/* Swap and Register Buttons - Only show if connected wallet matches investor address */}
             {connectedAddress && walletAddress && 
              connectedAddress.toLowerCase() === walletAddress.toLowerCase() && (
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-4">
                 <Button 
                   variant="outline" 
-                  size="sm" 
+                  size="lg" 
                   onClick={() => setIsSwapMode(!isSwapMode)}
-                  className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 border-pink-500/50"
+                  className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white border-0 font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-lg"
                 >
                   {isSwapMode ? (
                     <>
-                      <X className="mr-2 h-4 w-4" />
+                      <X className="mr-3 h-5 w-5" />
                       Close
                     </>
                   ) : (
                     <>
-                      <Repeat className="mr-2 h-4 w-4" />
+                      <Repeat className="mr-3 h-5 w-5" />
                       Swap
                     </>
                   )}
                 </Button>
                 <Button 
                   variant="default" 
-                  size="sm" 
+                  size="lg" 
                   onClick={handleRegister}
                   disabled={isRegistering}
-                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-lg"
                 >
                   {isRegistering ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                       Registering...
                     </>
                   ) : (
                     <>
-                      <FileText className="mr-2 h-4 w-4" />
+                      <FileText className="mr-3 h-5 w-5" />
                       Register
                     </>
                   )}
@@ -694,9 +694,98 @@ export default function InvestorPage({ params }: InvestorPageProps) {
             <div className="space-y-4">
               {/* Swap Assets (when swap mode is active) */}
               {isSwapMode && (
-                <AssetSwap userTokens={userTokens} />
+                isLoadingTokens ? (
+                  // Swap Loading Skeleton
+                  <Card className="bg-gray-900 border-0 rounded-2xl">
+                    <CardContent className="p-6 space-y-4">
+                      {/* Header */}
+                      <div className="flex items-center justify-between">
+                        <div className="h-5 bg-gray-700 rounded w-16 animate-pulse"></div>
+                        <div className="h-4 bg-gray-700 rounded w-8 animate-pulse"></div>
+                      </div>
+                      
+                      {/* From Token (Sell) */}
+                      <div className="p-4 bg-transparent border border-gray-600 rounded-2xl space-y-3">
+                        <div className="h-4 bg-gray-700 rounded w-8 animate-pulse"></div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 space-y-2">
+                            <div className="h-8 bg-gray-700 rounded w-24 animate-pulse"></div>
+                            <div className="h-3 bg-gray-700 rounded w-16 animate-pulse"></div>
+                          </div>
+                          <div className="flex flex-col items-end space-y-2">
+                            <div className="h-8 bg-gray-700 rounded-full w-20 animate-pulse"></div>
+                            <div className="h-3 bg-gray-700 rounded w-16 animate-pulse"></div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Swap Arrow */}
+                      <div className="flex justify-center">
+                        <div className="w-8 h-8 bg-gray-700 rounded-full animate-pulse"></div>
+                      </div>
+                      
+                      {/* To Token (Buy) */}
+                      <div className="p-4 bg-transparent border border-gray-600 rounded-2xl space-y-3">
+                        <div className="h-4 bg-gray-700 rounded w-8 animate-pulse"></div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 space-y-2">
+                            <div className="h-8 bg-gray-700 rounded w-20 animate-pulse"></div>
+                            <div className="h-3 bg-gray-700 rounded w-14 animate-pulse"></div>
+                          </div>
+                          <div className="h-8 bg-gray-700 rounded-full w-20 animate-pulse"></div>
+                        </div>
+                      </div>
+                      
+                      {/* Exchange Rate */}
+                      <div className="text-center">
+                        <div className="h-4 bg-gray-700 rounded w-32 mx-auto animate-pulse"></div>
+                      </div>
+                      
+                      {/* Swap Button */}
+                      <div className="h-14 bg-gray-700 rounded-2xl w-full animate-pulse"></div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <AssetSwap userTokens={userTokens} />
+                )
               )}
               
+              {/* Challenge Info */}
+              <Card className="bg-gray-900 border-0 rounded-2xl">
+                <CardContent className="p-8 space-y-8">
+                  {/* Challenge Type */}
+                  <div className="space-y-2">
+                    <span className="text-sm text-gray-400">Challenge Type</span>
+                    <div className="text-2xl text-white font-semibold">
+                      {(() => {
+                        switch (challengeId) {
+                          case '1':
+                            return '1 Week';
+                          case '2':
+                            return '1 Month';
+                          case '3':
+                            return '3 Months';
+                          case '4':
+                            return '6 Months';
+                          case '5':
+                            return '1 Year';
+                          default:
+                            return `Type ${challengeId}`;
+                        }
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Challenge ID */}
+                  <div className="space-y-2">
+                    <span className="text-sm text-gray-400">Challenge ID</span>
+                    <div className="text-2xl text-white font-semibold">
+                      {challengeId}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Portfolio Summary (always visible) */}
               <Card className="bg-gray-900 border-0 rounded-2xl">
                 <CardContent className="p-8 space-y-8">
