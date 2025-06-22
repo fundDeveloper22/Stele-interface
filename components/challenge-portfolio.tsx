@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowRight, BarChart3, LineChart, PieChart, Loader2, User, Receipt, ArrowLeftRight, Trophy, Medal, Crown } from "lucide-react"
+import { ArrowRight, BarChart3, LineChart, PieChart, Loader2, User, Receipt, ArrowLeftRight, Trophy, Medal, Crown, DollarSign, UserPlus } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { ethers } from "ethers"
@@ -166,6 +166,8 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const [isClient, setIsClient] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [hasJoinedLocally, setHasJoinedLocally] = useState(false);
+  const [usdcBalance, setUsdcBalance] = useState<string>('0');
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee();
 
   // Get appropriate explorer URL based on chain ID
@@ -246,6 +248,50 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
     return shouldShow;
   };
 
+  // Check if USDC balance is insufficient
+  const isInsufficientBalance = () => {
+    if (!entryFee || !usdcBalance || isLoadingBalance || isLoadingEntryFee) return false;
+    
+    const balance = parseFloat(usdcBalance);
+    const fee = parseFloat(entryFee);
+    
+    return balance < fee;
+  };
+
+  // Check USDC balance
+  const checkUSDCBalance = async (address: string) => {
+    if (!address || !isClient) return;
+    
+    setIsLoadingBalance(true);
+    try {
+      // Check if Phantom wallet is available
+      if (typeof window.phantom === 'undefined' || !window.phantom?.ethereum) {
+        setUsdcBalance('0');
+        return;
+      }
+
+      // Create a Web3Provider using the Phantom ethereum provider
+      const provider = new ethers.BrowserProvider(window.phantom.ethereum);
+      
+      // Create USDC contract instance
+      const usdcContract = new ethers.Contract(
+        USDC_TOKEN_ADDRESS,
+        ERC20ABI.abi,
+        provider
+      );
+
+      // Get USDC balance
+      const balance = await usdcContract.balanceOf(address);
+      const formattedBalance = ethers.formatUnits(balance, USDC_DECIMALS);
+      setUsdcBalance(formattedBalance);
+    } catch (error) {
+      console.error('Error checking USDC balance:', error);
+      setUsdcBalance('0');
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  };
+
   useEffect(() => {
     // Get wallet address from localStorage
     const storedAddress = localStorage.getItem('walletAddress');
@@ -255,6 +301,13 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
     // Set client-side flag
     setIsClient(true);
   }, []);
+
+  // Check USDC balance when wallet address changes
+  useEffect(() => {
+    if (walletAddress && isClient) {
+      checkUSDCBalance(walletAddress);
+    }
+  }, [walletAddress, isClient]);
 
   // Update time every second for accurate countdown
   useEffect(() => {
@@ -740,6 +793,22 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
             </Button>
           )}
           
+          {/* Entry Fee Display - only show when join button is visible */}
+          {!hasJoinedChallenge && !isChallengeEnded() && entryFee && (
+            <div className={`flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium border ${
+              isInsufficientBalance() 
+                ? "bg-red-500/10 text-red-400 border-red-500/20" 
+                : "bg-primary/10 text-primary border-primary/20"
+            }`}>
+              Entry Fee : {isLoadingEntryFee ? 'Loading...' : `$${entryFee}`}
+              {isInsufficientBalance() && !isLoadingBalance && (
+                <span className="ml-2 text-xs">
+                  (Balance: ${parseFloat(usdcBalance).toFixed(2)})
+                </span>
+              )}
+            </div>
+          )}
+          
           {hasJoinedChallenge ? (
             <Button 
               variant="outline" 
@@ -755,23 +824,32 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
               variant="outline" 
               size="lg" 
               onClick={handleJoinChallenge} 
-              disabled={isJoining || isLoadingEntryFee}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border-0 font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-lg"
+              disabled={isJoining || isLoadingEntryFee || isLoadingBalance || isInsufficientBalance()}
+              className={`font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-lg ${
+                isInsufficientBalance() 
+                  ? "bg-gray-600 hover:bg-gray-600 text-gray-400 border-gray-500 cursor-not-allowed" 
+                  : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border-0"
+              }`}
             >
               {isJoining ? (
                 <>
                   <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                   Joining...
                 </>
-              ) : isLoadingEntryFee ? (
+              ) : isLoadingEntryFee || isLoadingBalance ? (
                 <>
                   <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                   Loading...
                 </>
+              ) : isInsufficientBalance() ? (
+                <>
+                  <UserPlus className="mr-3 h-5 w-5" />
+                  Insufficient USDC
+                </>
               ) : (
                 <>
-                  <LineChart className="mr-3 h-5 w-5" />
-                  Join Challenge
+                  <UserPlus className="mr-3 h-5 w-5" />
+                  Join
                 </>
               )}
             </Button>

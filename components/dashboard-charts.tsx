@@ -25,22 +25,21 @@ export function DashboardCharts() {
   const chartData = useMemo(() => {
     if (!data?.activeChallengesSnapshots) return []
 
-    // Convert and sort data by id (assuming id represents timestamp or sequential order)
+    // Convert data using actual timestamps from the database
     const processedData = data.activeChallengesSnapshots
-      .map((snapshot, index) => {
-        // Since we don't have date field, we'll use index for time simulation
-        // In real implementation, you might want to extract timestamp from id or use another field
-        const simulatedDate = new Date(Date.now() - (data.activeChallengesSnapshots.length - index - 1) * 24 * 60 * 60 * 1000)
+      .map((snapshot) => {
+        // Use actual timestamp from the database
+        const actualDate = new Date(Number(snapshot.timestamp) * 1000)
         
         return {
           id: snapshot.id,
           totalParticipants: Number(snapshot.totalParticipants),
           totalRewards: Number(snapshot.totalRewards),
-          formattedDate: simulatedDate.toLocaleDateString('en-US', { 
+          formattedDate: actualDate.toLocaleDateString('en-US', { 
             month: 'short', 
             day: 'numeric'
           }),
-          fullDate: simulatedDate.toLocaleDateString('en-US', { 
+          fullDate: actualDate.toLocaleDateString('en-US', { 
             month: 'short', 
             day: 'numeric',
             year: 'numeric',
@@ -48,15 +47,14 @@ export function DashboardCharts() {
             minute: '2-digit',
             hour12: true
           }),
-          timeLabel: simulatedDate.toLocaleTimeString('en-US', {
+          timeLabel: actualDate.toLocaleTimeString('en-US', {
             hour: 'numeric',
             minute: '2-digit',
             hour12: true
           }),
-          dateLabel: simulatedDate.toISOString().split('T')[0] // YYYY-MM-DD format
+          dateLabel: actualDate.toISOString().split('T')[0] // YYYY-MM-DD format
         }
-      })
-      .sort((a, b) => a.dateLabel.localeCompare(b.dateLabel)) // Sort by date ascending
+      }) // Data is already sorted by timestamp from the query
 
     return processedData
   }, [data])
