@@ -134,14 +134,18 @@ export function Header() {
     <header className="sticky top-0 z-30 border-b border-border h-20 flex items-center justify-between px-4 md:px-6 bg-background">
       <div className="flex items-center">
         <Link href="/" className="flex items-center gap-2 mr-6">
-          <span className="text-2xl font-bold text-primary">Stele</span>
+          <img 
+            src="/stele_logo.png" 
+            alt="Stele Logo" 
+            className="h-10 w-auto object-contain"
+          />
         </Link>
         
         <div className="flex items-center">
           <Link href={"/dashboard"} className="mr-6">
             <div 
               className={cn(
-                "flex flex-row items-center font-medium text-base transition-colors",
+                "flex flex-row items-center font-medium text-lg transition-colors",
                 pathname === "/" || pathname === "/dashboard"
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
@@ -157,7 +161,7 @@ export function Header() {
           >
             <div 
               className={cn(
-                "flex flex-row items-center font-medium text-base transition-colors cursor-pointer",
+                "flex flex-row items-center font-medium text-lg transition-colors cursor-pointer",
                 pathname.includes("/challenges") || pathname.includes("/challenge/") || pathname.includes("/portfolio")
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
@@ -172,13 +176,13 @@ export function Header() {
                 <div className="space-y-2 p-2 bg-background border border-gray-600 rounded-2xl shadow-xl">
                   <Link 
                     href="/portfolio"
-                    className="block px-4 py-3 text-base text-white bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-2xl transition-all duration-200 font-medium shadow-lg"
+                    className="block px-4 py-3 text-lg text-white bg-transparent hover:bg-gray-700/30 border border-gray-600 rounded-2xl transition-all duration-200 font-medium shadow-lg"
                   >
                     My Portfolios
                   </Link>
                   <Link 
                     href="/challenges"
-                    className="block px-4 py-3 text-base text-white bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-2xl transition-all duration-200 font-medium shadow-lg"
+                    className="block px-4 py-3 text-lg text-white bg-transparent hover:bg-gray-700/30 border border-gray-600 rounded-2xl transition-all duration-200 font-medium shadow-lg"
                   >
                     Total Challenges
                   </Link>
@@ -189,7 +193,7 @@ export function Header() {
           <Link href={"/vote"} className="mr-6">
             <div 
               className={cn(
-                "flex flex-row items-center font-medium text-base transition-colors",
+                "flex flex-row items-center font-medium text-lg transition-colors",
                 pathname.includes("/vote") 
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
@@ -202,36 +206,36 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        {walletNetwork === 'ethereum' && entryFee && (
-          <div className="hidden md:flex items-center justify-center bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-medium">
-            <DollarSign className="h-3 w-3 mr-1" />
-            Entry Fee : {isLoadingEntryFee ? 'Loading...' : `${entryFee} USDC`}
-          </div>
-        )}
         
         {walletAddress ? (
-          <div className="flex items-center gap-2">
-            <div className="hidden md:flex flex-col items-end">
-              <span className="text-xs text-muted-foreground">{name}</span>
-              <span className="text-sm font-medium">
-                {isLoadingBalance ? 'Loading...' : `${balance} ${symbol}`}
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex flex-col items-end px-3 py-2">
+              <span className="text-sm font-medium text-gray-300">{name}</span>
+              <span className="text-base font-semibold text-white">
+                {isLoadingBalance ? (
+                  <span className="text-gray-400">Loading...</span>
+                ) : (
+                  `${balance} ${symbol}`
+                )}
               </span>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="text-primary border-primary hover:bg-primary/10 hidden sm:flex">
-                  <Wallet className="mr-2 h-4 w-4" />
-                  {walletNetwork === 'solana'
-                    ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
-                    : `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
-                  }
+                <Button variant="outline" size="lg" className="text-primary border-primary hover:bg-primary/10 hidden sm:flex font-medium px-4 py-2 h-auto">
+                  <Wallet className="mr-2 h-5 w-5" />
+                  <span className="text-base">
+                    {walletNetwork === 'solana'
+                      ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
+                      : `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+                    }
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuLabel>
-                  <div className="flex flex-col">
-                    <span>{name}</span>
-                    <span className="text-xs font-normal text-muted-foreground mt-1">
+                  <div className="flex flex-col space-y-1">
+                    <span className="text-base font-semibold">{name}</span>
+                    <span className="text-sm font-medium text-muted-foreground">
                       {isLoadingBalance ? 'Loading...' : `${balance} ${symbol}`}
                     </span>
                   </div>
@@ -272,33 +276,35 @@ export function Header() {
         ) : (
           <Button 
             variant="outline" 
-            size="sm" 
-            className="text-primary border-primary hover:bg-primary/10 hidden sm:flex"
+            size="lg" 
+            className="text-primary border-primary hover:bg-primary/10 hidden sm:flex font-medium px-4 py-2 h-auto"
             onClick={handleConnectWallet}
             disabled={isConnecting}
           >
-            <Wallet className="mr-2 h-4 w-4" />
-            {isConnecting ? "Connecting..." : "Connect Wallet"}
+            <Wallet className="mr-2 h-5 w-5" />
+            <span className="text-base">
+              {isConnecting ? "Connecting..." : "Connect Wallet"}
+            </span>
         </Button>
         )}
 
         <Button variant="ghost" size="icon" className="text-muted-foreground hidden sm:flex">
-          <Bell className="h-5 w-5" />
+          <Bell className="h-7 w-7" />
         </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
-              <User className="h-5 w-5" />
+              <User className="h-7 w-7" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="text-base">
+            <DropdownMenuLabel className="text-lg font-semibold">My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem className="text-base py-2">Profile</DropdownMenuItem>
+            <DropdownMenuItem className="text-base py-2">Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            <DropdownMenuItem className="text-base py-2">Logout</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

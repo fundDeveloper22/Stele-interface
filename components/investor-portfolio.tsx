@@ -5,8 +5,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
 import { useInvestorData } from "@/app/subgraph/Account"
-import { useTokenPrices } from "@/app/hooks/useTokenPrices"
+
 import { useUserTokens } from "@/app/hooks/useUserTokens"
+import { useUserTokenPrices } from "@/app/hooks/useUniswapBatchPrices"
 import { ethers } from "ethers"
 import { USDC_DECIMALS } from "@/lib/constants"
 
@@ -17,8 +18,10 @@ interface InvestorPortfolioProps {
 
 export function InvestorPortfolio({ challengeId, walletAddress }: InvestorPortfolioProps) {
   const { data: investorData, isLoading: isLoadingInvestor, error: investorError } = useInvestorData(challengeId, walletAddress)
-  const { data: priceData } = useTokenPrices()
   const { data: userTokens = [], isLoading: isLoadingTokens, error: tokensError } = useUserTokens(challengeId, walletAddress)
+  
+  // Get real-time prices for user's tokens using Uniswap V3 onchain data
+  const { data: uniswapPrices, isLoading: isLoadingUniswap, error: uniswapError } = useUserTokenPrices(userTokens)
 
   // Format address for display
   const formatAddress = (address: string) => {
@@ -157,43 +160,79 @@ export function InvestorPortfolio({ challengeId, walletAddress }: InvestorPortfo
                     <TableHead>Token</TableHead>
                     <TableHead>Symbol</TableHead>
                     <TableHead>Amount</TableHead>
-                    <TableHead>Decimals</TableHead>
+                    <TableHead>Price (USD)</TableHead>
+                    <TableHead>Value (USD)</TableHead>
                     <TableHead>Token Address</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {userTokens.map((token, index) => (
-                    <TableRow key={`${token.address}-${index}`}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                            <span className="text-xs font-bold text-white">
-                              {token.symbol?.slice(0, 2) || '??'}
-                            </span>
+                  {userTokens.map((token, index) => {
+                    // Get price from Uniswap data
+                    const tokenPrice = uniswapPrices?.tokens?.[token.symbol]?.priceUSD || 0
+                    const isLoadingPrice = isLoadingUniswap
+                    const tokenAmount = parseFloat(token.amount) || 0
+                    const tokenValue = tokenPrice * tokenAmount
+                    
+                    return (
+                      <TableRow key={`${token.address}-${index}`}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                              <span className="text-xs font-bold text-white">
+                                {token.symbol?.slice(0, 2) || '??'}
+                              </span>
+                            </div>
+                            {token.symbol || 'Unknown'}
                           </div>
-                          {token.symbol || 'Unknown'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {token.symbol || 'N/A'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono">
-                        {token.amount}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {token.decimals || 'N/A'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <code className="text-xs bg-muted px-2 py-1 rounded">
-                          {formatAddress(token.address)}
-                        </code>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {token.symbol || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono">
+                          {token.amount}
+                        </TableCell>
+                        <TableCell>
+                          {isLoadingPrice ? (
+                            <div className="flex items-center text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                              Loading...
+                            </div>
+                          ) : tokenPrice > 0 ? (
+                            <div className="text-green-600 font-medium">
+                              ${tokenPrice.toFixed(4)}
+                            </div>
+                          ) : (
+                            <div className="text-muted-foreground">
+                              N/A
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isLoadingPrice ? (
+                            <div className="flex items-center text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                              Loading...
+                            </div>
+                          ) : tokenValue > 0 ? (
+                            <div className="text-green-600 font-medium">
+                              ${tokenValue.toFixed(2)}
+                            </div>
+                          ) : (
+                            <div className="text-muted-foreground">
+                              $0.00
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <code className="text-xs bg-muted px-2 py-1 rounded">
+                            {formatAddress(token.address)}
+                          </code>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>

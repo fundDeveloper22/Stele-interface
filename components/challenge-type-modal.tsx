@@ -99,8 +99,8 @@ export function ChallengeTypeModal({ onCreateChallenge, isCreating, activeChalle
       
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Create New Challenge</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-xl">Create New Challenge</DialogTitle>
+          <DialogDescription className="text-base">
             Select the type of challenge you want to create
           </DialogDescription>
         </DialogHeader>
@@ -138,16 +138,16 @@ export function ChallengeTypeModal({ onCreateChallenge, isCreating, activeChalle
                       }`}
                     >
                       <div className="flex flex-col">
-                        <span className={`font-medium ${typeIsActive ? "text-muted-foreground" : ""}`}>
+                        <span className={`font-medium text-base ${typeIsActive ? "text-muted-foreground" : ""}`}>
                           {type.name}
                         </span>
                         {typeIsActive && (
-                          <span className="text-xs text-orange-500 font-medium mt-1">
+                          <span className="text-sm text-orange-500 font-medium mt-1">
                             Already Active
                           </span>
                         )}
                       </div>
-                      <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                      <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
                         {type.duration}
                       </span>
                     </Label>
@@ -159,12 +159,13 @@ export function ChallengeTypeModal({ onCreateChallenge, isCreating, activeChalle
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => setOpen(false)} className="text-base">
             Cancel
           </Button>
           <Button 
             onClick={handleCreate} 
             disabled={selectedType === null || isCreating || selectedTypeIsActive}
+            className="text-base"
           >
             {isCreating ? (
               <>

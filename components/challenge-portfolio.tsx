@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowRight, BarChart3, LineChart, PieChart, Loader2, User, Receipt, ArrowLeftRight, Trophy, Medal, Crown } from "lucide-react"
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
+import { ArrowRight, BarChart3, LineChart, PieChart, Loader2, User, Receipt, ArrowLeftRight, Trophy, Medal, Crown, DollarSign, UserPlus, Plus } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { ethers } from "ethers"
@@ -166,6 +167,11 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   const [isClient, setIsClient] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [hasJoinedLocally, setHasJoinedLocally] = useState(false);
+  const [usdcBalance, setUsdcBalance] = useState<string>('0');
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const maxPages = 5;
   const { entryFee, isLoading: isLoadingEntryFee } = useEntryFee();
 
   // Get appropriate explorer URL based on chain ID
@@ -246,6 +252,50 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
     return shouldShow;
   };
 
+  // Check if USDC balance is insufficient
+  const isInsufficientBalance = () => {
+    if (!entryFee || !usdcBalance || isLoadingBalance || isLoadingEntryFee) return false;
+    
+    const balance = parseFloat(usdcBalance);
+    const fee = parseFloat(entryFee);
+    
+    return balance < fee;
+  };
+
+  // Check USDC balance
+  const checkUSDCBalance = async (address: string) => {
+    if (!address || !isClient) return;
+    
+    setIsLoadingBalance(true);
+    try {
+      // Check if Phantom wallet is available
+      if (typeof window.phantom === 'undefined' || !window.phantom?.ethereum) {
+        setUsdcBalance('0');
+        return;
+      }
+
+      // Create a Web3Provider using the Phantom ethereum provider
+      const provider = new ethers.BrowserProvider(window.phantom.ethereum);
+      
+      // Create USDC contract instance
+      const usdcContract = new ethers.Contract(
+        USDC_TOKEN_ADDRESS,
+        ERC20ABI.abi,
+        provider
+      );
+
+      // Get USDC balance
+      const balance = await usdcContract.balanceOf(address);
+      const formattedBalance = ethers.formatUnits(balance, USDC_DECIMALS);
+      setUsdcBalance(formattedBalance);
+    } catch (error) {
+      console.error('Error checking USDC balance:', error);
+      setUsdcBalance('0');
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  };
+
   useEffect(() => {
     // Get wallet address from localStorage
     const storedAddress = localStorage.getItem('walletAddress');
@@ -255,6 +305,13 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
     // Set client-side flag
     setIsClient(true);
   }, []);
+
+  // Check USDC balance when wallet address changes
+  useEffect(() => {
+    if (walletAddress && isClient) {
+      checkUSDCBalance(walletAddress);
+    }
+  }, [walletAddress, isClient]);
 
   // Update time every second for accurate countdown
   useEffect(() => {
@@ -701,14 +758,21 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl">
-          <span className="text-gray-400">
-            {getChallengeTitle().split(' ( ID: ')[0]}
-          </span>
-          <span className="text-gray-100">
-            {getChallengeTitle().includes('( ID: ') ? ' ( ID: ' + getChallengeTitle().split('( ID: ')[1] : ''}
-          </span>
-        </h2>
+        {isLoadingChallenge ? (
+          <div className="flex items-center gap-2">
+            <div className="h-8 bg-gray-700 rounded w-48 animate-pulse"></div>
+            <div className="h-8 bg-gray-700 rounded w-16 animate-pulse"></div>
+          </div>
+        ) : (
+          <h2 className="text-2xl">
+            <span className="text-gray-400">
+              {getChallengeTitle().split(' ( ID: ')[0]}
+            </span>
+            <span className="text-gray-100">
+              {getChallengeTitle().includes('( ID: ') ? ' ( ID: ' + getChallengeTitle().split('( ID: ')[1] : ''}
+            </span>
+          </h2>
+        )}
         <div className="flex items-center gap-2">
           {/* Get Rewards Button - Show when challenge is ended AND current wallet is in top 5 */}
           {isClient && shouldShowGetRewards() && (
@@ -733,6 +797,22 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
             </Button>
           )}
           
+          {/* Entry Fee Display - only show when join button is visible */}
+          {!hasJoinedChallenge && !isChallengeEnded() && entryFee && (
+            <div className={`flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium border ${
+              isInsufficientBalance() 
+                ? "bg-red-500/10 text-red-400 border-red-500/20" 
+                : "bg-primary/10 text-primary border-primary/20"
+            }`}>
+              Entry Fee : {isLoadingEntryFee ? 'Loading...' : `$${entryFee}`}
+              {isInsufficientBalance() && !isLoadingBalance && (
+                <span className="ml-2 text-xs">
+                  (Balance: ${parseFloat(usdcBalance).toFixed(2)})
+                </span>
+              )}
+            </div>
+          )}
+          
           {hasJoinedChallenge ? (
             <Button 
               variant="outline" 
@@ -748,23 +828,33 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
               variant="outline" 
               size="lg" 
               onClick={handleJoinChallenge} 
-              disabled={isJoining || isLoadingEntryFee}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border-0 font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-lg"
+              disabled={isJoining || isLoadingEntryFee || isLoadingBalance || isInsufficientBalance()}
+              className={`font-semibold px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-lg ${
+                isInsufficientBalance() 
+                  ? "bg-gray-600 hover:bg-gray-600 text-gray-400 border-gray-500 cursor-not-allowed" 
+                  : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border-0"
+              }`}
             >
               {isJoining ? (
                 <>
                   <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                   Joining...
                 </>
-              ) : isLoadingEntryFee ? (
+              ) : isLoadingEntryFee || isLoadingBalance ? (
                 <>
                   <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                   Loading...
                 </>
+              ) : isInsufficientBalance() ? (
+                <>
+                  <UserPlus className="mr-3 h-5 w-5" />
+                  Insufficient USDC
+                </>
               ) : (
                 <>
-                  <LineChart className="mr-3 h-5 w-5" />
-                  Join Challenge
+                  <Plus className="mr-2 h-5 w-5" />
+                  Join
+                  <UserPlus className="ml-2 h-5 w-5" />
                 </>
               )}
             </Button>
@@ -796,7 +886,14 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
                     <p className="text-xs text-gray-500 mt-1">Check console for more details</p>
                   </div>
                 ) : transactions.length > 0 ? (
-                  transactions.slice(0, 10).map((transaction) => {
+                  (() => {
+                    // Calculate pagination
+                    const totalTransactions = Math.min(transactions.length, maxPages * itemsPerPage);
+                    const startIndex = (currentPage - 1) * itemsPerPage;
+                    const endIndex = Math.min(startIndex + itemsPerPage, totalTransactions);
+                    const paginatedTransactions = transactions.slice(startIndex, endIndex);
+                    const totalPages = Math.min(Math.ceil(totalTransactions / itemsPerPage), maxPages);
+
                     const getTransactionIcon = (type: string) => {
                       switch (type) {
                         case 'create':
@@ -847,29 +944,68 @@ export function ChallengePortfolio({ challengeId }: ChallengePortfolioProps) {
                     }
 
                     return (
-                      <div 
-                        key={transaction.id} 
-                        className="flex items-center justify-between py-3 px-3 last:border-b-0 mb-2 cursor-pointer hover:bg-gray-800/50 rounded-lg transition-colors"
-                        onClick={() => window.open(`https://etherscan.io/tx/${transaction.transactionHash}`, '_blank')}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
-                            {getTransactionIcon(transaction.type)}
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-100">{transaction.details}</div>
-                            <div className="text-sm text-gray-400">
-                              {formatTimestamp(transaction.timestamp)}
-                              {transaction.user && ` • ${formatUserAddress(transaction.user)}`}
+                      <div className="space-y-4">
+                        {paginatedTransactions.map((transaction) => (
+                          <div 
+                            key={transaction.id} 
+                            className="flex items-center justify-between py-3 px-3 last:border-b-0 mb-2 cursor-pointer hover:bg-gray-800/50 rounded-lg transition-colors"
+                            onClick={() => window.open(`https://etherscan.io/tx/${transaction.transactionHash}`, '_blank')}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
+                                {getTransactionIcon(transaction.type)}
+                              </div>
+                              <div>
+                                <div className="font-medium text-gray-100">{transaction.details}</div>
+                                <div className="text-sm text-gray-400">
+                                  {formatTimestamp(transaction.timestamp)}
+                                  {transaction.user && ` • ${formatUserAddress(transaction.user)}`}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-medium text-gray-100">{transaction.amount || '-'}</div>
                             </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium text-gray-100">{transaction.amount || '-'}</div>
-                        </div>
+                        ))}
+                        
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                          <div className="flex justify-center mt-6">
+                            <Pagination>
+                              <PaginationContent>
+                                <PaginationItem>
+                                  <PaginationPrevious 
+                                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                  />
+                                </PaginationItem>
+                                
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                  <PaginationItem key={page}>
+                                    <PaginationLink
+                                      onClick={() => setCurrentPage(page)}
+                                      isActive={currentPage === page}
+                                      className="cursor-pointer"
+                                    >
+                                      {page}
+                                    </PaginationLink>
+                                  </PaginationItem>
+                                ))}
+                                
+                                <PaginationItem>
+                                  <PaginationNext 
+                                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                  />
+                                </PaginationItem>
+                              </PaginationContent>
+                            </Pagination>
+                          </div>
+                        )}
                       </div>
                     )
-                  })
+                  })()
                 ) : (
                   <div className="text-center py-8 text-gray-400">
                     <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
