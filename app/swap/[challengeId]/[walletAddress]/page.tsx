@@ -101,7 +101,7 @@ export default function SwapPage({ params }: SwapPageProps) {
         
         <div className="text-center text-sm text-muted-foreground mb-4 flex items-center justify-center gap-2">
           <Zap className="h-4 w-4" />
-          Live pricing from CoinGecko API
+          Live pricing from Uniswap V3
         </div>
         
         <AssetSwap userTokens={userTokens} />
