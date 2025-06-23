@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { ArrowDown, RefreshCw, TrendingUp, TrendingDown, Loader2, XCircle } from "lucide-react"
 import { HTMLAttributes, useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { useTokenPrices, calculateSwapQuote } from "@/app/hooks/useTokenPrices"
+import { useUniswapBatchPrices, TokenInfo } from "@/app/hooks/useUniswapBatchPrices"
 import { Badge } from "@/components/ui/badge"
 import { UserTokenInfo } from "@/app/hooks/useUserTokens"
 import { toast } from "@/components/ui/use-toast"
@@ -22,7 +22,14 @@ interface AssetSwapProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapProps) {
-  const { data: priceData, isLoading, error, refetch } = useTokenPrices();
+  // Convert userTokens to TokenInfo format for uniswap price fetching
+  const tokenInfos: TokenInfo[] = userTokens.map(token => ({
+    symbol: token.symbol,
+    address: token.address,
+    decimals: parseInt(token.decimals) || 18
+  }))
+  
+  const { data: priceData, isLoading, error, refetch } = useUniswapBatchPrices(tokenInfos);
   const { tokens: investableTokens, isLoading: isLoadingInvestableTokens, error: investableTokensError } = useInvestableTokensForSwap();
   const [fromAmount, setFromAmount] = useState<string>("")
   const [fromToken, setFromToken] = useState<string>("")
@@ -80,8 +87,67 @@ export function AssetSwap({ className, userTokens = [], ...props }: AssetSwapPro
     }
   }, [fromToken, toToken, investableTokens]);
 
-  // Calculate swap quote using the CoinGecko pricing function
-  const swapQuote = calculateSwapQuote(
+  // Calculate swap quote using Uniswap V3 pricing data
+  const calculateUniswapSwapQuote = (
+    fromTokenSymbol: string,
+    toTokenSymbol: string,
+    fromAmountValue: number,
+    uniswapPriceData: any
+  ) => {
+    if (!uniswapPriceData || !fromTokenSymbol || !toTokenSymbol || fromAmountValue <= 0) return null;
+
+    const fromPrice = uniswapPriceData.tokens?.[fromTokenSymbol]?.priceUSD;
+    const toPrice = uniswapPriceData.tokens?.[toTokenSymbol]?.priceUSD;
+
+    if (!fromPrice || !toPrice) return null;
+
+    // Base exchange rate (without fees and slippage)
+    const baseExchangeRate = fromPrice / toPrice;
+    
+    // Calculate value in USD
+    const fromValueUSD = fromAmountValue * fromPrice;
+    
+    // Simulate DEX price impact based on trade size
+    // Larger trades have higher price impact
+    const tradeImpactMultiplier = Math.min(fromValueUSD / 10000, 0.05); // Max 5% impact
+    const priceImpact = tradeImpactMultiplier * 100;
+    
+    // Apply price impact to exchange rate
+    const impactAdjustedRate = baseExchangeRate * (1 - tradeImpactMultiplier);
+    
+    // Calculate output amount
+    const toAmountBase = fromAmountValue * impactAdjustedRate;
+    
+    // Protocol fees (0.3% typical for AMM DEXs)
+    const protocolFeeRate = 0.003;
+    const protocolFee = toAmountBase * protocolFeeRate;
+    
+    // Final amount after fees
+    const toAmountAfterFees = toAmountBase - protocolFee;
+    
+    // Slippage tolerance (1%)
+    const slippageTolerance = 0.01;
+    const minimumReceived = toAmountAfterFees * (1 - slippageTolerance);
+    
+    // Network fees (estimated)
+    const networkFee = 2.5; // USD
+
+    return {
+      fromToken: fromTokenSymbol,
+      toToken: toTokenSymbol,
+      fromAmount: fromAmountValue,
+      toAmount: toAmountAfterFees,
+      exchangeRate: impactAdjustedRate,
+      priceImpact,
+      minimumReceived,
+      fees: {
+        network: networkFee,
+        protocol: protocolFee * toPrice, // Convert to USD
+      }
+    };
+  };
+
+  const swapQuote = calculateUniswapSwapQuote(
     fromToken,
     toToken,
     parseFloat(fromAmount) || 0,

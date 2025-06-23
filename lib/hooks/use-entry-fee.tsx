@@ -48,8 +48,11 @@ function useEntryFeeQuery() {
       // For example: contract returns 1000 (raw) -> should be 0.01 USDC
       const adjustedFee = fee
       const formattedFee = ethers.formatUnits(adjustedFee, USDC_DECIMALS);
+      
+      // Convert to integer (remove decimal places)
+      const integerFee = Math.floor(parseFloat(formattedFee)).toString();
 
-      return formattedFee
+      return integerFee
     },
     staleTime: 15 * 60 * 1000, // Entry fee rarely changes - keep fresh for 15 minutes
     refetchInterval: 30 * 60 * 1000, // Refetch every 30 minutes

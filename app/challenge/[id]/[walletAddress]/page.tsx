@@ -1,12 +1,13 @@
 "use client"
 
 import { notFound } from "next/navigation"
-import { useState, useMemo, use, useEffect } from "react"
+import { useState, useMemo, use, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { cn } from "@/lib/utils"
 import { 
   TrendingUp, 
@@ -33,6 +34,7 @@ import { AssetSwap } from "@/components/asset-swap"
 import { InvestorCharts } from "@/components/investor-charts"
 import { useInvestorData } from "@/app/subgraph/Account"
 import { useUserTokens } from "@/app/hooks/useUserTokens"
+import { useUserTokenPrices } from "@/app/hooks/useUniswapBatchPrices"
 import { useChallenge } from "@/app/hooks/useChallenge"
 import { useInvestorTransactions } from "@/app/hooks/useInvestorTransactions"
 import { useWallet } from "@/app/hooks/useWallet"
@@ -66,12 +68,44 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   const { data: userTokens = [], isLoading: isLoadingTokens, error: tokensError } = useUserTokens(challengeId, walletAddress)
   const { data: challengeData, isLoading: isLoadingChallenge, error: challengeError } = useChallenge(challengeId)
   const { data: investorTransactions = [], isLoading: isLoadingTransactions, error: transactionsError } = useInvestorTransactions(challengeId, walletAddress)
+  
+  // Get real-time prices for user's tokens using Uniswap V3 onchain data
+  const { data: uniswapPrices, isLoading: isLoadingUniswap, error: uniswapError } = useUserTokenPrices(userTokens)
+
+  // Calculate real-time portfolio value
+  const calculateRealTimePortfolioValue = useCallback(() => {
+    if (!uniswapPrices?.tokens || userTokens.length === 0) return null
+    
+    let totalValue = 0
+    let tokensWithPrices = 0
+    
+    userTokens.forEach(token => {
+      const tokenPrice = uniswapPrices.tokens[token.symbol]?.priceUSD
+      if (tokenPrice && tokenPrice > 0) {
+        const tokenAmount = parseFloat(token.amount) || 0
+        totalValue += tokenPrice * tokenAmount
+        tokensWithPrices++
+      }
+    })
+    
+    return {
+      totalValue,
+      tokensWithPrices,
+      totalTokens: userTokens.length,
+      timestamp: uniswapPrices.timestamp || Date.now()
+    }
+  }, [uniswapPrices, userTokens])
+
+  const realTimePortfolio = calculateRealTimePortfolioValue()
 
   const [activeTab, setActiveTab] = useState("portfolio")
   const [isClient, setIsClient] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isRegistering, setIsRegistering] = useState(false)
   const [isSwapMode, setIsSwapMode] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
+  const maxPages = 5
 
   // Ensure client-side rendering for time calculations
   useEffect(() => {
@@ -510,30 +544,17 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   };
 
   return (
-    <div className="container mx-auto p-6 py-20">
+    <div className="container mx-auto p-6 py-12">
       <div className="max-w-6xl mx-auto space-y-4">
-        {/* Back Button */}
-        <div className="mb-6">
+        {/* Go to Challenge Button */}
+        <div className="mb-4">
           <button 
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
-        </div>
-
-        {/* Challenge Info */}
-        <div className="mb-0">
-          <div 
-            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => router.push(`/challenge/${challengeId}`)}
+            className="inline-flex items-center gap-2 text-base text-muted-foreground hover:text-foreground transition-colors"
           >
-            <h1 className="text-2xl text-gray-400">Challenge :</h1>
-            <p className="text-2xl text-white">
-              {challengeId}
-            </p>
-          </div>
+            <ArrowLeft className="h-5 w-5" />
+            Go to Challenge {challengeId}
+          </button>
         </div>
         
         {/* Header */}
@@ -602,6 +623,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
               challengeId={challengeId} 
               investor={walletAddress} 
               investorData={investorData}
+              realTimePortfolio={realTimePortfolio}
             />
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
@@ -621,22 +643,46 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {userTokens.map((token, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-transparent border-0">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                              {token.symbol.slice(0, 2)}
+                      {userTokens.map((token, index) => {
+                        // Get price from Uniswap data
+                        const tokenPrice = uniswapPrices?.tokens?.[token.symbol]?.priceUSD || 0
+                        const isLoadingPrice = isLoadingUniswap
+                        const tokenAmount = parseFloat(token.amount) || 0
+                        const tokenValue = tokenPrice * tokenAmount
+                        
+                        return (
+                          <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-transparent border-0">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                                {token.symbol.slice(0, 2)}
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-100">{token.symbol}</p>
+                                <p className="text-sm text-gray-400">{token.address.slice(0, 8)}...{token.address.slice(-6)}</p>
+                                {/* Show real-time price */}
+                                {isLoadingPrice ? (
+                                  <p className="text-xs text-gray-500">Loading price...</p>
+                                ) : tokenPrice > 0 ? (
+                                  <p className="text-xs text-green-400">${tokenPrice.toFixed(4)} per token</p>
+                                ) : (
+                                  <p className="text-xs text-gray-500">Price unavailable</p>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium text-gray-100">{token.symbol}</p>
-                              <p className="text-sm text-gray-400">{token.address.slice(0, 8)}...{token.address.slice(-6)}</p>
+                            <div className="text-right">
+                              <p className="font-medium text-gray-100">{token.amount}</p>
+                              {/* Show USD value */}
+                              {isLoadingPrice ? (
+                                <p className="text-sm text-gray-500">Loading...</p>
+                              ) : tokenValue > 0 ? (
+                                <p className="text-sm text-green-400">${tokenValue.toFixed(2)}</p>
+                              ) : (
+                                <p className="text-sm text-gray-500">$0.00</p>
+                              )}
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-medium text-gray-100">{token.amount}</p>
-                          </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                       
                       {userTokens.length === 0 && (
                         <div className="text-center py-8 text-gray-400">
@@ -668,7 +714,14 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                           <p className="text-sm text-gray-400 mt-2">Please try again later</p>
                         </div>
                       ) : investorTransactions.length > 0 ? (
-                        investorTransactions.map((transaction) => {
+                        (() => {
+                          // Calculate pagination
+                          const totalTransactions = Math.min(investorTransactions.length, maxPages * itemsPerPage);
+                          const startIndex = (currentPage - 1) * itemsPerPage;
+                          const endIndex = Math.min(startIndex + itemsPerPage, totalTransactions);
+                          const paginatedTransactions = investorTransactions.slice(startIndex, endIndex);
+                          const totalPages = Math.min(Math.ceil(totalTransactions / itemsPerPage), maxPages);
+
                           const getTransactionIcon = (type: string) => {
                             switch (type) {
                               case 'join':
@@ -710,26 +763,65 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                           }
 
                           return (
-                            <div 
-                              key={transaction.id} 
-                              className="flex items-center justify-between p-4 rounded-lg bg-transparent border-0 cursor-pointer hover:bg-gray-800/20 transition-colors"
-                              onClick={() => window.open(`https://etherscan.io/tx/${transaction.transactionHash}`, '_blank')}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className={`h-10 w-10 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
-                                  {getTransactionIcon(transaction.type)}
+                            <div className="space-y-4">
+                              {paginatedTransactions.map((transaction) => (
+                                <div 
+                                  key={transaction.id} 
+                                  className="flex items-center justify-between p-4 rounded-lg bg-transparent border-0 cursor-pointer hover:bg-gray-800/20 transition-colors"
+                                  onClick={() => window.open(`https://etherscan.io/tx/${transaction.transactionHash}`, '_blank')}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className={`h-10 w-10 rounded-full ${getIconColor(transaction.type)} flex items-center justify-center`}>
+                                      {getTransactionIcon(transaction.type)}
+                                    </div>
+                                    <div>
+                                      <p className="font-medium text-gray-100">{transaction.details}</p>
+                                      <p className="text-sm text-gray-400">{formatTimestamp(transaction.timestamp)}</p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-medium text-gray-100">{transaction.amount || '-'}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="font-medium text-gray-100">{transaction.details}</p>
-                                  <p className="text-sm text-gray-400">{formatTimestamp(transaction.timestamp)}</p>
+                              ))}
+                              
+                              {/* Pagination */}
+                              {totalPages > 1 && (
+                                <div className="flex justify-center mt-6">
+                                  <Pagination>
+                                    <PaginationContent>
+                                      <PaginationItem>
+                                        <PaginationPrevious 
+                                          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                        />
+                                      </PaginationItem>
+                                      
+                                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                        <PaginationItem key={page}>
+                                          <PaginationLink
+                                            onClick={() => setCurrentPage(page)}
+                                            isActive={currentPage === page}
+                                            className="cursor-pointer"
+                                          >
+                                            {page}
+                                          </PaginationLink>
+                                        </PaginationItem>
+                                      ))}
+                                      
+                                      <PaginationItem>
+                                        <PaginationNext 
+                                          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                        />
+                                      </PaginationItem>
+                                    </PaginationContent>
+                                  </Pagination>
                                 </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-medium text-gray-100">{transaction.amount || '-'}</p>
-                              </div>
+                              )}
                             </div>
                           )
-                        })
+                        })()
                       ) : (
                         <div className="text-center py-8 text-gray-400">
                           <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -756,11 +848,131 @@ export default function InvestorPage({ params }: InvestorPageProps) {
               {/* Portfolio Summary (always visible) */}
               <Card className="bg-gray-900 border-0 rounded-2xl">
                 <CardContent className="p-8 space-y-8">
+                  {/* Status */}
+                  <div className="space-y-2">
+                    <span className="text-base text-gray-400">Status</span>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${challengeData?.challenge?.isActive ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+                      <span className={`text-xl font-medium ${challengeData?.challenge?.isActive ? 'text-green-400' : 'text-gray-400'}`}>
+                        {challengeData?.challenge?.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Portfolio Value */}
+                  <div className="space-y-2">
+                    <span className="text-base text-gray-400">On-Chain Value</span>
+                    <div className="text-4xl text-white">
+                      ${currentValue.toFixed(2)}
+                    </div>
+                    {/* Real-time portfolio value */}
+                    {realTimePortfolio && (
+                      <div className="space-y-1">
+                        <div className="text-base text-green-400 flex items-center gap-2">
+                          <span className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span>
+                          Live: ${realTimePortfolio.totalValue.toFixed(2)}
+                        </div>
+                      </div>
+                    )}
+                    {isLoadingUniswap && (
+                      <div className="text-sm text-gray-500 flex items-center gap-1">
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
+                        Loading live prices...
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Gain/Loss */}
+                  <div className="space-y-2">
+                    <span className="text-base text-gray-400">Gain/Loss</span>
+                    <div className="flex items-baseline gap-3">
+                      <div className={`text-4xl ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                        {isPositive ? '+' : ''}${gainLoss.toFixed(2)}
+                      </div>
+                      <div className={`text-base ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                        ({isPositive ? '+' : ''}{gainLossPercentage.toFixed(2)}%)
+                      </div>
+                    </div>
+                    {/* Real-time gain/loss */}
+                    {realTimePortfolio && (
+                      <div className="space-y-1">
+                        {(() => {
+                          const realTimeGainLoss = realTimePortfolio.totalValue - formattedSeedMoney
+                          const realTimeGainLossPercentage = formattedSeedMoney > 0 ? (realTimeGainLoss / formattedSeedMoney) * 100 : 0
+                          const isRealTimePositive = realTimeGainLoss >= 0
+                          
+                          return (
+                            <div>
+                              <div className={`text-base flex items-center gap-2 ${isRealTimePositive ? 'text-green-400' : 'text-red-400'}`}>
+                                <span className="w-3 h-3 bg-current rounded-full animate-pulse"></span>
+                                Live: {isRealTimePositive ? '+' : ''}${realTimeGainLoss.toFixed(2)} ({isRealTimePositive ? '+' : ''}{realTimeGainLossPercentage.toFixed(2)}%)
+                              </div>
+                            </div>
+                          )
+                        })()}
+                      </div>
+                    )}
+                  </div>
+
+
+                </CardContent>
+              </Card>
+
+              {/* Challenge Info */}
+              <Card className="bg-gray-900 border-0 rounded-2xl">
+                <CardContent className="p-8 space-y-8">
+                  {/* Challenge Type */}
+                  <div className="space-y-2">
+                    <span className="text-base text-gray-400">Challenge Type</span>
+                    <div className="text-3xl text-white">
+                      {(() => {
+                        switch (challengeId) {
+                          case '1':
+                            return '1 Week';
+                          case '2':
+                            return '1 Month';
+                          case '3':
+                            return '3 Months';
+                          case '4':
+                            return '6 Months';
+                          case '5':
+                            return '1 Year';
+                          default:
+                            return `Type ${challengeId}`;
+                        }
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Challenge ID */}
+                  <div className="space-y-2">
+                    <span className="text-base text-gray-400">Challenge ID</span>
+                    <div className="text-3xl text-white">
+                      {challengeId}
+                    </div>
+                  </div>
+
+                  {/* Seed Money */}
+                  <div className="space-y-2">
+                    <span className="text-base text-gray-400">Seed Money</span>
+                    <div className="text-3xl text-white">
+                      {(() => {
+                        // If we have challenge data and seedMoney is available
+                        if (challengeData?.challenge?.seedMoney) {
+                          const seedMoneyValue = parseInt(challengeData.challenge.seedMoney);
+                          return seedMoneyValue > 0 ? `$${seedMoneyValue}` : '$0';
+                        }
+                        // Default fallback
+                        return '$0';
+                      })()}
+                    </div>
+                  </div>
+
                   {/* Progress */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Progress</span>
-                      <span className="text-sm font-medium text-gray-300">
+                      <span className="text-base text-gray-400">Progress</span>
+                      <span className="text-base font-medium text-gray-300">
                         {(() => {
                           if (!challengeDetails || !isClient) return '0%';
                           
@@ -781,9 +993,9 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                     </div>
                     
                     {/* Progress Bar */}
-                    <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div className="w-full bg-gray-700 rounded-full h-3">
                       <div 
-                        className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
+                        className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-300 ease-out"
                         style={{ 
                           width: `${(() => {
                             if (!challengeDetails || !isClient) return 0;
@@ -806,91 +1018,9 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                     </div>
                     
                     {/* Time Info */}
-                    <div className="flex justify-between text-xs text-gray-500">
+                    <div className="flex justify-between text-sm text-gray-500">
                       <span>Started: {challengeDetails?.startTime.toLocaleDateString() || 'N/A'}</span>
                       <span>Ends: {challengeDetails?.endTime.toLocaleDateString() || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  {/* Portfolio Value */}
-                  <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Portfolio Value</span>
-                    <div className="text-4xl text-white">
-                      ${currentValue.toFixed(2)}
-                    </div>
-                  </div>
-
-                  {/* Gain/Loss */}
-                  <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Gain/Loss</span>
-                    <div className={`text-4xl ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                      {isPositive ? '+' : ''}${gainLoss.toFixed(2)}
-                    </div>
-                    <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                      {isPositive ? '+' : ''}{gainLossPercentage.toFixed(2)}%
-                    </div>
-                  </div>
-
-                  {/* Status */}
-                  <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Status</span>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${challengeData?.challenge?.isActive ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                      <span className={`text-lg font-medium ${challengeData?.challenge?.isActive ? 'text-green-400' : 'text-gray-400'}`}>
-                        {challengeData?.challenge?.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Challenge Info */}
-              <Card className="bg-gray-900 border-0 rounded-2xl">
-                <CardContent className="p-8 space-y-8">
-                  {/* Challenge Type */}
-                  <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Challenge Type</span>
-                    <div className="text-2xl text-white font-semibold">
-                      {(() => {
-                        switch (challengeId) {
-                          case '1':
-                            return '1 Week';
-                          case '2':
-                            return '1 Month';
-                          case '3':
-                            return '3 Months';
-                          case '4':
-                            return '6 Months';
-                          case '5':
-                            return '1 Year';
-                          default:
-                            return `Type ${challengeId}`;
-                        }
-                      })()}
-                    </div>
-                  </div>
-
-                  {/* Challenge ID */}
-                  <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Challenge ID</span>
-                    <div className="text-2xl text-white font-semibold">
-                      {challengeId}
-                    </div>
-                  </div>
-
-                  {/* Seed Money */}
-                  <div className="space-y-2">
-                    <span className="text-sm text-gray-400">Seed Money</span>
-                    <div className="text-2xl text-white font-semibold">
-                      {(() => {
-                        // If we have challenge data and seedMoney is available
-                        if (challengeData?.challenge?.seedMoney) {
-                          const seedMoneyValue = parseInt(challengeData.challenge.seedMoney);
-                          return seedMoneyValue > 0 ? `$${seedMoneyValue}` : '$0';
-                        }
-                        // Default fallback
-                        return '$0';
-                      })()}
                     </div>
                   </div>
                 </CardContent>

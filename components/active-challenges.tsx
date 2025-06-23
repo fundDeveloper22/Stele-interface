@@ -470,8 +470,16 @@ export function ActiveChallenges({ showCreateButton = true }: ActiveChallengesPr
                 {challenges.map((challenge) => (
                   <TableRow 
                     key={challenge.id}
-                    className="border-0 hover:bg-gray-800/50 cursor-pointer transition-colors"
-                    onClick={() => window.location.href = `/challenge/${challenge.challengeId}`}
+                    className={`border-0 transition-colors ${
+                      challenge.challengeId && challenge.challengeId !== "" 
+                        ? "hover:bg-gray-800/50 cursor-pointer" 
+                        : "cursor-default"
+                    }`}
+                    onClick={() => {
+                      if (challenge.challengeId && challenge.challengeId !== "") {
+                        window.location.href = `/challenge/${challenge.challengeId}`
+                      }
+                    }}
                   >
                     <TableCell className="font-medium text-gray-100 pl-12 py-6 text-lg">
                       <div className="flex items-center gap-3">

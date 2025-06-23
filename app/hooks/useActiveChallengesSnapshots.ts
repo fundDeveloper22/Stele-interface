@@ -11,6 +11,7 @@ export const ACTIVE_CHALLENGES_SNAPSHOTS_QUERY = gql`
       orderDirection: $orderDirection
     ) {
       id
+      timestamp
       totalParticipants
       totalRewards
       one_week_investorCounter
@@ -29,6 +30,7 @@ export const ACTIVE_CHALLENGES_SNAPSHOTS_QUERY = gql`
 
 export interface ActiveChallengesSnapshot {
   id: string
+  timestamp: string
   totalParticipants: string
   totalRewards: string
   one_week_investorCounter: string
@@ -56,8 +58,8 @@ export function useActiveChallengesSnapshots(limit: number = 30) {
         ACTIVE_CHALLENGES_SNAPSHOTS_QUERY, 
         {
           first: limit,
-          orderBy: 'id',
-          orderDirection: 'desc'
+          orderBy: 'timestamp',
+          orderDirection: 'asc'
         }, 
         headers
       )
