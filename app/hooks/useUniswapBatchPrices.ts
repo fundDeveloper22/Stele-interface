@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { ethers } from "ethers"
 import { RPC_URL } from "@/lib/constants"
 
@@ -87,6 +87,12 @@ export function useUniswapBatchPrices(tokens: TokenInfo[] = []) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastFetchTime, setLastFetchTime] = useState<number>(0)
+  const priceDataRef = useRef<BatchPriceData | null>(null)
+
+  // Update ref whenever priceData changes
+  useEffect(() => {
+    priceDataRef.current = priceData
+  }, [priceData])
 
   const getProvider = useCallback(async () => {
     // Try to use user's wallet provider, fallback to configured RPC
@@ -140,13 +146,13 @@ export function useUniswapBatchPrices(tokens: TokenInfo[] = []) {
     const timeSinceLastFetch = now - lastFetchTime
     const MIN_FETCH_INTERVAL = 60000 // 1 minute
     
-    if (!forceRefresh && timeSinceLastFetch < MIN_FETCH_INTERVAL && priceData) {
+    if (!forceRefresh && timeSinceLastFetch < MIN_FETCH_INTERVAL && priceDataRef.current) {
       return
     }
 
     try {
       // Only show loading for initial fetch or when no data exists
-      if (!priceData) {
+      if (!priceDataRef.current) {
         setIsLoading(true)
       }
       setError(null)
@@ -220,7 +226,6 @@ export function useUniswapBatchPrices(tokens: TokenInfo[] = []) {
 
       // Execute multicall using aggregate (Multicall2 standard)
       const [blockNumber, returnData] = await multicallContract.aggregate.staticCall(calls)
-      console.log(`Batch price fetch at block ${blockNumber.toString()}, got ${returnData.length} results`)
 
       const processedTokens: Record<string, TokenPrice> = {}
 
@@ -275,7 +280,7 @@ export function useUniswapBatchPrices(tokens: TokenInfo[] = []) {
     } finally {
       setIsLoading(false)
     }
-  }, [tokens, getProvider, createQuoteCallData, lastFetchTime, priceData])
+  }, [tokens, getProvider, createQuoteCallData, lastFetchTime])
 
   // Create stable token key to prevent unnecessary re-renders
   const tokenKey = useMemo(() => {

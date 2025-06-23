@@ -1,7 +1,7 @@
 "use client"
 
 import { notFound } from "next/navigation"
-import { useState, useMemo, use, useEffect } from "react"
+import { useState, useMemo, use, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -71,6 +71,32 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   
   // Get real-time prices for user's tokens using Uniswap V3 onchain data
   const { data: uniswapPrices, isLoading: isLoadingUniswap, error: uniswapError } = useUserTokenPrices(userTokens)
+
+  // Calculate real-time portfolio value
+  const calculateRealTimePortfolioValue = useCallback(() => {
+    if (!uniswapPrices?.tokens || userTokens.length === 0) return null
+    
+    let totalValue = 0
+    let tokensWithPrices = 0
+    
+    userTokens.forEach(token => {
+      const tokenPrice = uniswapPrices.tokens[token.symbol]?.priceUSD
+      if (tokenPrice && tokenPrice > 0) {
+        const tokenAmount = parseFloat(token.amount) || 0
+        totalValue += tokenPrice * tokenAmount
+        tokensWithPrices++
+      }
+    })
+    
+    return {
+      totalValue,
+      tokensWithPrices,
+      totalTokens: userTokens.length,
+      timestamp: uniswapPrices.timestamp || Date.now()
+    }
+  }, [uniswapPrices, userTokens])
+
+  const realTimePortfolio = calculateRealTimePortfolioValue()
 
   const [activeTab, setActiveTab] = useState("portfolio")
   const [isClient, setIsClient] = useState(false)
@@ -597,6 +623,7 @@ export default function InvestorPage({ params }: InvestorPageProps) {
               challengeId={challengeId} 
               investor={walletAddress} 
               investorData={investorData}
+              realTimePortfolio={realTimePortfolio}
             />
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
@@ -834,10 +861,25 @@ export default function InvestorPage({ params }: InvestorPageProps) {
 
                   {/* Portfolio Value */}
                   <div className="space-y-2">
-                    <span className="text-base text-gray-400">Portfolio Value</span>
+                    <span className="text-base text-gray-400">On-Chain Value</span>
                     <div className="text-4xl text-white">
                       ${currentValue.toFixed(2)}
                     </div>
+                    {/* Real-time portfolio value */}
+                    {realTimePortfolio && (
+                      <div className="space-y-1">
+                        <div className="text-base text-green-400 flex items-center gap-2">
+                          <span className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span>
+                          Live: ${realTimePortfolio.totalValue.toFixed(2)}
+                        </div>
+                      </div>
+                    )}
+                    {isLoadingUniswap && (
+                      <div className="text-sm text-gray-500 flex items-center gap-1">
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
+                        Loading live prices...
+                      </div>
+                    )}
                   </div>
 
                   {/* Gain/Loss */}
@@ -850,6 +892,79 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                       <div className={`text-base ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
                         ({isPositive ? '+' : ''}{gainLossPercentage.toFixed(2)}%)
                       </div>
+                    </div>
+                    {/* Real-time gain/loss */}
+                    {realTimePortfolio && (
+                      <div className="space-y-1">
+                        {(() => {
+                          const realTimeGainLoss = realTimePortfolio.totalValue - formattedSeedMoney
+                          const realTimeGainLossPercentage = formattedSeedMoney > 0 ? (realTimeGainLoss / formattedSeedMoney) * 100 : 0
+                          const isRealTimePositive = realTimeGainLoss >= 0
+                          
+                          return (
+                            <div>
+                              <div className={`text-base flex items-center gap-2 ${isRealTimePositive ? 'text-green-400' : 'text-red-400'}`}>
+                                <span className="w-3 h-3 bg-current rounded-full animate-pulse"></span>
+                                Live: {isRealTimePositive ? '+' : ''}${realTimeGainLoss.toFixed(2)} ({isRealTimePositive ? '+' : ''}{realTimeGainLossPercentage.toFixed(2)}%)
+                              </div>
+                            </div>
+                          )
+                        })()}
+                      </div>
+                    )}
+                  </div>
+
+
+                </CardContent>
+              </Card>
+
+              {/* Challenge Info */}
+              <Card className="bg-gray-900 border-0 rounded-2xl">
+                <CardContent className="p-8 space-y-8">
+                  {/* Challenge Type */}
+                  <div className="space-y-2">
+                    <span className="text-base text-gray-400">Challenge Type</span>
+                    <div className="text-3xl text-white">
+                      {(() => {
+                        switch (challengeId) {
+                          case '1':
+                            return '1 Week';
+                          case '2':
+                            return '1 Month';
+                          case '3':
+                            return '3 Months';
+                          case '4':
+                            return '6 Months';
+                          case '5':
+                            return '1 Year';
+                          default:
+                            return `Type ${challengeId}`;
+                        }
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Challenge ID */}
+                  <div className="space-y-2">
+                    <span className="text-base text-gray-400">Challenge ID</span>
+                    <div className="text-3xl text-white">
+                      {challengeId}
+                    </div>
+                  </div>
+
+                  {/* Seed Money */}
+                  <div className="space-y-2">
+                    <span className="text-base text-gray-400">Seed Money</span>
+                    <div className="text-3xl text-white">
+                      {(() => {
+                        // If we have challenge data and seedMoney is available
+                        if (challengeData?.challenge?.seedMoney) {
+                          const seedMoneyValue = parseInt(challengeData.challenge.seedMoney);
+                          return seedMoneyValue > 0 ? `$${seedMoneyValue}` : '$0';
+                        }
+                        // Default fallback
+                        return '$0';
+                      })()}
                     </div>
                   </div>
 
@@ -906,58 +1021,6 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                     <div className="flex justify-between text-sm text-gray-500">
                       <span>Started: {challengeDetails?.startTime.toLocaleDateString() || 'N/A'}</span>
                       <span>Ends: {challengeDetails?.endTime.toLocaleDateString() || 'N/A'}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Challenge Info */}
-              <Card className="bg-gray-900 border-0 rounded-2xl">
-                <CardContent className="p-8 space-y-8">
-                  {/* Challenge Type */}
-                  <div className="space-y-2">
-                    <span className="text-base text-gray-400">Challenge Type</span>
-                    <div className="text-3xl text-white">
-                      {(() => {
-                        switch (challengeId) {
-                          case '1':
-                            return '1 Week';
-                          case '2':
-                            return '1 Month';
-                          case '3':
-                            return '3 Months';
-                          case '4':
-                            return '6 Months';
-                          case '5':
-                            return '1 Year';
-                          default:
-                            return `Type ${challengeId}`;
-                        }
-                      })()}
-                    </div>
-                  </div>
-
-                  {/* Challenge ID */}
-                  <div className="space-y-2">
-                    <span className="text-base text-gray-400">Challenge ID</span>
-                    <div className="text-3xl text-white">
-                      {challengeId}
-                    </div>
-                  </div>
-
-                  {/* Seed Money */}
-                  <div className="space-y-2">
-                    <span className="text-base text-gray-400">Seed Money</span>
-                    <div className="text-3xl text-white">
-                      {(() => {
-                        // If we have challenge data and seedMoney is available
-                        if (challengeData?.challenge?.seedMoney) {
-                          const seedMoneyValue = parseInt(challengeData.challenge.seedMoney);
-                          return seedMoneyValue > 0 ? `$${seedMoneyValue}` : '$0';
-                        }
-                        // Default fallback
-                        return '$0';
-                      })()}
                     </div>
                   </div>
                 </CardContent>

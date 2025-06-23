@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceDot } from 'recharts'
 import { useInvestorSnapshots } from '@/app/hooks/useInvestorSnapshots'
 import { useChallenge } from '@/app/hooks/useChallenge'
 import { DollarSign, TrendingUp, TrendingDown, User, Trophy } from 'lucide-react'
@@ -18,15 +18,24 @@ interface ChartDataPoint {
   fullDate: string
   timeLabel: string
   dateLabel: string
+  isRealTime?: boolean
+}
+
+interface RealTimePortfolio {
+  totalValue: number
+  tokensWithPrices: number
+  totalTokens: number
+  timestamp: number
 }
 
 interface InvestorChartsProps {
   challengeId: string
   investor: string
   investorData?: any // Add investor data prop for calculations
+  realTimePortfolio?: RealTimePortfolio | null
 }
 
-export function InvestorCharts({ challengeId, investor, investorData }: InvestorChartsProps) {
+export function InvestorCharts({ challengeId, investor, investorData, realTimePortfolio }: InvestorChartsProps) {
   const { data, isLoading, error } = useInvestorSnapshots(challengeId, investor, 30)
   const { data: challengeData } = useChallenge(challengeId)
   const [activeIndexPortfolio, setActiveIndexPortfolio] = useState<number | null>(null)
@@ -54,11 +63,11 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
 
     // Convert and sort data by timestamp
     const processedData = data.investorSnapshots
-      .map((snapshot) => {
+      .map((snapshot, index) => {
         const date = new Date(Number(snapshot.timestamp) * 1000)
         
         return {
-          id: snapshot.id,
+          id: `${snapshot.id}-${index}`,
           // Format raw currentUSD amount using USDC_DECIMALS
           currentUSD: formatUSDValue(snapshot.currentUSD),
           seedMoneyUSD: Number(snapshot.seedMoneyUSD),
@@ -80,21 +89,61 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
             minute: '2-digit',
             hour12: true
           }),
-          dateLabel: date.toISOString().split('T')[0] // YYYY-MM-DD format
+          dateLabel: date.toISOString().split('T')[0], // YYYY-MM-DD format
+          isRealTime: false
         }
       })
       .sort((a, b) => a.dateLabel.localeCompare(b.dateLabel)) // Sort by date (ascending)
 
-    return processedData
-  }, [data])
+    // Add real-time data point if available
+    if (realTimePortfolio && realTimePortfolio.totalValue > 0) {
+      const currentDate = new Date(realTimePortfolio.timestamp)
+      const seedMoney = investorData?.investor ? formatUSDValue(investorData.investor.seedMoneyUSD) : 0
+      
+      const realTimeDataPoint = {
+        id: `realtime-${realTimePortfolio.timestamp}-${Date.now()}`,
+        currentUSD: realTimePortfolio.totalValue,
+        seedMoneyUSD: seedMoney,
+        profitRatio: seedMoney > 0 ? ((realTimePortfolio.totalValue - seedMoney) / seedMoney) : 0,
+        formattedDate: currentDate.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric'
+        }),
+        fullDate: `${currentDate.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })} (Live)`,
+        timeLabel: currentDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        }),
+        dateLabel: currentDate.toISOString().split('T')[0],
+        isRealTime: true
+      }
+      
+      // Add real-time point to the end of the chart
+      processedData.push(realTimeDataPoint)
+    }
 
-  // Calculate current values for headers (use the most recent snapshot)
+
+    return processedData
+  }, [data, realTimePortfolio, investorData])
+
+  // Calculate current values for headers (prefer real-time data if available)
   const currentPortfolioValue = useMemo(() => {
+    if (realTimePortfolio && realTimePortfolio.totalValue > 0) {
+      return realTimePortfolio.totalValue
+    }
     if (!chartData.length) return 0
     return chartData[chartData.length - 1]?.currentUSD || 0
-  }, [chartData])
+  }, [chartData, realTimePortfolio])
 
-  // Calculate investor metrics
+  // Calculate investor metrics (using real-time data when available)
   const getInvestorMetrics = () => {
     if (!investorData?.investor) {
       return {
@@ -108,9 +157,13 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
     }
 
     const investor = investorData.investor
-    // Format both currentUSD and seedMoneyUSD using USDC_DECIMALS
-    const currentValue = formatUSDValue(investor.currentUSD)
     const formattedSeedMoney = formatUSDValue(investor.seedMoneyUSD)
+    
+    // Use real-time portfolio value if available, otherwise use subgraph data
+    const currentValue = realTimePortfolio && realTimePortfolio.totalValue > 0 
+      ? realTimePortfolio.totalValue 
+      : formatUSDValue(investor.currentUSD)
+    
     const gainLoss = currentValue - formattedSeedMoney
     const gainLossPercentage = formattedSeedMoney > 0 ? (gainLoss / formattedSeedMoney) * 100 : 0
     const isPositive = gainLoss >= 0
@@ -150,11 +203,22 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
   const CustomTooltipPortfolio = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const value = payload[0]?.value
+      const dataPoint = payload[0]?.payload
+      const isRealTime = dataPoint?.isRealTime
       
       return (
         <div className="bg-gray-800/95 border border-gray-600 rounded-lg px-3 py-2 shadow-xl backdrop-blur-sm">
           <p className="text-gray-100 text-sm font-medium">
             Portfolio: ${value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+          {isRealTime && (
+            <div className="flex items-center gap-1 mt-1">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+              <p className="text-green-400 text-xs">Live (Uniswap V3)</p>
+            </div>
+          )}
+          <p className="text-gray-400 text-xs mt-1">
+            {dataPoint?.fullDate}
           </p>
         </div>
       )
@@ -209,7 +273,15 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
   return (
     <Card className="bg-transparent border-0">
       <CardHeader className="pb-6">
-        <h3 className="text-3xl text-gray-100 mb-2">Portfolio Value</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-3xl text-gray-100">Portfolio Value</h3>
+          {realTimePortfolio && realTimePortfolio.totalValue > 0 && (
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+              <span className="text-xs text-green-400">Live</span>
+            </div>
+          )}
+        </div>
         <div className="flex items-baseline gap-3">
           <CardTitle className="text-4xl font-bold text-gray-100">
             ${currentPortfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -222,7 +294,7 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
         </div>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={320}>
+                <ResponsiveContainer width="100%" height={320}>
           <AreaChart 
             data={chartData} 
             margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
@@ -279,6 +351,39 @@ export function InvestorCharts({ challengeId, investor, investorData }: Investor
               dot={false}
               activeDot={{ r: 4, fill: '#f97316', stroke: '#ffffff', strokeWidth: 2 }}
             />
+                        {/* 실시간 데이터 포인트를 ReferenceDot으로 표시 */}
+            {realTimePortfolio && realTimePortfolio.totalValue > 0 && chartData.length > 0 && (() => {
+              const lastDataPoint = chartData[chartData.length - 1]
+              if (lastDataPoint && lastDataPoint.isRealTime) {
+                const PulsingDot = (props: any) => (
+                  <circle
+                    cx={props.cx}
+                    cy={props.cy}
+                    r={6}
+                    fill="#22c55e"
+                    stroke="#ffffff"
+                    strokeWidth={2}
+                  >
+                    <animate
+                      attributeName="opacity"
+                      values="1;0.3;1"
+                      dur="2s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                )
+                
+                return (
+                  <ReferenceDot
+                    key={`realtime-ref-dot-${lastDataPoint.id}`}
+                    x={lastDataPoint.timeLabel}
+                    y={lastDataPoint.currentUSD}
+                    shape={<PulsingDot />}
+                  />
+                )
+              }
+              return null
+            })()}
           </AreaChart>
         </ResponsiveContainer>
       </CardContent>
