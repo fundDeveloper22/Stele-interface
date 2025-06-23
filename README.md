@@ -2,6 +2,6 @@
 
 how to run
 
-- nvm use 18
+- nvm use 23
 - npm install
 - npm run dev
