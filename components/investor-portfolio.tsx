@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
 import { useInvestorData } from "@/app/subgraph/Account"
-import { useTokenPrices } from "@/app/hooks/useTokenPrices"
+
 import { useUserTokens } from "@/app/hooks/useUserTokens"
 import { useUserTokenPrices } from "@/app/hooks/useUniswapBatchPrices"
 import { ethers } from "ethers"
@@ -18,7 +18,6 @@ interface InvestorPortfolioProps {
 
 export function InvestorPortfolio({ challengeId, walletAddress }: InvestorPortfolioProps) {
   const { data: investorData, isLoading: isLoadingInvestor, error: investorError } = useInvestorData(challengeId, walletAddress)
-  const { data: priceData } = useTokenPrices()
   const { data: userTokens = [], isLoading: isLoadingTokens, error: tokensError } = useUserTokens(challengeId, walletAddress)
   
   // Get real-time prices for user's tokens using Uniswap V3 onchain data
