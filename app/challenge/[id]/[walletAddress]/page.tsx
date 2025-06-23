@@ -34,6 +34,7 @@ import { AssetSwap } from "@/components/asset-swap"
 import { InvestorCharts } from "@/components/investor-charts"
 import { useInvestorData } from "@/app/subgraph/Account"
 import { useUserTokens } from "@/app/hooks/useUserTokens"
+import { useUserTokenPrices } from "@/app/hooks/useUniswapBatchPrices"
 import { useChallenge } from "@/app/hooks/useChallenge"
 import { useInvestorTransactions } from "@/app/hooks/useInvestorTransactions"
 import { useWallet } from "@/app/hooks/useWallet"
@@ -67,6 +68,9 @@ export default function InvestorPage({ params }: InvestorPageProps) {
   const { data: userTokens = [], isLoading: isLoadingTokens, error: tokensError } = useUserTokens(challengeId, walletAddress)
   const { data: challengeData, isLoading: isLoadingChallenge, error: challengeError } = useChallenge(challengeId)
   const { data: investorTransactions = [], isLoading: isLoadingTransactions, error: transactionsError } = useInvestorTransactions(challengeId, walletAddress)
+  
+  // Get real-time prices for user's tokens using Uniswap V3 onchain data
+  const { data: uniswapPrices, isLoading: isLoadingUniswap, error: uniswapError } = useUserTokenPrices(userTokens)
 
   const [activeTab, setActiveTab] = useState("portfolio")
   const [isClient, setIsClient] = useState(false)
@@ -612,22 +616,46 @@ export default function InvestorPage({ params }: InvestorPageProps) {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {userTokens.map((token, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-transparent border-0">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                              {token.symbol.slice(0, 2)}
+                      {userTokens.map((token, index) => {
+                        // Get price from Uniswap data
+                        const tokenPrice = uniswapPrices?.tokens?.[token.symbol]?.priceUSD || 0
+                        const isLoadingPrice = isLoadingUniswap
+                        const tokenAmount = parseFloat(token.amount) || 0
+                        const tokenValue = tokenPrice * tokenAmount
+                        
+                        return (
+                          <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-transparent border-0">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                                {token.symbol.slice(0, 2)}
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-100">{token.symbol}</p>
+                                <p className="text-sm text-gray-400">{token.address.slice(0, 8)}...{token.address.slice(-6)}</p>
+                                {/* Show real-time price */}
+                                {isLoadingPrice ? (
+                                  <p className="text-xs text-gray-500">Loading price...</p>
+                                ) : tokenPrice > 0 ? (
+                                  <p className="text-xs text-green-400">${tokenPrice.toFixed(4)} per token</p>
+                                ) : (
+                                  <p className="text-xs text-gray-500">Price unavailable</p>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium text-gray-100">{token.symbol}</p>
-                              <p className="text-sm text-gray-400">{token.address.slice(0, 8)}...{token.address.slice(-6)}</p>
+                            <div className="text-right">
+                              <p className="font-medium text-gray-100">{token.amount}</p>
+                              {/* Show USD value */}
+                              {isLoadingPrice ? (
+                                <p className="text-sm text-gray-500">Loading...</p>
+                              ) : tokenValue > 0 ? (
+                                <p className="text-sm text-green-400">${tokenValue.toFixed(2)}</p>
+                              ) : (
+                                <p className="text-sm text-gray-500">$0.00</p>
+                              )}
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-medium text-gray-100">{token.amount}</p>
-                          </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                       
                       {userTokens.length === 0 && (
                         <div className="text-center py-8 text-gray-400">
